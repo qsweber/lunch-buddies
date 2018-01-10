@@ -7,8 +7,8 @@ install:
 script:
 - pytest --cov lunch_buddies
 - flake8
-deploy:
-  provider: script
-  script: scripts/deploy.sh
-  on:
-    branch: master
+after_success:
+- coveralls
+- pip install -r requirements.txt
+- pip install zappa
+- test $TRAVIS_BRANCH = "master" && zappa update production
