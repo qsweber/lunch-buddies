@@ -1,0 +1,9 @@
+{
+    "production": {
+        "app_function": "lunch_buddies.app.app",
+        "aws_region": "us-west-2",
+        "project_name": "lunch-buddies",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-vt9hd6vy9"
+    }
+}

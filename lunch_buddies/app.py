@@ -1,2 +1,16 @@
+from flask import Flask, jsonify
 
-# the URL should be registed on slack according to https://api.slack.com/interactive-messages (Preparing your Request URL)
+# from lunch_buddies.actions import poll_users
+
+app = Flask(__name__)
+
+
+@app.route('/api/v0/poll', methods=['POST', 'GET'])
+def index():
+    response = jsonify({
+        'foo': 1,
+        'bar': 2,
+    })
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response
