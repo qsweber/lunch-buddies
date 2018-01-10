@@ -1,5 +1,5 @@
 
-MSG_FORMAT = {
+MESSAGE = {
     "text": "Are you able to participate in Lunch Buddies today?",
     "attachments": [
         {
@@ -46,7 +46,7 @@ def poll_users():
     users = get_all_users()
 
     for user in users:
-        send_message(user, MSG_FORMAT)
+        send_message(user, MESSAGE)
 
 
 def poll_listener(response):
