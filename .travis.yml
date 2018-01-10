@@ -7,8 +7,8 @@ install:
 script:
 - pytest --cov lunch_buddies
 - flake8
-after_success:
-- coveralls
-- pip install -r requirements.txt
-- pip install zappa
-- zappa update production
+deploy:
+  provider: script
+  script: scripts/deploy.sh
+  on:
+    branch: master
