@@ -1,3 +1,5 @@
+from lunch_buddies.clients import slack
+
 
 MESSAGE = {
     "text": "Are you able to participate in Lunch Buddies today?",
@@ -33,20 +35,11 @@ MESSAGE = {
 }
 
 
-def get_all_users():
-    return []
-
-
-def send_message(user, text):
-    # probably just call the slack API client
-    pass
-
-
 def poll_users():
-    users = get_all_users()
+    users = slack.get_all_users()
 
     for user in users:
-        send_message(user, MESSAGE)
+        slack.send_message()
 
 
 def poll_listener(response):
