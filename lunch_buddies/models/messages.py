@@ -1,17 +1,17 @@
-from typing import NamedTuple
 from datetime import datetime
+from decimal import Decimal
+from typing import NamedTuple
 
 Message = NamedTuple(
     'Message',
     [
         ('team_id', str),
         ('channel_id', str),
-        ('message_id', str),  # not sure where we can get this
+        ('message_ts', Decimal),
         ('from_user_id', str),
         ('to_user_id', str),
         ('received_at', datetime),
-        ('type', str),  # one of list
-        ('text', str),
-
+        ('type', str),
+        ('raw', dict),
     ]
 )
