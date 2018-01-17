@@ -70,7 +70,6 @@ def read(team_id, channel_id=None):
                 message_ts=raw_message['message_ts'],
                 from_user_id=raw_message['from_user_id'],
                 to_user_id=raw_message['to_user_id'],
-                received_at=datetime.datetime.strptime(raw_message['created_at'], "%Y-%m-%dT%H:%M:%S.%f"),
                 type=raw_message['type'],
                 raw=json.loads(raw_message['raw']),
             ))

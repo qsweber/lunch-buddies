@@ -39,7 +39,7 @@ def listen_to_poll(request_payload):
         message_ts=datetime.datetime.now().timestamp(),
         from_user_id=incoming_message.to_user_id,
         to_user_id=incoming_message.from_user_id,
-        type='POLL_RESPONSE',
+        type='POLL_RESPONSE_CONFIRMATION',
         raw=outgoing_message_payload,
     )
     messages_dao.create(outgoing_message)

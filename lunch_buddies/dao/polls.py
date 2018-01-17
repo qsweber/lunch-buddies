@@ -36,7 +36,7 @@ def read(team_id):
     '''
     dynamodb = boto3.resource('dynamodb')
 
-    teams_table = dynamodb.Table('lunch_buddies_teams')
+    teams_table = dynamodb.Table('lunch_buddies_polls')
     result = teams_table.query(KeyConditionExpression=Key('team_id').eq(team_id))['Items']
 
     return [
@@ -46,7 +46,6 @@ def read(team_id):
             created_by_user_id=item['created_by_user_id'],
             callback_id=item['callback_id'],
             state=item['state'],
-            created_at=datetime.datetime.strptime(item['created_at'], "%Y-%m-%dT%H:%M:%S.%f"),
             raw=json.loads(item['raw']),
         )
         for item in result
