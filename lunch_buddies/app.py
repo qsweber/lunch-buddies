@@ -1,47 +1,45 @@
-import datetime
 import logging
 import json
-import os
 
 from flask import Flask, jsonify, request
 
-from lunch_buddies.actions import poll_users
-from lunch_buddies.dao import messages as messages_dao
-from lunch_buddies.models.messages import Message
+from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
+from lunch_buddies.actions.create_poll import create_poll as create_poll_action
+from lunch_buddies.clients.slack import SlackClient
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 
 @app.route('/api/v0/poll', methods=['POST'])
-def index():
+def listen_to_poll():
+    '''
+    Listens for responses to the poll
+    '''
     request_payload = json.loads(request.form['payload'])
 
-    incoming_message = Message(
-        team_id=request_payload['team']['id'],
-        channel_id=request_payload['channel']['id'],
-        message_ts=request_payload['action_ts'],
-        from_user_id=request_payload['user']['id'],
-        to_user_id=os.environ['BOT_USER_ID'],
-        received_at=datetime.datetime.now(),
-        type='POLL_RESPONSE',
-        raw=request_payload,
-    )
-    messages_dao.add(incoming_message)
+    outgoing_message_payload = listen_to_poll_action(request_payload)
 
-    if request_payload['type'] == 'interactive_message':
-        poll_users.poll_listener(incoming_message)
-
-    response = jsonify({
-        'foo': 2,
-        'bar': 2,
-    })
+    response = jsonify(outgoing_message_payload)
 
     response.headers.add('Access-Control-Allow-Origin', '*')
 
     return response
 
 
-@app.route('/api/v0/poll/administer', methods=['POST'])
-def administer():
-    pass
+@app.route('/api/v0/poll/create', methods=['POST'])
+def create_poll():
+    '''
+    Create a poll
+    '''
+    request_payload = json.loads(json.dumps(request.form))
+
+    slack_client = SlackClient()
+
+    outgoing_message_payload = create_poll_action(request_payload, slack_client)
+
+    response = jsonify(outgoing_message_payload)
+
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response

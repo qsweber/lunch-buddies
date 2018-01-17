@@ -8,7 +8,7 @@ from boto3.dynamodb.conditions import Key
 from lunch_buddies.models.messages import Message
 
 
-def add(message):
+def create(message):
     dynamodb = boto3.resource('dynamodb')
 
     # add team
@@ -28,7 +28,7 @@ def add(message):
         'message_ts': Decimal(message.message_ts),
         'from_user_id': message.from_user_id,
         'to_user_id': message.to_user_id,
-        'received_at': message.received_at.isoformat(),
+        'created_at': datetime.datetime.now().isoformat(),
         'type': message.type,
         'raw': json.dumps(message.raw),
     }
@@ -39,7 +39,7 @@ def add(message):
     return True
 
 
-def get(team_id, channel_id=None):
+def read(team_id, channel_id=None):
     '''
     Returns a list of Message objects
     '''
@@ -70,7 +70,7 @@ def get(team_id, channel_id=None):
                 message_ts=raw_message['message_ts'],
                 from_user_id=raw_message['from_user_id'],
                 to_user_id=raw_message['to_user_id'],
-                received_at=datetime.datetime.strptime(raw_message['received_at'], "%Y-%m-%dT%H:%M:%S.%f"),
+                received_at=datetime.datetime.strptime(raw_message['created_at'], "%Y-%m-%dT%H:%M:%S.%f"),
                 type=raw_message['type'],
                 raw=json.loads(raw_message['raw']),
             ))

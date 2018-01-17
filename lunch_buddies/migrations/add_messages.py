@@ -61,3 +61,33 @@ teams = dynamodb.create_table(
 )
 
 teams.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_teams')
+
+polls = dynamodb.create_table(
+    TableName='lunch_buddies_polls',
+    KeySchema=[
+        {
+            'AttributeName': 'team_id',  # globally unique partition
+            'KeyType': 'HASH',
+        },
+        {
+            'AttributeName': 'created_at_ts',
+            'KeyType': 'RANGE',
+        }
+    ],
+    AttributeDefinitions=[
+        {
+            'AttributeName': 'team_id',
+            'AttributeType': 'S',
+        },
+        {
+            'AttributeName': 'created_at_ts',
+            'AttributeType': 'N',
+        },
+    ],
+    ProvisionedThroughput={
+        'ReadCapacityUnits': 5,
+        'WriteCapacityUnits': 5
+    }
+)
+
+polls.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_polls')
