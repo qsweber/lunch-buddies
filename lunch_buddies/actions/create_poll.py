@@ -47,13 +47,13 @@ def create_poll(request_payload, slack_client):
                             'name': 'answer',
                             'text': 'Yes (11:45)',
                             'type': 'button',
-                            'value': 'yes_0'
+                            'value': 'yes_1145'
                         },
                         {
                             'name': 'answer',
                             'text': 'Yes (12:30)',
                             'type': 'button',
-                            'value': 'yes_1'
+                            'value': 'yes_1230'
                         },
                         {
                             'name': 'answer',

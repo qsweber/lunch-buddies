@@ -3,6 +3,7 @@ import random
 
 from lunch_buddies.dao import messages as messages_dao
 from lunch_buddies.dao import polls as polls_dao
+from lunch_buddies.models.messages import Message
 
 
 def close_poll(request_payload, slack_client):
@@ -28,31 +29,55 @@ def close_poll(request_payload, slack_client):
         )
     }
 
-    for answer, messages in answers_by_answer:
+    groups_count = 0
+    users_count = 0
+    for answer, messages in answers_by_answer.items():
         if 'yes' in answer:
-            groups = get_groups(messages)
+            groups = get_groups(messages, 7, 5)
+
             for group in groups:
                 hourminute = answer.split('_')[1]
                 hourminute_formatted = '{}:{}'.format(hourminute[0:2], hourminute[2:4])
 
                 user_in_charge = random.choice(group)
-                message = (
+                text = (
                     'Hello! This is your lunch group for today. ' +
                     'You all should meet somewhere at `{}`. '.format(hourminute_formatted) +
                     'I am selecting <@{}> to be in charge of picking the location.'.format(user_in_charge.from_user_id)
                 )
 
-                slack_client.post_message(
-                    # https://api.slack.com/methods/conversations.open
+                conversation = slack_client.open_conversation(users=','.join([user.from_user_id for user in group]))
+
+                outgoing_message_payload = slack_client.post_message(
+                    channel=conversation['channel']['id'],
+                    text=text,
                 )
 
-    # send one message to each group
+                outgoing_message = Message(
+                    team_id=team_id,
+                    channel_id=conversation['channel']['id'],
+                    message_ts=outgoing_message_payload['ts'],
+                    from_user_id=outgoing_message_payload['message']['bot_id'],
+                    to_user_id=','.join([user.from_user_id for user in group]),
+                    type='POLL_RESULTS',
+                    raw=outgoing_message_payload,
+                )
 
-    # return outgoing_message_payload
-    return ''
+                messages_dao.create(outgoing_message)
+
+                groups_count = groups_count + 1
+                users_count = users_count + len(group)
+
+    return {'text': 'Sent messages to {} groups ({} users)'.format(
+        groups_count,
+        users_count,
+    )}
 
 
 def get_groups(elements, group_size, smallest_group):
+    if len(elements) <= group_size:
+        return [elements]
+
     elements_copy = elements.copy()
     leftover_count = len(elements_copy) % group_size
     if leftover_count:
