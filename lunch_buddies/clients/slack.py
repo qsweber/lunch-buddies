@@ -3,7 +3,7 @@ import os
 from slackclient import SlackClient as BaseSlackClient
 
 
-class SlackClient:
+class SlackClient(object):
     def __init__(self):
         self.baseClient = BaseSlackClient(os.environ['SLACK_API_TOKEN'])
 
