@@ -58,11 +58,7 @@ def _read_from_queue(queue, action):
 
 
 def create_poll_from_queue():
-    outgoing_message = _read_from_queue(constants.POLLS_TO_START, create_poll_action)
-    response = jsonify(outgoing_message)
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
+    return _read_from_queue(constants.POLLS_TO_START, create_poll_action)
 
 
 def poll_users_from_queue():
