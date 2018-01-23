@@ -6,10 +6,10 @@ class PollsDao(Dao):
     def __init__(self):
         super(PollsDao, self).__init__(Poll)
 
-    def find_by_callback_id(self, callback_id):
+    def find_by_callback_id(self, team_id, callback_id):
         polls = [
             poll
-            for poll in self.read()
+            for poll in self.read('team_id', team_id)
             if poll.callback_id == callback_id
         ]
 

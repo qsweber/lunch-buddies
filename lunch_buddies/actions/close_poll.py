@@ -5,10 +5,10 @@ from lunch_buddies import constants
 
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
-    team_id = message['team_id']
+    team_id = message.team_id
     poll = polls_dao.find_latest_by_team_id(team_id)
 
-    poll_responses = poll_responses_dao.read('callback_id', poll.callback_id)
+    poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
     # randomly group the responding users
     poll_responses_by_response = {
@@ -23,7 +23,10 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
     for answer, messages in poll_responses_by_response.items():
         for group in get_groups(messages, 7, 5):
             user_ids = [poll_response.user_id for poll_response in group]
-            sqs_client.send_message(constants.GROUPS_TO_NOTIFY, {'user_ids': user_ids, 'response': answer})
+            sqs_client.send_message(
+                constants.GROUPS_TO_NOTIFY,
+                constants.SQS_QUEUE_INTERFACES[constants.GROUPS_TO_NOTIFY](**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
+            )
 
     return True
 

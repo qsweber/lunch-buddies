@@ -4,7 +4,7 @@ if __name__ == '__main__':
     dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
 
     polls = dynamodb.create_table(
-        TableName='lunch_buddies_polls',
+        TableName='lunch_buddies_Poll',
         KeySchema=[
             {
                 'AttributeName': 'team_id',  # globally unique partition
@@ -31,10 +31,10 @@ if __name__ == '__main__':
         }
     )
 
-    polls.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_polls')
+    polls.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Poll')
 
     poll_responses = dynamodb.create_table(
-        TableName='lunch_buddies_pollresponses',
+        TableName='lunch_buddies_PollResponse',
         KeySchema=[
             {
                 'AttributeName': 'callback_id',  # globally unique partition
@@ -61,4 +61,4 @@ if __name__ == '__main__':
         }
     )
 
-    polls.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_pollresponses')
+    poll_responses.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_PollResponse')

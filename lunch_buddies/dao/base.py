@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 import json
 from uuid import UUID
 
@@ -20,24 +21,24 @@ class Dao(object):
 
     def create(self, model_instance):
         object_for_dynamo = {}
-        for field, field_type in model_instance._field_types:
+        for field, field_type in model_instance._field_types.items():
             value = getattr(model_instance, field)
             if field_type == dict:
                 value = json.dumps(value)
             elif field_type == datetime.datetime:
-                value = value.timestamp()
+                value = Decimal(value.timestamp())
             elif field_type == UUID:
                 value = str(value)
 
             object_for_dynamo[field] = value
 
-        self.dynamo_table.put_item(object_for_dynamo)
+        self.dynamo_table.put_item(Item=object_for_dynamo)
 
         return True
 
-    def _as_model(model_class, dynamo_object):
+    def _as_model(self, model_class, dynamo_object):
         kwargs = {}
-        for field, field_type in model_class._field_types:
+        for field, field_type in model_class._field_types.items():
             value = dynamo_object[field]
             if field_type == dict:
                 value = json.loads(value)
@@ -49,13 +50,13 @@ class Dao(object):
 
         return model_class(**kwargs)
 
-    def read(self, model_class, key=None, value=None):
+    def read(self, key=None, value=None):
         if not key:
             result = self.dynamo_table.query().get('Items')
         else:
             result = self.dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
 
         return [
-            self._as_model(model_class, item)
+            self._as_model(self.model_class, item)
             for item in result
         ]
