@@ -11,7 +11,7 @@ def test_json_round_trip_encoding():
     output_object = json.loads(
         json.dumps(
             input_object,
-            cls=module.RoundTripEncoder,  
+            cls=module.RoundTripEncoder,
         ),
         cls=module.RoundTripDecoder,
     )

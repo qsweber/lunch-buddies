@@ -4,8 +4,6 @@ from uuid import UUID
 
 import boto3
 
-from lunch_buddies import constants
-
 
 class RoundTripEncoder(json.JSONEncoder):
     '''
@@ -43,13 +41,17 @@ class RoundTripDecoder(json.JSONDecoder):
 
 
 class SqsClient(object):
-    def __init__(self):
+    def __init__(self, queues):
         self.sqs = boto3.client('sqs')
+        self.queues = queues
 
     def _url_for_queue(self, queue):
-        return constants.SQS_QUEUE_URLS[queue]
+        return self.queues[queue]['url']
 
     def send_message(self, queue, message):
+        if not isinstance(queue, self.queues[queue]['type']):
+            raise Exception('invalid message type being added to the queue')
+
         return self.sqs.send_message(
             QueueUrl=self._url_for_queue(queue),
             MessageBody=json.dumps(message._asdict(), cls=RoundTripEncoder),
@@ -65,10 +67,12 @@ class SqsClient(object):
             return None, None
 
         messages = result['Messages']
+        message = json.loads(messages[0]['Body'], cls=RoundTripDecoder)
+        receipt_handle = messages[0]['ReceiptHandle']
 
-        message_object = constants.SQS_QUEUE_INTERFACES[queue](**json.loads(messages[0]['Body'], cls=RoundTripDecoder))
+        message_object = self.queues[queue]['type'](**message)
 
-        return message_object, messages[0]['ReceiptHandle']
+        return message_object, receipt_handle
 
     def delete_message(self, queue, receipt_handle):
         return self.sqs.delete_message(

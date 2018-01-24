@@ -4,6 +4,12 @@ import json
 from flask import Flask, jsonify, request
 
 from lunch_buddies import constants
+from lunch_buddies.constants.queues import (
+    POLLS_TO_START, PollsToStartMessage,
+    USERS_TO_POLL,
+    POLLS_TO_CLOSE, PollsToCloseMessage,
+    GROUPS_TO_NOTIFY,
+)
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
@@ -18,16 +24,28 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 
+def _create_poll(message):
+    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client.send_message(
+        POLLS_TO_START,
+        message,
+    )
+
+    return True
+
+
 @app.route('/api/v0/poll/create', methods=['POST'])
-def create_poll():
+def create_poll_http():
     '''
     Create a poll
+    This is connected to an incoming slash command from Slack
     '''
-    sqs_client = SqsClient()
-    sqs_client.send_message(
-        constants.POLLS_TO_START,
-        constants.SQS_QUEUE_INTERFACES[constants.POLLS_TO_START](team_id=request.form['team_id'], user_id=request.form['user_id'])
+    message = PollsToStartMessage(
+        team_id=request.form['team_id'],
+        user_id=request.form['user_id'],
     )
+
+    _create_poll(message)
 
     outgoing_message = {'text': 'Users will be polled.'}
     response = jsonify(outgoing_message)
@@ -37,38 +55,48 @@ def create_poll():
 
 
 def _read_from_queue(queue, action):
-    sqs_client = SqsClient()
+    '''
+    Pulls messages from the specific queue and passes them to the specified action
+    Handles up to 30 messages, but if 3 consecutive iterations result in no message received, exit the loop
+    '''
+    sqs_client = SqsClient(constants.queues.QUEUES)
 
-    message, receipt_handle = sqs_client.receive_message(queue)
+    messages_handled = 0
+    consecutive_blanks = 0
+    while messages_handled < 30 and consecutive_blanks < 3:
+        message, receipt_handle = sqs_client.receive_message(queue)
 
-    if not message:
-        return None
+        if not message:
+            consecutive_blanks = consecutive_blanks + 1
+            continue
 
-    logger.info('handling one message for {}'.format(queue))
+        consecutive_blanks = 0
 
-    slack_client = SlackClient()
-    polls_dao = PollsDao()
-    poll_responses_dao = PollResponsesDao()
+        slack_client = SlackClient()
+        polls_dao = PollsDao()
+        poll_responses_dao = PollResponsesDao()
 
-    outgoing_message = action(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
+        outgoing_message = action(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
 
-    sqs_client.delete_message(queue, receipt_handle)
+        sqs_client.delete_message(queue, receipt_handle)
+
+        messages_handled = messages_handled + 1
 
     return outgoing_message
 
 
 def create_poll_from_queue():
-    return _read_from_queue(constants.POLLS_TO_START, create_poll_action)
+    return _read_from_queue(POLLS_TO_START, create_poll_action)
 
 
 def poll_users_from_queue():
-    return _read_from_queue(constants.USERS_TO_POLL, poll_user_action)
+    return _read_from_queue(USERS_TO_POLL, poll_user_action)
 
 
 @app.route('/api/v0/poll', methods=['POST'])
-def listen_to_poll():
+def listen_to_poll_http():
     '''
-    Listens for responses to the poll
+    Listens for responses to the poll.
     '''
     request_payload = json.loads(request.form['payload'])
     polls_dao = PollsDao()
@@ -82,14 +110,14 @@ def listen_to_poll():
 
 
 @app.route('/api/v0/poll/close', methods=['POST'])
-def close_poll():
+def close_poll_http():
     '''
     Close a poll
     '''
-    sqs_client = SqsClient()
+    sqs_client = SqsClient(constants.queues.QUEUES)
     sqs_client.send_message(
-        constants.POLLS_TO_CLOSE,
-        constants.SQS_QUEUE_INTERFACES[constants.POLLS_TO_CLOSE](team_id=request.form['team_id']),
+        POLLS_TO_CLOSE,
+        PollsToCloseMessage(team_id=request.form['team_id']),
     )
 
     outgoing_message = {'text': 'Poll will be closed.'}
@@ -100,8 +128,8 @@ def close_poll():
 
 
 def close_poll_from_queue():
-    return _read_from_queue(constants.POLLS_TO_CLOSE, close_poll_action)
+    return _read_from_queue(POLLS_TO_CLOSE, close_poll_action)
 
 
 def notify_groups_from_queue():
-    return _read_from_queue(constants.GROUPS_TO_NOTIFY, notify_group_action)
+    return _read_from_queue(GROUPS_TO_NOTIFY, notify_group_action)

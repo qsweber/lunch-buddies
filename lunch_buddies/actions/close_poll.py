@@ -1,7 +1,7 @@
 from itertools import groupby
 import random
 
-from lunch_buddies import constants
+from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessage
 
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
@@ -24,8 +24,8 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
         for group in get_groups(messages, 7, 5):
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
-                constants.GROUPS_TO_NOTIFY,
-                constants.SQS_QUEUE_INTERFACES[constants.GROUPS_TO_NOTIFY](**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
+                GROUPS_TO_NOTIFY,
+                GroupsToNotifyMessage(**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
             )
 
     return True
