@@ -11,11 +11,12 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     # TODO: make sure there is not already an active poll
 
-    callback_id = uuid.uuid4()
+    callback_id = _get_uuid()
+    created_at = _get_created_at()
 
     poll = Poll(
         team_id=team_id,
-        created_at=datetime.now(),
+        created_at=created_at,
         created_by_user_id=message.user_id,
         callback_id=callback_id,
         state=polls.CREATED,
@@ -37,3 +38,11 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         )
 
     return True
+
+
+def _get_uuid():
+    return uuid.uuid4()
+
+
+def _get_created_at():
+    return datetime.now()

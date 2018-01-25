@@ -48,17 +48,23 @@ class SqsClient(object):
     def _url_for_queue(self, queue):
         return self.queues[queue]['url']
 
+    def _send_message_internal(self, **kwargs):
+        return self.sqs.send_message(**kwargs)
+
     def send_message(self, queue, message):
-        if not isinstance(queue, self.queues[queue]['type']):
+        if not isinstance(message, self.queues[queue]['type']):
             raise Exception('invalid message type being added to the queue')
 
-        return self.sqs.send_message(
+        return self._send_message_internal(
             QueueUrl=self._url_for_queue(queue),
             MessageBody=json.dumps(message._asdict(), cls=RoundTripEncoder),
         )
 
+    def _receive_message_internal(self, **kwargs):
+        return self.sqs.receive_message(**kwargs)
+
     def receive_message(self, queue):
-        result = self.sqs.receive_message(
+        result = self._receive_message_internal(
             QueueUrl=self._url_for_queue(queue),
             MaxNumberOfMessages=1,
             VisibilityTimeout=60,
@@ -74,8 +80,11 @@ class SqsClient(object):
 
         return message_object, receipt_handle
 
+    def _delete_message_internal(self, **kwargs):
+        return self.sqs.delete_message(**kwargs)
+
     def delete_message(self, queue, receipt_handle):
-        return self.sqs.delete_message(
+        return self._delete_message_internal(
             QueueUrl=self._url_for_queue(queue),
             ReceiptHandle=receipt_handle,
         )

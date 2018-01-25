@@ -24,8 +24,12 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 
-def _create_poll(message):
-    sqs_client = SqsClient(constants.queues.QUEUES)
+def _create_poll(request_form, sqs_client):
+    message = PollsToStartMessage(
+        team_id=request_form['team_id'],
+        user_id=request_form['user_id'],
+    )
+
     sqs_client.send_message(
         POLLS_TO_START,
         message,
@@ -40,12 +44,9 @@ def create_poll_http():
     Create a poll
     This is connected to an incoming slash command from Slack
     '''
-    message = PollsToStartMessage(
-        team_id=request.form['team_id'],
-        user_id=request.form['user_id'],
-    )
+    sqs_client = SqsClient(constants.queues.QUEUES)
 
-    _create_poll(message)
+    _create_poll(request.form, sqs_client)
 
     outgoing_message = {'text': 'Users will be polled.'}
     response = jsonify(outgoing_message)
@@ -54,13 +55,11 @@ def create_poll_http():
     return response
 
 
-def _read_from_queue(queue, action):
+def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_responses_dao):
     '''
     Pulls messages from the specific queue and passes them to the specified action
     Handles up to 30 messages, but if 3 consecutive iterations result in no message received, exit the loop
     '''
-    sqs_client = SqsClient(constants.queues.QUEUES)
-
     messages_handled = 0
     consecutive_blanks = 0
     while messages_handled < 30 and consecutive_blanks < 3:
@@ -72,21 +71,28 @@ def _read_from_queue(queue, action):
 
         consecutive_blanks = 0
 
-        slack_client = SlackClient()
-        polls_dao = PollsDao()
-        poll_responses_dao = PollResponsesDao()
-
-        outgoing_message = action(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
-
+        action(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
         sqs_client.delete_message(queue, receipt_handle)
 
         messages_handled = messages_handled + 1
 
-    return outgoing_message
+    return messages_handled
 
 
 def create_poll_from_queue():
-    return _read_from_queue(POLLS_TO_START, create_poll_action)
+    sqs_client = SqsClient(constants.queues.QUEUES)
+    slack_client = SlackClient()
+    polls_dao = PollsDao()
+    poll_responses_dao = PollResponsesDao()
+
+    return _read_from_queue(
+        POLLS_TO_START,
+        create_poll_action,
+        sqs_client,
+        slack_client,
+        polls_dao,
+        poll_responses_dao,
+    )
 
 
 def poll_users_from_queue():
