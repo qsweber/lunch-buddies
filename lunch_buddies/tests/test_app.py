@@ -78,7 +78,21 @@ def polls_dao(mocker):
 
     mocker.patch.object(
         dao,
-        'create',
+        '_get_dynamo_table',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        dao,
+        '_create_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        dao,
+        '_read_internal',
         auto_spec=True,
         return_value=True,
     )
@@ -87,8 +101,31 @@ def polls_dao(mocker):
 
 
 @pytest.fixture
-def poll_responses_dao():
-    return PollResponsesDao()
+def poll_responses_dao(mocker):
+    dao = PollResponsesDao()
+
+    mocker.patch.object(
+        dao,
+        '_get_dynamo_table',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        dao,
+        '_create_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    return dao
 
 
 def test_create_poll(mocker, sqs_client):
@@ -314,3 +351,7 @@ def test_poll_users_from_queue(mocker, sqs_client, slack_client, polls_dao, poll
         channel='test_user_id',
         text='Are you able to participate in Lunch Buddies today?',
     )
+
+
+# def test_listen_to_poll(mocker, polls_dao, poll_responses_dao):
+#     module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)

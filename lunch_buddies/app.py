@@ -111,6 +111,10 @@ def poll_users_from_queue():
     )
 
 
+def _listen_to_poll(request_payload, polls_dao, poll_responses_dao):
+    return listen_to_poll_action(request_payload, polls_dao, poll_responses_dao)
+
+
 @app.route('/api/v0/poll', methods=['POST'])
 def listen_to_poll_http():
     '''
@@ -120,7 +124,7 @@ def listen_to_poll_http():
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
 
-    outgoing_message = listen_to_poll_action(request_payload, polls_dao, poll_responses_dao)
+    outgoing_message = _listen_to_poll(request_payload, polls_dao, poll_responses_dao)
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
 

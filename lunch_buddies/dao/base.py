@@ -19,6 +19,9 @@ class Dao(object):
         dynamodb = boto3.resource('dynamodb')
         return dynamodb.Table(self._get_dynamo_table_name())
 
+    def _create_internal(self, object_for_dynamo):
+        return self.dynamo_table.put_item(Item=object_for_dynamo)
+
     def create(self, model_instance):
         object_for_dynamo = {}
         for field, field_type in model_instance._field_types.items():
@@ -32,7 +35,7 @@ class Dao(object):
 
             object_for_dynamo[field] = value
 
-        self.dynamo_table.put_item(Item=object_for_dynamo)
+        self._create_internal(object_for_dynamo)
 
         return True
 
