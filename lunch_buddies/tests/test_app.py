@@ -50,6 +50,20 @@ def slack_client(mocker):
 
     mocker.patch.object(
         client,
+        'open_conversation',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        client,
         'list_users',
         auto_spec=True,
         return_value=[{'is_bot': False, 'name': 'test user name', 'id': 'test_user_id'}],
