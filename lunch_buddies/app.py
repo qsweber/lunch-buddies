@@ -96,7 +96,19 @@ def create_poll_from_queue():
 
 
 def poll_users_from_queue():
-    return _read_from_queue(USERS_TO_POLL, poll_user_action)
+    sqs_client = SqsClient(constants.queues.QUEUES)
+    slack_client = SlackClient()
+    polls_dao = PollsDao()
+    poll_responses_dao = PollResponsesDao()
+
+    return _read_from_queue(
+        USERS_TO_POLL,
+        poll_user_action,
+        sqs_client,
+        slack_client,
+        polls_dao,
+        poll_responses_dao,
+    )
 
 
 @app.route('/api/v0/poll', methods=['POST'])

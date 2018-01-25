@@ -1,6 +1,6 @@
 import time
 
-from lunch_buddies import constants
+from lunch_buddies.constants.polls import CREATED
 
 
 def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
@@ -13,7 +13,7 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
     if not poll:
         raise Exception('poll not found')
 
-    if poll.state != constants.CREATED:
+    if poll.state != CREATED:
         return
 
     time.sleep(1)
@@ -30,7 +30,7 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
                 'attachment_type': 'default',
                 'actions': [
                     {'name': 'answer', 'text': value, 'type': 'button', 'value': key}
-                    for key, value in constants.CHOICES.items()
+                    for key, value in poll.choices.items()
                 ],
             },
         ]

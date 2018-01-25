@@ -50,11 +50,14 @@ class Dao(object):
 
         return model_class(**kwargs)
 
-    def read(self, key=None, value=None):
+    def _read_internal(self, key, value):
         if not key:
-            result = self.dynamo_table.query().get('Items')
+            return self.dynamo_table.query().get('Items')
         else:
-            result = self.dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
+            return self.dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
+
+    def read(self, key=None, value=None):
+        result = self._read_internal(key, value)
 
         return [
             self._as_model(self.model_class, item)
