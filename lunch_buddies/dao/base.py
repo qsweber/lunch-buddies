@@ -10,7 +10,6 @@ from boto3.dynamodb.conditions import Key
 class Dao(object):
     def __init__(self, model_class):
         self.model_class = model_class
-        self.dynamo_table = self._get_dynamo_table()
 
     def _get_dynamo_table_name(self):
         return 'lunch_buddies_{}'.format(self.model_class.__name__)
@@ -20,7 +19,8 @@ class Dao(object):
         return dynamodb.Table(self._get_dynamo_table_name())
 
     def _create_internal(self, object_for_dynamo):
-        return self.dynamo_table.put_item(Item=object_for_dynamo)
+        dynamo_table = self._get_dynamo_table()
+        return dynamo_table.put_item(Item=object_for_dynamo)
 
     def create(self, model_instance):
         object_for_dynamo = {}
@@ -54,10 +54,11 @@ class Dao(object):
         return model_class(**kwargs)
 
     def _read_internal(self, key, value):
+        dynamo_table = self._get_dynamo_table()
         if not key:
-            return self.dynamo_table.query().get('Items')
+            return dynamo_table.query().get('Items')
         else:
-            return self.dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
+            return dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
 
     def read(self, key=None, value=None):
         result = self._read_internal(key, value)
