@@ -42,14 +42,14 @@ class RoundTripDecoder(json.JSONDecoder):
 
 class SqsClient(object):
     def __init__(self, queues):
-        self.sqs = boto3.client('sqs')
         self.queues = queues
 
     def _url_for_queue(self, queue):
         return self.queues[queue]['url']
 
     def _send_message_internal(self, **kwargs):
-        return self.sqs.send_message(**kwargs)
+        sqs = boto3.client('sqs')
+        return sqs.send_message(**kwargs)
 
     def send_message(self, queue, message):
         if not isinstance(message, self.queues[queue]['type']):
@@ -61,7 +61,8 @@ class SqsClient(object):
         )
 
     def _receive_message_internal(self, **kwargs):
-        return self.sqs.receive_message(**kwargs)
+        sqs = boto3.client('sqs')
+        return sqs.receive_message(**kwargs)
 
     def receive_message(self, queue):
         result = self._receive_message_internal(
@@ -81,7 +82,8 @@ class SqsClient(object):
         return message_object, receipt_handle
 
     def _delete_message_internal(self, **kwargs):
-        return self.sqs.delete_message(**kwargs)
+        sqs = boto3.client('sqs')
+        return sqs.delete_message(**kwargs)
 
     def delete_message(self, queue, receipt_handle):
         return self._delete_message_internal(

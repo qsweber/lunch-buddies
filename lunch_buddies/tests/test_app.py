@@ -353,5 +353,93 @@ def test_poll_users_from_queue(mocker, sqs_client, slack_client, polls_dao, poll
     )
 
 
-# def test_listen_to_poll(mocker, polls_dao, poll_responses_dao):
-#     module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)
+def test_listen_to_poll(mocker, polls_dao, poll_responses_dao):
+    request_payload = {
+        'type': 'interactive_message',
+        'actions': [{
+            'name': 'answer',
+            'type': 'button',
+            'value': 'yes_1145'
+        }],
+        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+        'team': {
+            'id': 'fake_team_id',
+        },
+        'channel': {
+            'id': 'fake_channel_id',
+            'name': 'directmessage'
+        },
+        'user': {
+            'id': 'fake_user_id',
+            'name': 'quinnsweber'
+        },
+        'action_ts': '1516117984.234873',
+        'message_ts': '1516117976.000223',
+        'attachment_id': '1',
+        'token': 'fake_token',
+        'is_app_unfurl': False,
+        'original_message': {
+            'text': 'Are you able to participate in Lunch Buddies today?',
+            'username': 'Lunch Buddies',
+            'bot_id': 'fake_bot_id',
+            'attachments': [{
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'fallback': 'Something has gone wrong.',
+                'text': 'Are you able to participate in Lunch Buddies today?',
+                'id': 1,
+                'color': '3AA3E3',
+                'actions': [{
+                    'id': '1',
+                    'name': 'answer',
+                    'text': 'Yes (11:45)',
+                    'type': 'button',
+                    'value': 'yes_1145',
+                    'style': '',
+                }, {
+                    'id': '2',
+                    'name': 'answer',
+                    'text': 'Yes (12:30)',
+                    'type': 'button',
+                    'value': 'yes_1230',
+                    'style': '',
+                }, {
+                    'id': '3',
+                    'name': 'answer',
+                    'text': 'No',
+                    'type': 'button',
+                    'value': 'no',
+                    'style': '',
+                }]
+            }],
+            'type': 'message',
+            'subtype': 'bot_message',
+            'ts': '1516117976.000223',
+        },
+        'response_url': 'fake_response_url',
+        'trigger_id': 'fake_trigger_id',
+    }
+
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        autospec=True,
+        return_value=[{
+            'team_id': '123',
+            'created_at': datetime.now().timestamp(),
+            'created_by_user_id': 'foo',
+            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+            'state': polls_constants.CREATED,
+            'choices': json.dumps(polls_constants.CHOICES),
+        }],
+    )
+
+    mocked_poll_responses_dao_create = mocker.patch.object(
+        poll_responses_dao,
+        '_create_internal',
+        autospec=True,
+        return_value=True,
+    )
+
+    module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)
+
+    mocked_poll_responses_dao_create.assert_called_with('abc')
