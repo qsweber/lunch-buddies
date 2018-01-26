@@ -150,8 +150,32 @@ def close_poll_http():
 
 
 def close_poll_from_queue():
-    return _read_from_queue(POLLS_TO_CLOSE, close_poll_action)
+    sqs_client = SqsClient(constants.queues.QUEUES)
+    slack_client = SlackClient()
+    polls_dao = PollsDao()
+    poll_responses_dao = PollResponsesDao()
+
+    return _read_from_queue(
+        POLLS_TO_CLOSE,
+        close_poll_action,
+        sqs_client,
+        slack_client,
+        polls_dao,
+        poll_responses_dao,
+    )
 
 
 def notify_groups_from_queue():
-    return _read_from_queue(GROUPS_TO_NOTIFY, notify_group_action)
+    sqs_client = SqsClient(constants.queues.QUEUES)
+    slack_client = SlackClient()
+    polls_dao = PollsDao()
+    poll_responses_dao = PollResponsesDao()
+
+    return _read_from_queue(
+        GROUPS_TO_NOTIFY,
+        notify_group_action,
+        sqs_client,
+        slack_client,
+        polls_dao,
+        poll_responses_dao,
+    )
