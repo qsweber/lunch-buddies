@@ -1,52 +1,24 @@
-import datetime
-from decimal import Decimal
-import json
-
-import boto3
-from boto3.dynamodb.conditions import Key
-
+from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.polls import Poll
 
 
-def create(poll):
-    dynamodb = boto3.resource('dynamodb')
+class PollsDao(Dao):
+    def __init__(self):
+        super(PollsDao, self).__init__(Poll)
 
-    polls_table = dynamodb.Table('lunch_buddies_polls')
+    def find_by_callback_id(self, team_id, callback_id):
+        polls = [
+            poll
+            for poll in self.read('team_id', team_id)
+            if poll.callback_id == callback_id
+        ]
 
-    poll_for_dynamo = {
-        'team_id': poll.team_id,
-        'created_at_ts': Decimal(poll.created_at_ts),
-        'created_by_user_id': poll.created_by_user_id,
-        'callback_id': poll.callback_id,
-        'state': poll.state,
-        'created_at': datetime.datetime.now().isoformat(),
-        'raw': json.dumps(poll.raw),
-    }
+        if len(polls) == 0:
+            return None
+        elif len(polls) > 1:
+            raise Exception('more than one poll found')
 
-    polls_table.put_item(
-        Item=poll_for_dynamo,
-    )
+        return polls[0]
 
-    return True
-
-
-def read(team_id):
-    '''
-    Returns a Poll object
-    '''
-    dynamodb = boto3.resource('dynamodb')
-
-    teams_table = dynamodb.Table('lunch_buddies_polls')
-    result = teams_table.query(KeyConditionExpression=Key('team_id').eq(team_id))['Items']
-
-    return [
-        Poll(
-            team_id=item['team_id'],
-            created_at_ts=Decimal(item['created_at_ts']),
-            created_by_user_id=item['created_by_user_id'],
-            callback_id=item['callback_id'],
-            state=item['state'],
-            raw=json.loads(item['raw']),
-        )
-        for item in result
-    ]
+    def find_latest_by_team_id(self, team_id):
+        return self.read('team_id', team_id)[-1]

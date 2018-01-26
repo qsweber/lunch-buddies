@@ -1,81 +1,48 @@
-import datetime
-from decimal import Decimal
+from datetime import datetime
 import uuid
 
-from lunch_buddies.dao import polls as polls_dao
-from lunch_buddies.dao import messages as messages_dao
-from lunch_buddies.models.messages import Message
+from lunch_buddies.constants import polls
+from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll
 
 
-def create_poll(request_payload, slack_client):
-    team_id = request_payload['team_id']
+def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
+    team_id = message.team_id
 
     # TODO: make sure there is not already an active poll
 
-    callback_id = str(uuid.uuid4())
+    callback_id = _get_uuid()
+    created_at = _get_created_at()
 
     poll = Poll(
         team_id=team_id,
-        created_at_ts=datetime.datetime.now().timestamp(),  # round to 6 decimals
-        created_by_user_id=request_payload['user_id'],
+        created_at=created_at,
+        created_by_user_id=message.user_id,
         callback_id=callback_id,
-        state='CREATED',
-        raw=request_payload,
+        state=polls.CREATED,
+        choices=polls.CHOICES,
     )
 
     polls_dao.create(poll)
 
-    users = [
+    users_to_poll = [
         user
         for user in slack_client.list_users()
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
-    for user in users:
-        sent_message_payload = slack_client.post_message(
-            channel=user['id'],
-            text='Are you able to participate in Lunch Buddies today?',
-            attachments=[
-                {
-                    'text': 'Are you able to participate in Lunch Buddies today?',
-                    'fallback': 'Something has gone wrong.',
-                    'callback_id': callback_id,
-                    'color': '#3AA3E3',
-                    'attachment_type': 'default',
-                    'actions': [
-                        {
-                            'name': 'answer',
-                            'text': 'Yes (11:45)',
-                            'type': 'button',
-                            'value': 'yes_1145'
-                        },
-                        {
-                            'name': 'answer',
-                            'text': 'Yes (12:30)',
-                            'type': 'button',
-                            'value': 'yes_1230'
-                        },
-                        {
-                            'name': 'answer',
-                            'text': 'No',
-                            'type': 'button',
-                            'value': 'no'
-                        },
-                    ],
-                },
-            ]
+    for user in users_to_poll:
+        message = {'team_id': team_id, 'user_id': user['id'], 'callback_id': callback_id}
+        sqs_client.send_message(
+            USERS_TO_POLL,
+            UsersToPollMessage(**message),
         )
 
-        sent_message = Message(
-            team_id=team_id,
-            channel_id=sent_message_payload['channel'],
-            message_ts=Decimal(sent_message_payload['ts']),
-            from_user_id=sent_message_payload['message']['bot_id'],
-            to_user_id=user['id'],
-            type='POLL_USER',
-            raw=sent_message_payload,
-        )
+    return True
 
-        messages_dao.create(sent_message)
 
-    return {'text': 'Polled {} users.'.format(len(users))}
+def _get_uuid():
+    return uuid.uuid4()
+
+
+def _get_created_at():
+    return datetime.now()
