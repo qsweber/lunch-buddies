@@ -3,6 +3,8 @@ import json
 import os
 from uuid import UUID
 
+import pytz
+
 from lunch_buddies.actions import create_poll as create_poll_module
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
@@ -85,11 +87,15 @@ def test_create_poll_from_queue(mocker):
         return_value=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
     )
 
+    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
+    timezone = pytz.timezone("America/Los_Angeles")
+    d_aware = timezone.localize(d_naive)
+
     mocker.patch.object(
         create_poll_module,
         '_get_created_at',
         auto_spec=True,
-        return_value=datetime(2018, 1, 16, 7, 53, 4, 234873),
+        return_value=d_aware,
     )
 
     os.environ['SLACK_API_TOKEN'] = 'foo'
