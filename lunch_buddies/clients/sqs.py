@@ -54,7 +54,6 @@ class SqsClient(object):
     def send_message(self, queue, message):
         if not isinstance(message, self.queues[queue]['type']):
             raise Exception('invalid message type being added to the queue')
-
         return self._send_message_internal(
             QueueUrl=self._url_for_queue(queue),
             MessageBody=json.dumps(message._asdict(), cls=RoundTripEncoder),

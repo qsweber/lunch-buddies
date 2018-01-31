@@ -1,5 +1,4 @@
 import datetime
-from decimal import Decimal
 import logging
 from uuid import UUID
 
@@ -15,9 +14,11 @@ def listen_to_poll(request_payload, polls_dao, poll_responses_dao):
     poll_response = PollResponse(
         callback_id=callback_id,
         user_id=request_payload['user']['id'],
-        created_at=datetime.datetime.fromtimestamp(Decimal(request_payload['action_ts'])),
+        created_at=datetime.datetime.fromtimestamp(float(request_payload['action_ts'])),
         response=response,
     )
+    print(request_payload['action_ts'])
+    print(poll_response)
     poll_responses_dao.create(poll_response)
     poll = polls_dao.find_by_callback_id(team_id, callback_id)
 

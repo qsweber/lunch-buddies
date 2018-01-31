@@ -131,16 +131,21 @@ def listen_to_poll_http():
     return response
 
 
+def _close_poll(request_form, sqs_client):
+    return sqs_client.send_message(
+        POLLS_TO_CLOSE,
+        PollsToCloseMessage(team_id=request_form['team_id'])
+    )
+
+
 @app.route('/api/v0/poll/close', methods=['POST'])
 def close_poll_http():
     '''
     Close a poll
     '''
     sqs_client = SqsClient(constants.queues.QUEUES)
-    sqs_client.send_message(
-        POLLS_TO_CLOSE,
-        PollsToCloseMessage(team_id=request.form['team_id']),
-    )
+
+    _create_poll(request.form, sqs_client)
 
     outgoing_message = {'text': 'Poll will be closed.'}
     response = jsonify(outgoing_message)

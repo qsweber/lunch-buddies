@@ -49,6 +49,6 @@ QUEUES = {
     },
     GROUPS_TO_NOTIFY: {
         'url': 'https://us-west-2.queue.amazonaws.com/120356305272/groups_to_notify',
-        'type': PollsToCloseMessage,
+        'type': GroupsToNotifyMessage,
     },
 }

@@ -27,7 +27,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     users_to_poll = [
         user
-        for user in slack_client.list_users()
+        for user in slack_client.list_users('lunch_buddies')
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
     for user in users_to_poll:

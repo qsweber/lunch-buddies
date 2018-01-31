@@ -13,9 +13,25 @@ class SlackClient(object):
     def post_message(self, **kwargs):
         return self.baseClient.api_call('chat.postMessage', **kwargs)
 
-    def list_users(self):
-        result = self.baseClient.api_call(
-            'users.list',
-        )
+    def _channels_list_internal(self):
+        return self.baseClient.api_call('channels.list')
 
-        return result['members']
+    def _channels_info_internal(self, **kwargs):
+        return self.baseClient.api_call('channels.info', **kwargs)
+
+    def _users_info_internal(self, **kwargs):
+        return self.baseClient.api_call('users.info', **kwargs)
+
+    def list_users(self, channel_name):
+        lunch_buddies_channel = [
+            channel
+            for channel in self._channels_list_internal()['channels']
+            if channel['name'] == channel_name
+        ][0]
+
+        user_ids_in_channel = self._channels_info_internal(channel=lunch_buddies_channel['id'])['channel']['members']
+
+        return [
+            self._users_info_internal(user=user_id)['user']
+            for user_id in user_ids_in_channel
+        ]

@@ -19,7 +19,6 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
         )
         if 'yes' in response
     }
-
     for answer, messages in poll_responses_by_response.items():
         for group in get_groups(messages, 7, 5):
             user_ids = [poll_response.user_id for poll_response in group]
