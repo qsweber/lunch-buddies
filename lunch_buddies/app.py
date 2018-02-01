@@ -80,6 +80,12 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
 
         messages_handled = messages_handled + 1
 
+    logger.info('action: {}, messages_handled Handled: {}, consecutive_blanks: {}'.format(
+        action.__name__,
+        messages_handled,
+        consecutive_blanks,
+    ))
+
     return messages_handled
 
 
