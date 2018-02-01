@@ -1,4 +1,5 @@
 import datetime
+from decimal import Decimal
 import json
 from uuid import UUID
 
@@ -28,7 +29,7 @@ class Dao(object):
             if field_type == dict:
                 value = json.dumps(value)
             elif field_type == datetime.datetime:
-                value = float(value.timestamp())
+                value = Decimal(value.timestamp())
             elif field_type == UUID:
                 value = str(value)
 
@@ -45,7 +46,7 @@ class Dao(object):
             if field_type == dict:
                 value = json.loads(value)
             elif field_type == datetime.datetime:
-                value = datetime.datetime.fromtimestamp(value)
+                value = datetime.datetime.fromtimestamp(float(value))
             elif field_type == UUID:
                 value = UUID(value)
             kwargs[field] = value
