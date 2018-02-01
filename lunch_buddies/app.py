@@ -145,7 +145,7 @@ def close_poll_http():
     '''
     sqs_client = SqsClient(constants.queues.QUEUES)
 
-    _create_poll(request.form, sqs_client)
+    _close_poll(request.form, sqs_client)
 
     outgoing_message = {'text': 'Poll will be closed.'}
     response = jsonify(outgoing_message)
