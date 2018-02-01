@@ -3,6 +3,7 @@ import json
 import os
 from uuid import UUID
 
+import pytest
 import pytz
 
 from lunch_buddies.actions import create_poll as create_poll_module
@@ -29,12 +30,30 @@ def test_create_poll(mocker):
         return_value=True,
     )
 
+    os.environ['APP_ADMIN'] = 'abc'
+
     module._create_poll(request_form, sqs_client)
 
     mocked_send_message_internal.assert_called_with(
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
         MessageBody='{"team_id": "123", "user_id": "abc"}',
     )
+
+
+def test_create_poll_fails_if_not_app_admin(mocker):
+    sqs_client = SqsClient(queues_constants.QUEUES)
+
+    request_form = {
+        'team_id': '123',
+        'user_id': 'not_app_admin'
+    }
+
+    os.environ['APP_ADMIN'] = 'abc'
+
+    with pytest.raises(Exception) as excinfo:
+        module._create_poll(request_form, sqs_client)
+
+    assert 'you are not authorized to start a poll' == str(excinfo.value)
 
 
 def test_create_poll_from_queue(mocker):

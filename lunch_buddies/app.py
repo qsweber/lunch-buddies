@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 
 from flask import Flask, jsonify, request
 
@@ -25,6 +26,9 @@ logger = logging.getLogger(__name__)
 
 
 def _create_poll(request_form, sqs_client):
+    if request_form['user_id'] != os.environ['APP_ADMIN']:
+        raise Exception('you are not authorized to start a poll')
+
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
         user_id=request_form['user_id'],
@@ -132,6 +136,9 @@ def listen_to_poll_http():
 
 
 def _close_poll(request_form, sqs_client):
+    if request_form['user_id'] != os.environ['APP_ADMIN']:
+        raise Exception('you are not authorized to close a poll')
+
     return sqs_client.send_message(
         POLLS_TO_CLOSE,
         PollsToCloseMessage(team_id=request_form['team_id'])
