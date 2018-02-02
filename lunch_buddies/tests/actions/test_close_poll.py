@@ -9,20 +9,53 @@ import lunch_buddies.actions.close_poll as module
 
 
 @pytest.mark.parametrize(
-    'elements, group_size, smallest_group, expected',
+    'elements, group_size, min_group_size, max_group_size, expected',
     [
-        (list(range(11)), 5, 3, [[2, 7, 4, 1, 8, 6], [3, 9, 0, 5, 10]]),
-        (list(range(14)), 5, 3, [[1, 11, 5, 3, 7], [10, 2, 8, 4, 9], [13, 6, 12, 0]]),
-        ([1], 10, 8, [[1]]),
-        ([1, 2], 2, 2, [[1, 2]]),
+        (list(range(11)), 5, 3, 7, [[8, 9, 1, 2, 5, 6], [3, 7, 4, 0, 10]]),
+        (list(range(14)), 5, 3, 7, [[1, 10, 9, 5, 11], [2, 3, 7, 8, 4], [0, 12, 6, 13]]),
+        ([1], 10, 8, 10, [[1]]),
+        ([1, 2], 2, 2, 2, [[1, 2]]),
+        (list(range(10)), 7, 5, 7, [[7, 0, 9, 3, 2], [5, 6, 8, 1, 4]]),
+        (list(range(18)), 12, 12, 15, [[17, 11, 10, 13, 0, 3, 4, 5, 9], [1, 15, 8, 14, 2, 12, 16, 7, 6]]),
+        (list(range(70)), 6, 5, 7, [
+            [28, 61, 67, 42, 29, 40, 49], [36, 56, 52, 31, 43, 3, 53],
+            [26, 54, 11, 24, 7, 10, 5], [15, 23, 66, 12, 2, 0, 33],
+            [17, 25, 1, 63, 47, 46], [14, 44, 55, 20, 27, 57],
+            [41, 35, 64, 21, 4, 69], [59, 9, 38, 45, 34, 16],
+            [39, 6, 48, 60, 18, 8], [32, 13, 37, 22, 30, 19],
+            [68, 50, 58, 51, 62, 65],
+        ]),
     ]
 )
-def test_get_groups(elements, group_size, smallest_group, expected):
+def test_get_groups(elements, group_size, min_group_size, max_group_size, expected):
     random.seed(0)
 
-    actual = module.get_groups(elements, group_size, smallest_group)
+    actual = module.get_groups(elements, group_size, min_group_size, max_group_size)
 
     assert actual == expected
+
+
+def test_get_groups_large_input():
+    elements = list(range(973))
+
+    actual = module.get_groups(elements, 10, 10, 10)
+
+    assert len(actual) == 108
+    assert max(map(len, actual)) == 10
+    assert min(map(len, actual)) == 9
+
+
+@pytest.mark.parametrize(
+    'elements',
+    [
+        (list(range(i)))
+        for i in range(200)
+    ]
+)
+def test_works_for_this_app(elements):
+    actual = module.get_groups(elements, 6, 5, 7)
+
+    assert len(actual) >= 1
 
 
 def test_group_by_answer():

@@ -13,7 +13,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
     poll_responses_by_response = _group_by_answer(poll_responses)
 
     for answer, messages in poll_responses_by_response.items():
-        for group in get_groups(messages, 7, 5):
+        for group in get_groups(messages, 6, 5, 7):
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
                 GROUPS_TO_NOTIFY,
@@ -32,37 +32,29 @@ def _group_by_answer(poll_responses):
     return dict(poll_responses_by_response)
 
 
-def get_groups(elements, group_size, smallest_group):
+def get_groups(elements, group_size, min_group_size, max_group_size):
     if len(elements) <= group_size:
         return [elements]
 
     elements_copy = elements.copy()
-    leftover_count = len(elements_copy) % group_size
-    if leftover_count:
-        leftovers = []
-        leftover_indices = random.sample(list(range(len(elements_copy))), leftover_count)
-        for index in leftover_indices:
-            leftovers.append(elements_copy[index])
-        elements_copy = [
-            item
-            for index, item in enumerate(elements_copy)
-            if index not in leftover_indices
-        ]
+    random.shuffle(elements_copy)
 
-    groups = [
-        list(item)
-        for item in zip(
-            *[iter(sorted(iter(list(elements_copy)), key=lambda k: random.random()))] * group_size
-        )
-    ]
+    groups = [elements_copy[i:i + group_size] for i in range(0, len(elements_copy), group_size)]
 
-    if leftovers:
-        if len(leftovers) >= smallest_group:
-            groups.append(leftovers)
+    if len(groups[-1]) < min_group_size:
+        last_group = groups.pop()
+
+        if (max_group_size - group_size) * len(groups) >= len(last_group):
+            # evenly distribute
+            i = 0
+            while last_group:
+                groups[i].append(last_group.pop())
+                if i > (len(groups) - 1):
+                    i = 0
+                else:
+                    i = i + 1
         else:
-            index = 0
-            while leftovers:
-                groups[index].append(leftovers.pop())
-                index = index + 1
+            # try with a smaller group size
+            return get_groups(elements, group_size - 1, min(group_size - 1, min_group_size), max_group_size)
 
     return groups
