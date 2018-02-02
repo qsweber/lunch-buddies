@@ -49,7 +49,7 @@ def test_get_groups_large_input():
     'elements',
     [
         (list(range(i)))
-        for i in range(200)
+        for i in range(201)
     ]
 )
 def test_works_for_this_app(elements):
