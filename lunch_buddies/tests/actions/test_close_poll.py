@@ -56,7 +56,7 @@ def test_works_for_this_app(elements):
     actual = module.get_groups(elements, 6, 5, 7)
 
     assert len(actual) >= 1
-    assert max(map(len, actual)) < 7
+    assert max(map(len, actual)) <= 7
 
 
 def test_group_by_answer():
