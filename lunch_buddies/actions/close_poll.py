@@ -1,12 +1,16 @@
 from collections import defaultdict
 import random
 
+from lunch_buddies.constants.polls import CREATED
 from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessage
 
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
     team_id = message.team_id
     poll = polls_dao.find_latest_by_team_id(team_id)
+
+    if poll.state != CREATED:
+        raise Exception('latest poll already closed')
 
     poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
@@ -19,6 +23,8 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
                 GROUPS_TO_NOTIFY,
                 GroupsToNotifyMessage(**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
             )
+
+    polls_dao.mark_poll_closed(poll=poll)
 
     return True
 

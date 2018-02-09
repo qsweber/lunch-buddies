@@ -1,6 +1,7 @@
 from datetime import datetime
 import json
 import os
+from uuid import UUID
 
 import pytest
 
@@ -10,6 +11,7 @@ from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
+from lunch_buddies.models.polls import Poll
 import lunch_buddies.app as module
 
 
@@ -84,6 +86,9 @@ def test_close_poll_from_queue(mocker):
         auto_spec=True,
     )
 
+    created_at_one = datetime.now()
+    created_at_two = datetime.now()
+
     polls_dao = PollsDao()
     mocker.patch.object(
         polls_dao,
@@ -92,7 +97,7 @@ def test_close_poll_from_queue(mocker):
         return_value=[
             {
                 'team_id': '123',
-                'created_at': datetime.now().timestamp(),
+                'created_at': created_at_one.timestamp(),
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
@@ -100,13 +105,19 @@ def test_close_poll_from_queue(mocker):
             },
             {
                 'team_id': '123',
-                'created_at': datetime.now().timestamp(),
+                'created_at': created_at_two.timestamp(),
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
                 'choices': json.dumps(polls_constants.CHOICES),
             },
         ]
+    )
+    mocked_polls_dao_mark_poll_closed = mocker.patch.object(
+        polls_dao,
+        'mark_poll_closed',
+        auto_spec=True,
+        return_value=True,
     )
 
     poll_responses_dao = PollResponsesDao()
@@ -137,6 +148,17 @@ def test_close_poll_from_queue(mocker):
         None,
         polls_dao,
         poll_responses_dao,
+    )
+
+    mocked_polls_dao_mark_poll_closed.assert_called_with(
+        poll=Poll(
+            team_id='123',
+            created_at=created_at_two,
+            created_by_user_id='foo',
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
+            state='CREATED',
+            choices={'yes_1145': 'Yes (11:45)', 'yes_1230': 'Yes (12:30)', 'no': 'No'},
+        ),
     )
 
     assert mocked_send_message_internal.call_count == 1

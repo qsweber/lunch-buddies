@@ -1,9 +1,12 @@
 import datetime
+import json
 import random
 from uuid import UUID
 
 import pytest
 
+from lunch_buddies.constants import polls as polls_constants, queues as queues_constants
+from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 
@@ -80,3 +83,41 @@ def test_group_by_answer():
     actual = module._group_by_answer(poll_responses)
 
     assert actual == expected
+
+
+def test_close_poll_fails_if_already_closed(mocker):
+    polls_dao = PollsDao()
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': datetime.datetime.now().timestamp(),
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': polls_constants.CREATED,
+                'choices': json.dumps(polls_constants.CHOICES),
+            },
+            {
+                'team_id': '123',
+                'created_at': datetime.datetime.now().timestamp(),
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'state': polls_constants.CLOSED,
+                'choices': json.dumps(polls_constants.CHOICES),
+            },
+        ]
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        module.close_poll(
+            queues_constants.PollsToCloseMessage(team_id='123'),
+            None,
+            None,
+            polls_dao,
+            None,
+        )
+
+    assert 'latest poll already closed' == str(excinfo.value)
