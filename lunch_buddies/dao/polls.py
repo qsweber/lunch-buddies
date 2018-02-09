@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from lunch_buddies.constants.polls import CLOSED
 from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.polls import Poll
 
@@ -22,3 +25,19 @@ class PollsDao(Dao):
 
     def find_latest_by_team_id(self, team_id):
         return self.read('team_id', team_id)[-1]
+
+    def mark_poll_closed(self, poll):
+        dynamo_table = self._get_dynamo_table()
+
+        return dynamo_table.update_item(
+            Key={
+                'team_id': poll.team_id,
+                'created_at': Decimal(poll.created_at.timestamp()),
+            },
+            AttributeUpdates={
+                'state': {
+                    'Value': CLOSED,
+                    'Action': 'PUT',
+                }
+            }
+        )
