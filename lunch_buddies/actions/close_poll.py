@@ -12,6 +12,9 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
     if poll.state != CREATED:
         raise Exception('latest poll already closed')
 
+    # Close right away for idempotentcy
+    polls_dao.mark_poll_closed(poll=poll)
+
     poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
     poll_responses_by_response = _group_by_answer(poll_responses)
@@ -23,8 +26,6 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
                 GROUPS_TO_NOTIFY,
                 GroupsToNotifyMessage(**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
             )
-
-    polls_dao.mark_poll_closed(poll=poll)
 
     return True
 
