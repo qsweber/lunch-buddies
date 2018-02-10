@@ -208,8 +208,9 @@ def auth_http():
     Authorize a new workspace
     '''
     teams_dao = TeamsDao()
+    slack_client = SlackClient()
 
-    auth_action(request.args, teams_dao)
+    auth_action(request.args, teams_dao, slack_client)
 
     outgoing_message = {'text': 'Success!'}
     response = jsonify(outgoing_message)

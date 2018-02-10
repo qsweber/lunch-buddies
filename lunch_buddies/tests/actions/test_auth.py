@@ -1,9 +1,11 @@
-import datetime
+from datetime import datetime
 from decimal import Decimal
 import json
 
 import lunch_buddies.actions.auth as module
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.models.teams import Team
 
 
 def test_auth(mocker):
@@ -13,6 +15,18 @@ def test_auth(mocker):
         '_create_internal',
         auto_spec=True,
         return_value=True,
+    )
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
+            'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
+            'created_at': created_at.timestamp(),
+        }]
     )
 
     mocker.patch.object(
@@ -36,8 +50,6 @@ def test_auth(mocker):
         })),
     )
 
-    created_at = datetime.datetime.now()
-
     mocker.patch.object(
         module,
         '_get_created_at',
@@ -45,9 +57,18 @@ def test_auth(mocker):
         return_value=created_at
     )
 
+    slack_client = SlackClient()
+    mocked_slack_client_create_channel = mocker.patch.object(
+        slack_client,
+        'create_channel',
+        auto_spec=True,
+        return_value=True,
+    )
+
     module.auth(
         {'code': 'test_code'},
         teams_dao,
+        slack_client,
     )
 
     mocked_teams_dao_create_internal.assert_called_with(
@@ -57,4 +78,15 @@ def test_auth(mocker):
             'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
             'created_at': Decimal(created_at.timestamp()),
         }
+    )
+
+    mocked_slack_client_create_channel.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
+            bot_access_token='xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
+            created_at=created_at,
+        ),
+        name='lunch_buddies',
+        is_private=False,
     )

@@ -5,6 +5,14 @@ class SlackClient(object):
     def _get_base_client_for_team(self, team):
         return BaseSlackClient(team.bot_access_token)
 
+    def create_channel(self, team, name, is_private, **kwargs):
+        return self._get_base_client_for_team(team).api_call(
+            'conversations.create',
+            name=name,
+            is_private=is_private,
+            **kwargs
+        )
+
     def open_conversation(self, team, **kwargs):
         return self._get_base_client_for_team(team).api_call('conversations.open', **kwargs)
 

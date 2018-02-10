@@ -7,7 +7,7 @@ import requests
 from lunch_buddies.models.teams import Team
 
 
-def auth(request_args, teams_dao):
+def auth(request_args, teams_dao, slack_client):
     response = _get_slack_oauth(request_args)
 
     response_dict = json.loads(response.text)
@@ -18,6 +18,10 @@ def auth(request_args, teams_dao):
         bot_access_token=response_dict['bot']['bot_access_token'],
         created_at=_get_created_at(),
     ))
+
+    team = teams_dao.read('team_id', response_dict['team_id'])[0]
+
+    slack_client.create_channel(team=team, name='lunch_buddies', is_private=False)
 
     return True
 
