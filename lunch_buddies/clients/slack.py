@@ -33,6 +33,6 @@ class SlackClient(object):
         )['channel']['members']
 
         return [
-            self._users_info_internal(user=user_id)['user']
+            self._users_info_internal(team, user=user_id)['user']
             for user_id in user_ids_in_channel
         ]
