@@ -98,7 +98,7 @@ def test_listen_to_poll(mocker):
         return_value=True,
     )
 
-    module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)
+    outgoing_message = module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)
 
     expected_poll_response = {
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
@@ -108,3 +108,17 @@ def test_listen_to_poll(mocker):
     }
 
     mocked_poll_responses_dao_create.assert_called_with(expected_poll_response)
+
+    expected_outgoing_message = {
+        'text': 'Are you able to participate in Lunch Buddies today?',
+        'username': 'Lunch Buddies',
+        'bot_id': 'fake_bot_id',
+        'attachments': [{
+            'text': ':white_check_mark: Your answer of `Yes (11:45)` was received!',
+        }],
+        'type': 'message',
+        'subtype': 'bot_message',
+        'ts': '1516117976.000223',
+    }
+
+    assert outgoing_message == expected_outgoing_message
