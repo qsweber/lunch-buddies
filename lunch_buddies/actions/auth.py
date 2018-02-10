@@ -26,7 +26,7 @@ def auth(request_args, teams_dao, slack_client):
     try:
         slack_client.get_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME)
     except ChannelDoesNotExist:
-        print(slack_client.create_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME, is_private=False))
+        slack_client.create_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME, is_private=False)
 
     return True
 
