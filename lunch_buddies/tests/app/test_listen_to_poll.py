@@ -113,9 +113,39 @@ def test_listen_to_poll(mocker):
         'text': 'Are you able to participate in Lunch Buddies today?',
         'username': 'Lunch Buddies',
         'bot_id': 'fake_bot_id',
-        'attachments': [{
-            'text': ':white_check_mark: Your answer of `Yes (11:45)` was received!',
-        }],
+        'attachments': [
+            {
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'fallback': 'Something has gone wrong.',
+                'text': 'Are you able to participate in Lunch Buddies today?',
+                'id': 1,
+                'color': '3AA3E3',
+                'actions': [{
+                    'id': '1',
+                    'name': 'answer',
+                    'text': 'Yes (11:45)',
+                    'type': 'button',
+                    'value': 'yes_1145',
+                    'style': '',
+                }, {
+                    'id': '2',
+                    'name': 'answer',
+                    'text': 'Yes (12:30)',
+                    'type': 'button',
+                    'value': 'yes_1230',
+                    'style': '',
+                }, {
+                    'id': '3',
+                    'name': 'answer',
+                    'text': 'No',
+                    'type': 'button',
+                    'value': 'no',
+                    'style': '',
+                }],
+            }, {
+                'text': ':white_check_mark: Your answer of `Yes (11:45)` was received!',
+            },
+        ],
         'type': 'message',
         'subtype': 'bot_message',
         'ts': '1516117976.000223',
