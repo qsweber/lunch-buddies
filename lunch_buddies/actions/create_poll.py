@@ -6,8 +6,9 @@ from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll
 
 
-def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
+def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team_id = message.team_id
+    team = teams_dao.read('team_id', team_id)[0]
 
     # TODO: make sure there is not already an active poll
 
@@ -27,7 +28,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     users_to_poll = [
         user
-        for user in slack_client.list_users('lunch_buddies')
+        for user in slack_client.list_users(team, 'lunch_buddies')
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
     for user in users_to_poll:

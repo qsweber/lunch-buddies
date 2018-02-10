@@ -5,7 +5,7 @@ from lunch_buddies.constants.polls import CREATED
 from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessage
 
 
-def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
+def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team_id = message.team_id
     poll = polls_dao.find_latest_by_team_id(team_id)
 

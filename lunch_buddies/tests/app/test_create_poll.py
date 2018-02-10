@@ -12,6 +12,7 @@ from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.teams import TeamsDao
 import lunch_buddies.app as module
 
 
@@ -117,7 +118,6 @@ def test_create_poll_from_queue(mocker):
         return_value=d_aware,
     )
 
-    os.environ['SLACK_API_TOKEN'] = 'foo'
     slack_client = SlackClient()
 
     mocker.patch.object(
@@ -147,6 +147,19 @@ def test_create_poll_from_queue(mocker):
         {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
     ]
 
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.now().timestamp(),
+        }]
+    )
+
     module._read_from_queue(
         queues_constants.POLLS_TO_START,
         create_poll_module.create_poll,
@@ -154,6 +167,7 @@ def test_create_poll_from_queue(mocker):
         slack_client,
         polls_dao,
         None,
+        teams_dao,
     )
 
     expected_poll = {

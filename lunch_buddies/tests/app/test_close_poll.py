@@ -148,6 +148,7 @@ def test_close_poll_from_queue(mocker):
         None,
         polls_dao,
         poll_responses_dao,
+        None,
     )
 
     mocked_polls_dao_mark_poll_closed.assert_called_with(

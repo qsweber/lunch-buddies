@@ -62,3 +62,25 @@ if __name__ == '__main__':
     )
 
     poll_responses.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_PollResponse')
+
+    team = dynamodb.create_table(
+        TableName='lunch_buddies_Team',
+        KeySchema=[
+            {
+                'AttributeName': 'team_id',
+                'KeyType': 'HASH',
+            },
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'team_id',
+                'AttributeType': 'S',
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+
+    team.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Team')

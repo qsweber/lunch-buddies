@@ -1,7 +1,9 @@
 import random
 
 
-def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
+def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
+    team = teams_dao.read('team_id', message.team_id)[0]
+
     hourminute = message.response.split('_')[1]
     hourminute_formatted = '{}:{}'.format(hourminute[0:2], hourminute[2:4])
 
@@ -12,9 +14,13 @@ def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_da
         'I am selecting <@{}> to be in charge of picking the location.'.format(user_in_charge)
     )
 
-    conversation = slack_client.open_conversation(users=','.join(message.user_ids))
+    conversation = slack_client.open_conversation(
+        team=team,
+        users=','.join(message.user_ids),
+    )
 
     slack_client.post_message(
+        team=team,
         channel=conversation['channel']['id'],
         text=text,
     )

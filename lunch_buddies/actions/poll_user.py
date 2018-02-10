@@ -3,8 +3,10 @@ import time
 from lunch_buddies.constants.polls import CREATED
 
 
-def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
+def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team_id = message.team_id
+    team = teams_dao.read('team_id', team_id)[0]
+
     callback_id = message.callback_id
     user_id = message.user_id
 
@@ -19,6 +21,7 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao):
     time.sleep(1)
 
     slack_client.post_message(
+        team=team,
         channel=user_id,
         text='Are you able to participate in Lunch Buddies today?',
         attachments=[
