@@ -1,6 +1,10 @@
 from slackclient import SlackClient as BaseSlackClient
 
 
+class ChannelDoesNotExist(Exception):
+    pass
+
+
 class SlackClient(object):
     def _get_base_client_for_team(self, team):
         return BaseSlackClient(team.bot_access_token)
@@ -28,12 +32,20 @@ class SlackClient(object):
     def _users_info_internal(self, team, **kwargs):
         return self._get_base_client_for_team(team).api_call('users.info', **kwargs)
 
-    def list_users(self, team, channel_name):
-        lunch_buddies_channel = [
+    def get_channel(self, team, name):
+        channels = [
             channel
             for channel in self._channels_list_internal(team)['channels']
-            if channel['name'] == channel_name
-        ][0]
+            if channel['name'] == name
+        ]
+
+        try:
+            return channels[0]
+        except IndexError:
+            raise ChannelDoesNotExist()
+
+    def list_users(self, team, channel_name):
+        lunch_buddies_channel = self.get_channel(team, channel_name)
 
         user_ids_in_channel = self._channels_info_internal(
             team,

@@ -4,6 +4,8 @@ import os
 
 import requests
 
+from lunch_buddies.clients.slack import ChannelDoesNotExist
+from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
 from lunch_buddies.models.teams import Team
 
 
@@ -21,7 +23,10 @@ def auth(request_args, teams_dao, slack_client):
 
     team = teams_dao.read('team_id', response_dict['team_id'])[0]
 
-    slack_client.create_channel(team=team, name='lunch_buddies', is_private=False)
+    try:
+        slack_client.get_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME)
+    except ChannelDoesNotExist:
+        slack_client.create_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME, is_private=False)
 
     return True
 
