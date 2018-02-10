@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from lunch_buddies.constants import polls
+from lunch_buddies.constants import polls, slack
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll
 
@@ -28,7 +28,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     users_to_poll = [
         user
-        for user in slack_client.list_users(team, 'lunch_buddies')
+        for user in slack_client.list_users(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
     for user in users_to_poll:
