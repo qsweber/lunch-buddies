@@ -1,9 +1,6 @@
 from datetime import datetime
 import json
-import os
 from uuid import UUID
-
-import pytest
 
 from lunch_buddies.actions import close_poll as close_poll_module
 from lunch_buddies.constants import polls as polls_constants
@@ -29,30 +26,12 @@ def test_close_poll(mocker):
         return_value=True,
     )
 
-    os.environ['APP_ADMIN'] = 'abc'
-
     module._close_poll(request_form, sqs_client)
 
     mocked_send_message_internal.assert_called_with(
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_close',
         MessageBody='{"team_id": "123"}',
     )
-
-
-def test_close_poll_fails_if_not_app_admin(mocker):
-    sqs_client = SqsClient(queues_constants.QUEUES)
-
-    request_form = {
-        'team_id': '123',
-        'user_id': 'not_app_admin'
-    }
-
-    os.environ['APP_ADMIN'] = 'abc'
-
-    with pytest.raises(Exception) as excinfo:
-        module._close_poll(request_form, sqs_client)
-
-    assert 'you are not authorized to close a poll' == str(excinfo.value)
 
 
 def test_close_poll_from_queue(mocker):
@@ -148,6 +127,7 @@ def test_close_poll_from_queue(mocker):
         None,
         polls_dao,
         poll_responses_dao,
+        None,
     )
 
     mocked_polls_dao_mark_poll_closed.assert_called_with(

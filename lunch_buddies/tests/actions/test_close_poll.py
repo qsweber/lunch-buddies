@@ -118,6 +118,7 @@ def test_close_poll_fails_if_already_closed(mocker):
             None,
             polls_dao,
             None,
+            None,
         )
 
     assert 'latest poll already closed' == str(excinfo.value)

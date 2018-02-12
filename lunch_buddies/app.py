@@ -1,6 +1,5 @@
 import logging
 import json
-import os
 
 from flask import Flask, jsonify, request
 
@@ -13,6 +12,8 @@ from lunch_buddies.constants.queues import (
 )
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
 from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
@@ -26,9 +27,6 @@ logger = logging.getLogger(__name__)
 
 
 def _create_poll(request_form, sqs_client):
-    if request_form['user_id'] != os.environ['APP_ADMIN']:
-        raise Exception('you are not authorized to start a poll')
-
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
         user_id=request_form['user_id'],
@@ -59,7 +57,7 @@ def create_poll_http():
     return response
 
 
-def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_responses_dao):
+def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_responses_dao, teams_dao):
     '''
     Pulls messages from the specific queue and passes them to the specified action
     Handles up to 30 messages, but if 3 consecutive iterations result in no message received, exit the loop
@@ -75,7 +73,7 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
 
         consecutive_blanks = 0
 
-        action(message, slack_client, sqs_client, polls_dao, poll_responses_dao)
+        action(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao)
         sqs_client.delete_message(queue, receipt_handle)
 
         messages_handled = messages_handled + 1
@@ -94,6 +92,7 @@ def create_poll_from_queue():
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
+    teams_dao = TeamsDao()
 
     return _read_from_queue(
         POLLS_TO_START,
@@ -102,6 +101,7 @@ def create_poll_from_queue():
         slack_client,
         polls_dao,
         poll_responses_dao,
+        teams_dao,
     )
 
 
@@ -110,6 +110,7 @@ def poll_users_from_queue():
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
+    teams_dao = TeamsDao()
 
     return _read_from_queue(
         USERS_TO_POLL,
@@ -118,6 +119,7 @@ def poll_users_from_queue():
         slack_client,
         polls_dao,
         poll_responses_dao,
+        teams_dao,
     )
 
 
@@ -142,9 +144,6 @@ def listen_to_poll_http():
 
 
 def _close_poll(request_form, sqs_client):
-    if request_form['user_id'] != os.environ['APP_ADMIN']:
-        raise Exception('you are not authorized to close a poll')
-
     return sqs_client.send_message(
         POLLS_TO_CLOSE,
         PollsToCloseMessage(team_id=request_form['team_id'])
@@ -172,6 +171,7 @@ def close_poll_from_queue():
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
+    teams_dao = TeamsDao()
 
     return _read_from_queue(
         POLLS_TO_CLOSE,
@@ -180,6 +180,7 @@ def close_poll_from_queue():
         slack_client,
         polls_dao,
         poll_responses_dao,
+        teams_dao,
     )
 
 
@@ -188,6 +189,7 @@ def notify_groups_from_queue():
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
+    teams_dao = TeamsDao()
 
     return _read_from_queue(
         GROUPS_TO_NOTIFY,
@@ -196,4 +198,22 @@ def notify_groups_from_queue():
         slack_client,
         polls_dao,
         poll_responses_dao,
+        teams_dao,
     )
+
+
+@app.route('/api/v0/auth', methods=['GET'])
+def auth_http():
+    '''
+    Authorize a new workspace
+    '''
+    teams_dao = TeamsDao()
+    slack_client = SlackClient()
+
+    auth_action(request.args, teams_dao, slack_client)
+
+    outgoing_message = {'text': 'Success!'}
+    response = jsonify(outgoing_message)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response

@@ -1,6 +1,5 @@
 from datetime import datetime
 import json
-import os
 
 from lunch_buddies.actions import poll_user as poll_user_module
 from lunch_buddies.constants import polls as polls_constants
@@ -8,6 +7,8 @@ from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.models.teams import Team
 import lunch_buddies.app as module
 
 
@@ -37,8 +38,22 @@ def test_poll_users_from_queue(mocker):
         auto_spec=True,
         return_value=True,
     )
-    os.environ['SLACK_API_TOKEN'] = 'foo'
+
     slack_client = SlackClient()
+
+    teams_dao = TeamsDao()
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
 
     mocked_slack_post_message = mocker.patch.object(
         slack_client,
@@ -70,9 +85,16 @@ def test_poll_users_from_queue(mocker):
         slack_client,
         polls_dao,
         None,
+        teams_dao,
     )
 
     mocked_slack_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
         attachments=[{
             'text': 'Are you able to participate in Lunch Buddies today?',
             'fallback': 'Something has gone wrong.',
