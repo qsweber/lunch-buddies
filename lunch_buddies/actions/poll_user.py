@@ -23,6 +23,7 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, 
     slack_client.post_message(
         team=team,
         channel=user_id,
+        as_user=True,
         text='Are you able to participate in Lunch Buddies today?',
         attachments=[
             {

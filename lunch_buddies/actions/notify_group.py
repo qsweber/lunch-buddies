@@ -22,6 +22,7 @@ def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_da
     slack_client.post_message(
         team=team,
         channel=conversation['channel']['id'],
+        as_user=True,
         text=text,
     )
 
