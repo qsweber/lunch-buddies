@@ -1,7 +1,7 @@
 import logging
 import json
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, redirect
 
 from lunch_buddies import constants
 from lunch_buddies.constants.queues import (
@@ -212,8 +212,4 @@ def auth_http():
 
     auth_action(request.args, teams_dao, slack_client)
 
-    outgoing_message = {'text': 'Success!'}
-    response = jsonify(outgoing_message)
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
+    return redirect('http://lunchbuddies.quinnweber.com/registration/')
