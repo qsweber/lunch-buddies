@@ -1,5 +1,6 @@
 import logging
 import json
+import os
 
 from flask import Flask, jsonify, request, redirect
 
@@ -26,7 +27,14 @@ app = Flask(__name__)
 logger = logging.getLogger(__name__)
 
 
+def _validate_request(request_form):
+    if request_form['token'] != os.environ['VERIFICATION_TOKEN']:
+        raise Exception('you are not authorized to call this URL')
+
+
 def _create_poll(request_form, sqs_client):
+    _validate_request(request_form)
+
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
         user_id=request_form['user_id'],
@@ -124,6 +132,8 @@ def poll_users_from_queue():
 
 
 def _listen_to_poll(request_payload, polls_dao, poll_responses_dao):
+    _validate_request(request_payload)
+
     return listen_to_poll_action(request_payload, polls_dao, poll_responses_dao)
 
 
@@ -144,6 +154,8 @@ def listen_to_poll_http():
 
 
 def _close_poll(request_form, sqs_client):
+    _validate_request(request_form)
+
     return sqs_client.send_message(
         POLLS_TO_CLOSE,
         PollsToCloseMessage(team_id=request_form['team_id'])

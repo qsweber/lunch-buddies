@@ -1,5 +1,8 @@
 from datetime import datetime
 import json
+import os
+
+import pytest
 
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.dao.polls import PollsDao
@@ -7,7 +10,23 @@ from lunch_buddies.dao.poll_responses import PollResponsesDao
 import lunch_buddies.app as module
 
 
+def test_listen_to_poll_fails_without_verification_token():
+    request_payload = {
+        'foo': 'bar',
+        'token': 'fake_verification_token',
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'wrong_verification_token'
+
+    with pytest.raises(Exception) as excinfo:
+        module._close_poll(request_payload, '')
+
+    assert 'you are not authorized to call this URL' == str(excinfo.value)
+
+
 def test_listen_to_poll(mocker):
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
+
     request_payload = {
         'type': 'interactive_message',
         'actions': [{
@@ -30,7 +49,7 @@ def test_listen_to_poll(mocker):
         'action_ts': '1516117984.234873',
         'message_ts': '1516117976.000223',
         'attachment_id': '1',
-        'token': 'fake_token',
+        'token': 'fake_verification_token',
         'is_app_unfurl': False,
         'original_message': {
             'text': 'Are you able to participate in Lunch Buddies today?',

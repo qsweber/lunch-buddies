@@ -1,6 +1,9 @@
 from datetime import datetime
 import json
+import os
 from uuid import UUID
+
+import pytest
 
 from lunch_buddies.actions import close_poll as close_poll_module
 from lunch_buddies.constants import polls as polls_constants
@@ -12,11 +15,29 @@ from lunch_buddies.models.polls import Poll
 import lunch_buddies.app as module
 
 
+def test_close_poll_fails_without_verification_token():
+    request_form = {
+        'team_id': '123',
+        'user_id': 'abc',
+        'token': 'fake_verification_token',
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'wrong_verification_token'
+
+    with pytest.raises(Exception) as excinfo:
+        module._close_poll(request_form, '')
+
+    assert 'you are not authorized to call this URL' == str(excinfo.value)
+
+
 def test_close_poll(mocker):
     request_form = {
         'team_id': '123',
         'user_id': 'abc',
+        'token': 'fake_verification_token',
     }
+
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
 
     sqs_client = SqsClient(queues_constants.QUEUES)
     mocked_send_message_internal = mocker.patch.object(
