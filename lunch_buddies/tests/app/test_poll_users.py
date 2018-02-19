@@ -108,5 +108,6 @@ def test_poll_users_from_queue(mocker):
             ]
         }],
         channel='test_user_id',
+        as_user=True,
         text='Are you able to participate in Lunch Buddies today?',
     )

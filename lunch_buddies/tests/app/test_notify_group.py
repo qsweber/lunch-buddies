@@ -87,5 +87,6 @@ def test_notify_group_from_queue(mocker):
             created_at=created_at,
         ),
         channel='new_group_message_channel',
+        as_user=True,
         text='Hello! This is your lunch group for today. You all should meet somewhere at `11:45`. I am selecting <@user_id_two> to be in charge of picking the location.',
     )
