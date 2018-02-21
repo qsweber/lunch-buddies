@@ -4,7 +4,7 @@ import os
 
 from flask import Flask, jsonify, request, redirect
 
-from lunch_buddies.constants.help import CREATE_POLL, CLOSE_POLL
+from lunch_buddies.constants.help import APP_EXPLANATION, CREATE_POLL, CLOSE_POLL
 from lunch_buddies.constants.queues import (
     POLLS_TO_START, PollsToStartMessage,
     USERS_TO_POLL,
@@ -239,3 +239,22 @@ def auth_http():
     auth_action(request.args, teams_dao, slack_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
+
+
+def _help(request_form):
+    _validate_request(request_form)
+
+    return {'text': APP_EXPLANATION}
+
+
+@app.route('/api/v0/help', methods=['POST'])
+def help_http():
+    '''
+    Explains the app.
+    '''
+    outgoing_message = _help(request.form)
+
+    response = jsonify(outgoing_message)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response
