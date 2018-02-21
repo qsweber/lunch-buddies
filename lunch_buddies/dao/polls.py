@@ -24,7 +24,11 @@ class PollsDao(Dao):
         return polls[0]
 
     def find_latest_by_team_id(self, team_id):
-        return self.read('team_id', team_id)[-1]
+        polls = self.read('team_id', team_id)
+        if polls:
+            return polls[-1]
+        else:
+            return None
 
     def mark_poll_closed(self, poll):
         dynamo_table = self._get_dynamo_table()

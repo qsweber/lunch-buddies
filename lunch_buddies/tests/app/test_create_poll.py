@@ -110,6 +110,22 @@ def test_create_poll_from_queue(mocker):
 
     polls_dao = PollsDao()
 
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': datetime.now().timestamp(),
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': polls_constants.CLOSED,
+                'choices': json.dumps(polls_constants.CHOICES),
+            },
+        ]
+    )
+
     mocked_polls_dao_create_internal = mocker.patch.object(
         polls_dao,
         '_create_internal',

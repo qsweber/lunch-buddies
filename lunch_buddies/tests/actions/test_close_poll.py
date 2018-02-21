@@ -88,7 +88,7 @@ def test_group_by_answer():
     assert actual == expected
 
 
-def test_close_poll_fails_if_already_closed(mocker):
+def test_close_poll_messages_creating_user_if_already_closed(mocker):
     polls_dao = PollsDao()
     mocker.patch.object(
         polls_dao,

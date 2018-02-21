@@ -7,16 +7,24 @@ from lunch_buddies.models.polls import Poll
 
 
 def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
-    team_id = message.team_id
-    team = teams_dao.read('team_id', team_id)[0]
+    team = teams_dao.read('team_id', message.team_id)[0]
+    poll = polls_dao.find_latest_by_team_id(message.team_id)
 
-    # TODO: make sure there is not already an active poll
+    if poll and poll.state != polls.CLOSED:
+        slack_client.post_message(
+            team=team,
+            channel=message.user_id,
+            as_user=True,
+            text='There is already an active poll',
+        )
+
+        return True
 
     callback_id = _get_uuid()
     created_at = _get_created_at()
 
     poll = Poll(
-        team_id=team_id,
+        team_id=message.team_id,
         created_at=created_at,
         created_by_user_id=message.user_id,
         callback_id=callback_id,
@@ -32,10 +40,10 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
     for user in users_to_poll:
-        message = {'team_id': team_id, 'user_id': user['id'], 'callback_id': callback_id}
+        outgoing_message = {'team_id': message.team_id, 'user_id': user['id'], 'callback_id': callback_id}
         sqs_client.send_message(
             USERS_TO_POLL,
-            UsersToPollMessage(**message),
+            UsersToPollMessage(**outgoing_message),
         )
 
     return True
