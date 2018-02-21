@@ -12,7 +12,7 @@ This is a python flask app that has the following entrypoints.
 
 #### create_poll_http
 
-This is exposed to the web, and is invoked via a Slack slash command. When this function is called, a message is added to the `polls_to_create` SQS queue with information about the poll that needs creation.
+This is exposed to the web, and is invoked via a slash command. When this function is called, a message is added to the `polls_to_create` SQS queue with information about the poll that needs creation.
 
 #### create_poll_from_queue
 
@@ -26,7 +26,7 @@ This is a CRON job that runs every 5 minutes and tries to read from the `polls_t
 
 This is a CRON job that runs every 5 minutes and tries to read from the `users_to_poll` queue. When a message is found, it does the following:
 
-- Send a slack direct message to the user with a question about participating in "Lunch Buddies"
+- Send a direct message to the user with a question about participating in "Lunch Buddies"
 
 #### listen_to_poll_http
 
@@ -36,7 +36,7 @@ This is exposed to the web and is invoked when a clicks on a button in the messa
 
 #### close_poll_http
 
-This is exposed to the web, and is invoked via a Slack slash command. When this function is called, a message is added to the `polls_to_close` SQS queue with information about the poll that needs to be closed.
+This is exposed to the web, and is invoked via a slash command. When this function is called, a message is added to the `polls_to_close` SQS queue with information about the poll that needs to be closed.
 
 #### close_poll_from_queue
 
@@ -51,7 +51,7 @@ This is a CRON job that runs every 5 minutes and tries to read from the `polls_t
 
 This is a CRON job that runs every 5 minutes and tries to read from the `groups_to_notify` queue. When a message is found, it does the following:
 
-- Send a slack private group message to the group of users that should meet
+- Send a private group message to the group of users that should meet
 - Randomly select one of the users to choose where to meet
 
 ### Other Development notes
