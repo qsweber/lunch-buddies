@@ -6,11 +6,18 @@ from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessa
 
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
-    team_id = message.team_id
-    poll = polls_dao.find_latest_by_team_id(team_id)
+    team = teams_dao.read('team_id', message.team_id)[0]
+    poll = polls_dao.find_latest_by_team_id(message.team_id)
 
     if poll.state != CREATED:
-        raise Exception('latest poll already closed')
+        slack_client.post_message(
+            team=team,
+            channel=message.user_id,
+            as_user=True,
+            text='The poll you tried to close has already been closed',
+        )
+
+        return True
 
     # Close right away for idempotentcy
     polls_dao.mark_poll_closed(poll=poll)
@@ -24,7 +31,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
                 GROUPS_TO_NOTIFY,
-                GroupsToNotifyMessage(**{'team_id': team_id, 'user_ids': user_ids, 'response': answer}),
+                GroupsToNotifyMessage(**{'team_id': message.team_id, 'user_ids': user_ids, 'response': answer}),
             )
 
     return True

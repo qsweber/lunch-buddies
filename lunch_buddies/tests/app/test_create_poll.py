@@ -7,6 +7,7 @@ import pytz
 import pytest
 
 from lunch_buddies.actions import create_poll as create_poll_module
+from lunch_buddies import constants
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
@@ -31,6 +32,21 @@ def test_create_poll_fails_without_verification_token():
     assert 'you are not authorized to call this URL' == str(excinfo.value)
 
 
+def test_create_poll_handles_help_request():
+    request_form = {
+        'team_id': '123',
+        'user_id': 'abc',
+        'token': 'fake_verification_token',
+        'text': 'help',
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
+
+    result = module._create_poll(request_form, '')
+
+    assert result == {'text': constants.help.CREATE_POLL}
+
+
 def test_create_poll(mocker):
     sqs_client = SqsClient(queues_constants.QUEUES)
 
@@ -38,6 +54,7 @@ def test_create_poll(mocker):
         'team_id': '123',
         'user_id': 'abc',
         'token': 'fake_verification_token',
+        'text': '',
     }
 
     os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'

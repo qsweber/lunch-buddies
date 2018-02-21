@@ -5,8 +5,11 @@ from uuid import UUID
 
 import pytest
 
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.constants import polls as polls_constants, queues as queues_constants
 from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.models.teams import Team
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 
@@ -111,14 +114,45 @@ def test_close_poll_fails_if_already_closed(mocker):
         ]
     )
 
-    with pytest.raises(Exception) as excinfo:
-        module.close_poll(
-            queues_constants.PollsToCloseMessage(team_id='123'),
-            None,
-            None,
-            polls_dao,
-            None,
-            None,
-        )
+    slack_client = SlackClient()
+    mocked_slack_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
 
-    assert 'latest poll already closed' == str(excinfo.value)
+    teams_dao = TeamsDao()
+    created_at = datetime.datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
+
+    module.close_poll(
+        queues_constants.PollsToCloseMessage(team_id='123', user_id='closing_user_id'),
+        slack_client,
+        None,
+        polls_dao,
+        None,
+        teams_dao,
+    )
+
+    mocked_slack_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='closing_user_id',
+        as_user=True,
+        text='The poll you tried to close has already been closed',
+    )

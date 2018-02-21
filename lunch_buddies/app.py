@@ -32,8 +32,15 @@ def _validate_request(request_form):
         raise Exception('you are not authorized to call this URL')
 
 
+def _is_help(request_form):
+    return request_form['text'].lower().strip() == 'help'
+
+
 def _create_poll(request_form, sqs_client):
     _validate_request(request_form)
+
+    if _is_help(request_form):
+        return {'text': constants.help.CREATE_POLL}
 
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
@@ -45,7 +52,7 @@ def _create_poll(request_form, sqs_client):
         message,
     )
 
-    return True
+    return {'text': 'Users will be polled.'}
 
 
 @app.route('/api/v0/poll/create', methods=['POST'])
@@ -56,9 +63,8 @@ def create_poll_http():
     '''
     sqs_client = SqsClient(constants.queues.QUEUES)
 
-    _create_poll(request.form, sqs_client)
+    outgoing_message = _create_poll(request.form, sqs_client)
 
-    outgoing_message = {'text': 'Users will be polled.'}
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
 
@@ -156,10 +162,18 @@ def listen_to_poll_http():
 def _close_poll(request_form, sqs_client):
     _validate_request(request_form)
 
-    return sqs_client.send_message(
+    if _is_help(request_form):
+        return {'text': constants.help.CLOSE_POLL}
+
+    sqs_client.send_message(
         POLLS_TO_CLOSE,
-        PollsToCloseMessage(team_id=request_form['team_id'])
+        PollsToCloseMessage(
+            team_id=request_form['team_id'],
+            user_id=request_form['user_id'],
+        )
     )
+
+    return {'text': 'Poll will be closed.'}
 
 
 @app.route('/api/v0/poll/close', methods=['POST'])
@@ -169,9 +183,8 @@ def close_poll_http():
     '''
     sqs_client = SqsClient(constants.queues.QUEUES)
 
-    _close_poll(request.form, sqs_client)
+    outgoing_message = _close_poll(request.form, sqs_client)
 
-    outgoing_message = {'text': 'Poll will be closed.'}
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
 
