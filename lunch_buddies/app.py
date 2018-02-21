@@ -4,12 +4,13 @@ import os
 
 from flask import Flask, jsonify, request, redirect
 
-from lunch_buddies import constants
+from lunch_buddies.constants.help import CREATE_POLL, CLOSE_POLL
 from lunch_buddies.constants.queues import (
     POLLS_TO_START, PollsToStartMessage,
     USERS_TO_POLL,
     POLLS_TO_CLOSE, PollsToCloseMessage,
     GROUPS_TO_NOTIFY,
+    QUEUES
 )
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
@@ -40,7 +41,7 @@ def _create_poll(request_form, sqs_client):
     _validate_request(request_form)
 
     if _is_help(request_form):
-        return {'text': constants.help.CREATE_POLL}
+        return {'text': CREATE_POLL}
 
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
@@ -61,7 +62,7 @@ def create_poll_http():
     Create a poll
     This is connected to an incoming slash command from Slack
     '''
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
 
     outgoing_message = _create_poll(request.form, sqs_client)
 
@@ -102,7 +103,7 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
 
 
 def create_poll_from_queue():
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -120,7 +121,7 @@ def create_poll_from_queue():
 
 
 def poll_users_from_queue():
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -163,7 +164,7 @@ def _close_poll(request_form, sqs_client):
     _validate_request(request_form)
 
     if _is_help(request_form):
-        return {'text': constants.help.CLOSE_POLL}
+        return {'text': CLOSE_POLL}
 
     sqs_client.send_message(
         POLLS_TO_CLOSE,
@@ -181,7 +182,7 @@ def close_poll_http():
     '''
     Close a poll
     '''
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
 
     outgoing_message = _close_poll(request.form, sqs_client)
 
@@ -192,7 +193,7 @@ def close_poll_http():
 
 
 def close_poll_from_queue():
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -210,7 +211,7 @@ def close_poll_from_queue():
 
 
 def notify_groups_from_queue():
-    sqs_client = SqsClient(constants.queues.QUEUES)
+    sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()

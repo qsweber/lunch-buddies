@@ -7,7 +7,7 @@ import pytz
 import pytest
 
 from lunch_buddies.actions import create_poll as create_poll_module
-from lunch_buddies import constants
+from lunch_buddies.constants.help import CREATE_POLL
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
@@ -44,7 +44,7 @@ def test_create_poll_handles_help_request():
 
     result = module._create_poll(request_form, '')
 
-    assert result == {'text': constants.help.CREATE_POLL}
+    assert result == {'text': CREATE_POLL}
 
 
 def test_create_poll(mocker):

@@ -6,7 +6,7 @@ from uuid import UUID
 import pytest
 
 from lunch_buddies.actions import close_poll as close_poll_module
-from lunch_buddies import constants
+from lunch_buddies.constants.help import CLOSE_POLL
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
@@ -45,7 +45,7 @@ def test_close_poll_handles_help_request():
 
     result = module._close_poll(request_form, '')
 
-    assert result == {'text': constants.help.CLOSE_POLL}
+    assert result == {'text': CLOSE_POLL}
 
 
 def test_close_poll(mocker):
