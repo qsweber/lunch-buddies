@@ -96,7 +96,6 @@ def test_poll_users_from_queue(mocker):
             created_at=created_at,
         ),
         attachments=[{
-            'text': 'Are you able to participate in Lunch Buddies today?',
             'fallback': 'Something has gone wrong.',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
             'color': '#3AA3E3',

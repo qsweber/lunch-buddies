@@ -58,7 +58,6 @@ def test_listen_to_poll(mocker):
             'attachments': [{
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'fallback': 'Something has gone wrong.',
-                'text': 'Are you able to participate in Lunch Buddies today?',
                 'id': 1,
                 'color': '3AA3E3',
                 'actions': [{
@@ -136,7 +135,6 @@ def test_listen_to_poll(mocker):
             {
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'fallback': 'Something has gone wrong.',
-                'text': 'Are you able to participate in Lunch Buddies today?',
                 'id': 1,
                 'color': '3AA3E3',
                 'actions': [{

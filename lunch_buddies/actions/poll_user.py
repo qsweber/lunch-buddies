@@ -27,7 +27,6 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, 
         text='Are you able to participate in Lunch Buddies today?',
         attachments=[
             {
-                'text': 'Are you able to participate in Lunch Buddies today?',
                 'fallback': 'Something has gone wrong.',
                 'callback_id': str(callback_id),
                 'color': '#3AA3E3',
