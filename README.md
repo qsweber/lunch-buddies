@@ -4,6 +4,8 @@
 
 Slack APP for creating lunch buddy groups.
 
+[![Add to Slack](https://platform.slack-edge.com/img/add_to_slack.png)](https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production/api/v0/install)
+
 ## How it works
 
 This is a python flask app that has the following entrypoints.
