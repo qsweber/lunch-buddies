@@ -1,4 +1,4 @@
-from datetime import datetime
+import datetime
 import json
 import os
 
@@ -7,21 +7,61 @@ import pytest
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
-import lunch_buddies.app as module
+from lunch_buddies.dao.teams import TeamsDao
+import lunch_buddies.app.http as module
 
 
-def test_listen_to_poll_fails_without_verification_token():
-    request_payload = {
-        'foo': 'bar',
+def test_help_fails_without_verification_token(mocker):
+    request_form = {
+        'team_id': '123',
+        'user_id': 'abc',
         'token': 'fake_verification_token',
+        'text': '',
     }
 
     os.environ['VERIFICATION_TOKEN'] = 'wrong_verification_token'
 
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.datetime.now().timestamp(),
+        }]
+    )
+
     with pytest.raises(Exception) as excinfo:
-        module._close_poll(request_payload, '')
+        module._listen_to_poll(request_form, teams_dao, '')
 
     assert 'you are not authorized to call this URL' == str(excinfo.value)
+
+
+def test_help_fails_without_authorized_team(mocker):
+    request_form = {
+        'team_id': '123',
+        'user_id': 'abc',
+        'token': 'fake_verification_token',
+        'text': '',
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
+
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[]
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        module._listen_to_poll(request_form, teams_dao, '')
+
+    assert 'your team is not authorized for this app' == str(excinfo.value)
 
 
 def test_listen_to_poll(mocker):
@@ -99,7 +139,7 @@ def test_listen_to_poll(mocker):
         autospec=True,
         return_value=[{
             'team_id': '123',
-            'created_at': datetime.now().timestamp(),
+            'created_at': datetime.datetime.now().timestamp(),
             'created_by_user_id': 'foo',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
             'state': polls_constants.CREATED,
@@ -116,7 +156,20 @@ def test_listen_to_poll(mocker):
         return_value=True,
     )
 
-    outgoing_message = module._listen_to_poll(request_payload, polls_dao, poll_responses_dao)
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': 'fake_team_id',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.datetime.now().timestamp(),
+        }]
+    )
+
+    outgoing_message = module._listen_to_poll(request_payload, teams_dao, polls_dao, poll_responses_dao)
 
     expected_poll_response = {
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',

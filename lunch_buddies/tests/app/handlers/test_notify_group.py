@@ -7,7 +7,7 @@ from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
-import lunch_buddies.app as module
+import lunch_buddies.app.handlers as module
 
 
 def test_notify_group_from_queue(mocker):

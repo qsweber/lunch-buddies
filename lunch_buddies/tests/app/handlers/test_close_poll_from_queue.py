@@ -1,12 +1,8 @@
 from datetime import datetime
 import json
-import os
 from uuid import UUID
 
-import pytest
-
 from lunch_buddies.actions import close_poll as close_poll_module
-from lunch_buddies.constants.help import CLOSE_POLL
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
@@ -14,64 +10,7 @@ from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.polls import Poll
-import lunch_buddies.app as module
-
-
-def test_close_poll_fails_without_verification_token():
-    request_form = {
-        'team_id': '123',
-        'user_id': 'abc',
-        'token': 'fake_verification_token',
-        'text': '',
-    }
-
-    os.environ['VERIFICATION_TOKEN'] = 'wrong_verification_token'
-
-    with pytest.raises(Exception) as excinfo:
-        module._close_poll(request_form, '')
-
-    assert 'you are not authorized to call this URL' == str(excinfo.value)
-
-
-def test_close_poll_handles_help_request():
-    request_form = {
-        'team_id': '123',
-        'user_id': 'abc',
-        'token': 'fake_verification_token',
-        'text': 'help',
-    }
-
-    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
-
-    result = module._close_poll(request_form, '')
-
-    assert result == {'text': CLOSE_POLL}
-
-
-def test_close_poll(mocker):
-    request_form = {
-        'team_id': '123',
-        'user_id': 'abc',
-        'token': 'fake_verification_token',
-        'text': '',
-    }
-
-    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
-
-    sqs_client = SqsClient(queues_constants.QUEUES)
-    mocked_send_message_internal = mocker.patch.object(
-        sqs_client,
-        '_send_message_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    module._close_poll(request_form, sqs_client)
-
-    mocked_send_message_internal.assert_called_with(
-        QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_close',
-        MessageBody='{"team_id": "123", "user_id": "abc"}',
-    )
+import lunch_buddies.app.handlers as module
 
 
 def test_close_poll_from_queue(mocker):
