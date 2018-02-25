@@ -9,7 +9,7 @@ Poll = NamedTuple(
         ('created_at', datetime),
         ('created_by_user_id', str),
         ('callback_id', UUID),
-        ('state', str),          # [STARTED, DONE]
-        ('choices', dict),
+        ('state', str),
+        ('choices', list),
     ]
 )

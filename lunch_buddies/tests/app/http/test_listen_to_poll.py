@@ -72,7 +72,7 @@ def test_listen_to_poll(mocker):
         'actions': [{
             'name': 'answer',
             'type': 'button',
-            'value': 'yes_1145'
+            'value': 'yes_1200'
         }],
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'team': {
@@ -103,19 +103,12 @@ def test_listen_to_poll(mocker):
                 'actions': [{
                     'id': '1',
                     'name': 'answer',
-                    'text': 'Yes (11:45)',
+                    'text': 'Yes (12:00)',
                     'type': 'button',
-                    'value': 'yes_1145',
+                    'value': 'yes_1200',
                     'style': '',
                 }, {
                     'id': '2',
-                    'name': 'answer',
-                    'text': 'Yes (12:30)',
-                    'type': 'button',
-                    'value': 'yes_1230',
-                    'style': '',
-                }, {
-                    'id': '3',
                     'name': 'answer',
                     'text': 'No',
                     'type': 'button',
@@ -175,7 +168,7 @@ def test_listen_to_poll(mocker):
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'user_id': 'fake_user_id',
         'created_at': float('1516117984.234873'),
-        'response': 'yes_1145',
+        'response': 'yes_1200',
     }
 
     mocked_poll_responses_dao_create.assert_called_with(expected_poll_response)
@@ -193,19 +186,12 @@ def test_listen_to_poll(mocker):
                 'actions': [{
                     'id': '1',
                     'name': 'answer',
-                    'text': 'Yes (11:45)',
+                    'text': 'Yes (12:00)',
                     'type': 'button',
-                    'value': 'yes_1145',
+                    'value': 'yes_1200',
                     'style': '',
                 }, {
                     'id': '2',
-                    'name': 'answer',
-                    'text': 'Yes (12:30)',
-                    'type': 'button',
-                    'value': 'yes_1230',
-                    'style': '',
-                }, {
-                    'id': '3',
                     'name': 'answer',
                     'text': 'No',
                     'type': 'button',
@@ -213,7 +199,7 @@ def test_listen_to_poll(mocker):
                     'style': '',
                 }],
             }, {
-                'text': ':white_check_mark: Your answer of `Yes (11:45)` was received!',
+                'text': ':white_check_mark: Your answer of `Yes (12:00)` was received!',
             },
         ],
         'type': 'message',

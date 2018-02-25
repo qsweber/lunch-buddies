@@ -22,7 +22,7 @@ def listen_to_poll(request_form, polls_dao, poll_responses_dao):
 
     outgoing_message_payload = request_form['original_message'].copy()
     outgoing_message_payload['attachments'].append({
-        'text': ':white_check_mark: Your answer of `{}` was received!'.format(poll.choices[response])
+        'text': ':white_check_mark: Your answer of `{}` was received!'.format(dict(poll.choices)[response])
     })
 
     return outgoing_message_payload

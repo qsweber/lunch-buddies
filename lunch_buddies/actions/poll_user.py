@@ -33,7 +33,7 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, 
                 'attachment_type': 'default',
                 'actions': [
                     {'name': 'answer', 'text': value, 'type': 'button', 'value': key}
-                    for key, value in poll.choices.items()
+                    for key, value in poll.choices
                 ],
             },
         ]

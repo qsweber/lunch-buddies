@@ -23,13 +23,18 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     callback_id = _get_uuid()
     created_at = _get_created_at()
 
+    if message.text:
+        choices = _get_choices_from_message_text(message.text)
+    else:
+        choices = polls.CHOICES
+
     poll = Poll(
         team_id=message.team_id,
         created_at=created_at,
         created_by_user_id=message.user_id,
         callback_id=callback_id,
         state=polls.CREATED,
-        choices=polls.CHOICES,
+        choices=choices,
     )
 
     polls_dao.create(poll)
@@ -47,6 +52,17 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         )
 
     return True
+
+
+def _get_choices_from_message_text(text):
+    choices = [
+        ['yes_{}'.format(option.strip()), 'Yes ({}:{})'.format(option.strip()[0:2], option.strip()[2:4])]
+        for option in text.split(',')
+    ]
+
+    choices.append(['no', 'No'])
+
+    return choices
 
 
 def _get_uuid():

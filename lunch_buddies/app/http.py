@@ -59,6 +59,7 @@ def _create_poll(request_form, teams_dao, sqs_client):
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
         user_id=request_form['user_id'],
+        text=request_form['text'],
     )
 
     sqs_client.send_message(

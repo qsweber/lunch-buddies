@@ -28,6 +28,8 @@ class Dao(object):
             value = getattr(model_instance, field)
             if field_type == dict:
                 value = json.dumps(value)
+            elif field_type == list:
+                value = json.dumps(value)
             elif field_type == datetime.datetime:
                 value = Decimal(value.timestamp())
             elif field_type == UUID:
@@ -44,6 +46,8 @@ class Dao(object):
         for field, field_type in model_class._field_types.items():
             value = dynamo_object[field]
             if field_type == dict:
+                value = json.loads(value)
+            elif field_type == list:
                 value = json.loads(value)
             elif field_type == datetime.datetime:
                 value = datetime.datetime.fromtimestamp(float(value))
