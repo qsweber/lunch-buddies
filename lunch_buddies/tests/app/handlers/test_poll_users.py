@@ -101,8 +101,7 @@ def test_poll_users_from_queue(mocker):
             'color': '#3AA3E3',
             'attachment_type': 'default',
             'actions': [
-                {'name': 'answer', 'text': 'Yes (11:45)', 'type': 'button', 'value': 'yes_1145'},
-                {'name': 'answer', 'text': 'Yes (12:30)', 'type': 'button', 'value': 'yes_1230'},
+                {'name': 'answer', 'text': 'Yes (12:00)', 'type': 'button', 'value': 'yes_1200'},
                 {'name': 'answer', 'text': 'No', 'type': 'button', 'value': 'no'},
             ]
         }],

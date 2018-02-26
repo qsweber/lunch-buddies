@@ -11,6 +11,7 @@ PollsToStartMessage = NamedTuple(
     [
         ('team_id', str),
         ('user_id', str),
+        ('text', str),
     ],
 )
 

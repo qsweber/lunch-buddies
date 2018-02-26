@@ -98,7 +98,7 @@ def test_create_poll(mocker):
         'team_id': '123',
         'user_id': 'abc',
         'token': 'fake_verification_token',
-        'text': '',
+        'text': 'foo bar',
     }
 
     os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
@@ -127,5 +127,5 @@ def test_create_poll(mocker):
 
     mocked_send_message_internal.assert_called_with(
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
-        MessageBody='{"team_id": "123", "user_id": "abc"}',
+        MessageBody='{"team_id": "123", "user_id": "abc", "text": "foo bar"}',
     )

@@ -88,13 +88,13 @@ def test_close_poll_from_queue(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'user_id': 'user_id_one',
                 'created_at': float('1516117983.234873'),
-                'response': 'yes_1145',
+                'response': 'yes_1200',
             },
             {
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'user_id': 'user_id_two',
                 'created_at': float('1516117984.234873'),
-                'response': 'yes_1145',
+                'response': 'yes_1200',
             }
         ]
     )
@@ -130,13 +130,13 @@ def test_close_poll_from_queue(mocker):
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
             state='CREATED',
-            choices={'yes_1145': 'Yes (11:45)', 'yes_1230': 'Yes (12:30)', 'no': 'No'},
+            choices=[['yes_1200', 'Yes (12:00)'], ['no', 'No']],
         ),
     )
 
     assert mocked_send_message_internal.call_count == 1
 
     mocked_send_message_internal.assert_called_with(
-        MessageBody='{"team_id": "123", "response": "yes_1145", "user_ids": ["user_id_one", "user_id_two"]}',
+        MessageBody='{"team_id": "123", "response": "yes_1200", "user_ids": ["user_id_one", "user_id_two"]}',
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/groups_to_notify',
     )
