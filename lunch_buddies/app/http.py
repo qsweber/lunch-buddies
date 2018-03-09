@@ -17,6 +17,8 @@ from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
+from lunch_buddies import util
+
 
 app = Flask(__name__)
 logger = logging.getLogger(__name__)
@@ -51,10 +53,23 @@ def validate(func):
     return wrapper
 
 
+def validate_create_poll(request_form):
+    text = request_form['text']
+
+    util.get_choices_from_message_text(text)
+
+    return True
+
+
 @validate
 def _create_poll(request_form, teams_dao, sqs_client):
     if _is_help(request_form):
         return {'text': CREATE_POLL}
+
+    try:
+        validate_create_poll(request_form)
+    except util.InvalidPollOption as e:
+        return {'text': 'Failed: {}'.format(str(e))}
 
     message = PollsToStartMessage(
         team_id=request_form['team_id'],

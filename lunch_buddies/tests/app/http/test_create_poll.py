@@ -91,6 +91,36 @@ def test_create_poll_handles_help_request(mocker):
     assert result == {'text': CREATE_POLL}
 
 
+def test_create_poll_fails_with_bad_text(mocker):
+    sqs_client = SqsClient(queues_constants.QUEUES)
+
+    request_form = {
+        'team_id': '123',
+        'user_id': 'abc',
+        'token': 'fake_verification_token',
+        'text': 'foo bar',  # this is bad
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
+
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.datetime.now().timestamp(),
+        }]
+    )
+
+    result = module._create_poll(request_form, teams_dao, sqs_client)
+
+    assert result == {'text': 'Failed: Option could not be parsed into a time: "foo bar"'}
+
+
 def test_create_poll(mocker):
     sqs_client = SqsClient(queues_constants.QUEUES)
 
@@ -98,7 +128,7 @@ def test_create_poll(mocker):
         'team_id': '123',
         'user_id': 'abc',
         'token': 'fake_verification_token',
-        'text': 'foo bar',
+        'text': '1200, 1230',
     }
 
     os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
@@ -127,5 +157,5 @@ def test_create_poll(mocker):
 
     mocked_send_message_internal.assert_called_with(
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
-        MessageBody='{"team_id": "123", "user_id": "abc", "text": "foo bar"}',
+        MessageBody='{"team_id": "123", "user_id": "abc", "text": "1200, 1230"}',
     )

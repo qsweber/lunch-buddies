@@ -60,7 +60,7 @@ class Dao(object):
     def _read_internal(self, key, value):
         dynamo_table = self._get_dynamo_table()
         if not key:
-            return dynamo_table.query().get('Items')
+            return dynamo_table.scan().get('Items')
         else:
             return dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
 

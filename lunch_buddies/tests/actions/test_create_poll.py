@@ -1,8 +1,6 @@
 import datetime
 import json
 
-import pytest
-
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants import polls as polls_constants, queues as queues_constants
@@ -174,18 +172,3 @@ def test_create_poll_handles_first_time(mocker):
     assert mocked_slack_post_message.not_called()
 
     assert mocked_send_message_internal.call_count == 2
-
-
-@pytest.mark.parametrize(
-    'text, expected',
-    [
-        ('1145, 1230', [['yes_1145', 'Yes (11:45)'], ['yes_1230', 'Yes (12:30)'], ['no', 'No']]),
-        ('1145,1230', [['yes_1145', 'Yes (11:45)'], ['yes_1230', 'Yes (12:30)'], ['no', 'No']]),
-        ('  1145,   1230 ', [['yes_1145', 'Yes (11:45)'], ['yes_1230', 'Yes (12:30)'], ['no', 'No']]),
-        ('1200', [['yes_1200', 'Yes (12:00)'], ['no', 'No']])
-    ],
-)
-def test_get_choices_from_message_text(text, expected):
-    actual = module._get_choices_from_message_text(text)
-
-    assert actual == expected

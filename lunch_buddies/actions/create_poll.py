@@ -1,6 +1,7 @@
 from datetime import datetime
 import uuid
 
+from lunch_buddies import util
 from lunch_buddies.constants import polls, slack
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll
@@ -24,7 +25,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     created_at = _get_created_at()
 
     if message.text:
-        choices = _get_choices_from_message_text(message.text)
+        choices = util.get_choices_from_message_text(message.text)
     else:
         choices = polls.CHOICES
 
@@ -52,17 +53,6 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         )
 
     return True
-
-
-def _get_choices_from_message_text(text):
-    choices = [
-        ['yes_{}'.format(option.strip()), 'Yes ({}:{})'.format(option.strip()[0:2], option.strip()[2:4])]
-        for option in text.split(',')
-    ]
-
-    choices.append(['no', 'No'])
-
-    return choices
 
 
 def _get_uuid():
