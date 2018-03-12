@@ -26,7 +26,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     if message.text:
         choices = get_choices_from_message_text(message.text)
     else:
-        choices = polls.CHOICES  # TODO figure this out
+        choices = polls.CHOICES
 
     poll = Poll(
         team_id=message.team_id,
