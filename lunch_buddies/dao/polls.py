@@ -21,6 +21,7 @@ class PollsDao(Dao):
 
     def _as_model_hook(self, field, value):
         if field == 'choices':
+            # TODO: if there are only two elements instead of four, it's an old poll
             return ChoiceList([
                 Choice(
                     key=str(choice['key']),
