@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 from uuid import UUID
 
 from lunch_buddies.actions import close_poll as close_poll_module
@@ -59,7 +58,7 @@ def test_close_poll_from_queue(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
             {
                 'team_id': '123',
@@ -67,7 +66,7 @@ def test_close_poll_from_queue(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
         ]
     )
@@ -130,7 +129,7 @@ def test_close_poll_from_queue(mocker):
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
             state='CREATED',
-            choices=[['yes_1200', 'Yes (12:00)'], ['no', 'No']],
+            choices=polls_constants.CHOICES,
         ),
     )
 

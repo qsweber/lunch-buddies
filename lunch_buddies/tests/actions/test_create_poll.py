@@ -1,5 +1,6 @@
 import datetime
-import json
+
+import pytest
 
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
@@ -7,6 +8,7 @@ from lunch_buddies.constants import polls as polls_constants, queues as queues_c
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
+from lunch_buddies.models.polls import Choice, ChoiceList
 import lunch_buddies.actions.create_poll as module
 
 
@@ -23,7 +25,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
         ]
     )
@@ -172,3 +174,66 @@ def test_create_poll_handles_first_time(mocker):
     assert mocked_slack_post_message.not_called()
 
     assert mocked_send_message_internal.call_count == 2
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        ('1145, 1230'),
+        ('1145,1230'),
+        ('  1145,   1230 '),
+    ],
+)
+def test_get_choices_from_message_text_two_options(text):
+    actual = module.get_choices_from_message_text(text)
+
+    expected = ChoiceList([
+        Choice(
+            key='yes_1145',
+            is_yes=True,
+            time='11:45',
+            display_text='Yes (11:45)',
+        ),
+        Choice(
+            key='yes_1230',
+            is_yes=True,
+            time='12:30',
+            display_text='Yes (12:30)',
+        ),
+        Choice(
+            key='no',
+            is_yes=False,
+            time='',
+            display_text='No',
+        ),
+    ])
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    'text',
+    [
+        ('1200'),
+        (' 1200   '),
+    ],
+)
+def test_get_choices_from_message_text_one_option(text):
+    actual = module.get_choices_from_message_text(text)
+
+    expected = ChoiceList([
+        Choice(
+            key='yes_1200',
+            is_yes=True,
+            time='12:00',
+            display_text='Yes (12:00)',
+        ),
+        Choice(
+            key='no',
+            is_yes=False,
+            time='',
+            display_text='No',
+        ),
+    ])
+
+    assert actual == expected

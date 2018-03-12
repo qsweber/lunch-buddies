@@ -1,10 +1,9 @@
 from datetime import datetime
 import uuid
 
-from lunch_buddies import util
 from lunch_buddies.constants import polls, slack
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
-from lunch_buddies.models.polls import Poll
+from lunch_buddies.models.polls import Poll, ChoiceList, Choice
 
 
 def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
@@ -25,9 +24,9 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     created_at = _get_created_at()
 
     if message.text:
-        choices = util.get_choices_from_message_text(message.text)
+        choices = get_choices_from_message_text(message.text)
     else:
-        choices = polls.CHOICES
+        choices = polls.CHOICES  # TODO figure this out
 
     poll = Poll(
         team_id=message.team_id,
@@ -61,3 +60,54 @@ def _get_uuid():
 
 def _get_created_at():
     return datetime.now()
+
+
+class InvalidPollOption(Exception):
+    def __init__(self, option):
+        super(InvalidPollOption, self).__init__(
+            'Option could not be parsed into a time: "{}"'.format(option)
+        )
+
+
+def get_choices_from_message_text(text):
+    # TODO: first argument can be a channel?
+
+    options = list(map(lambda o: o.strip(), text.split(',')))
+
+    choices = list(map(get_choice_from_raw_option, options))
+    choices.append(Choice(
+        key='no',
+        is_yes=False,
+        time='',
+        display_text='No',
+    ))
+
+    return ChoiceList(choices)
+
+
+def get_choice_from_raw_option(option):
+    try:
+        int(option)
+    except ValueError:
+        raise InvalidPollOption(option)
+
+    time = get_time_from_raw_option(option)
+
+    return Choice(
+        key='yes_{}'.format(option),
+        is_yes=True,
+        time=time,
+        display_text='Yes ({})'.format(time),
+    )
+
+
+def get_time_from_raw_option(raw_option):
+    hour = int(raw_option[:-2])
+    minute = int(raw_option[-2:])
+
+    try:
+        datetime(2018, 1, 1, hour, minute)
+    except ValueError:
+        raise InvalidPollOption(raw_option)
+
+    return '{}:{}'.format(hour, str(minute).zfill(2))

@@ -2,9 +2,11 @@ from datetime import datetime
 import random
 
 from lunch_buddies.actions import notify_group as notify_group_module
+from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
 import lunch_buddies.app.handlers as module
@@ -51,6 +53,23 @@ def test_notify_group_from_queue(mocker):
         }]
     )
 
+    polls_dao = PollsDao()
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': datetime.now().timestamp(),
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'state': polls_constants.CREATED,
+                'choices': '[{"key": "yes_1145", "is_yes": true, "time": "11:45", "display_text": "Yes (11:45)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+            },
+        ]
+    )
+
     mocker.patch.object(
         slack_client,
         'open_conversation',
@@ -72,7 +91,7 @@ def test_notify_group_from_queue(mocker):
         notify_group_module.notify_group,
         sqs_client,
         slack_client,
-        None,
+        polls_dao,
         None,
         teams_dao,
     )

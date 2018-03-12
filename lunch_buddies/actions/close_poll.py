@@ -24,26 +24,35 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
 
     poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
-    poll_responses_by_response = _group_by_answer(poll_responses)
+    poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
-    for answer, messages in poll_responses_by_response.items():
-        for group in get_groups(messages, 6, 5, 7):
+    for choice, poll_responses_for_choice in poll_responses_by_choice.items():
+        for group in get_groups(poll_responses_for_choice, 6, 5, 7):
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
                 GROUPS_TO_NOTIFY,
-                GroupsToNotifyMessage(**{'team_id': message.team_id, 'user_ids': user_ids, 'response': answer}),
+                GroupsToNotifyMessage(**{'team_id': message.team_id, 'user_ids': user_ids, 'response': choice.key}),
             )
 
     return True
 
 
-def _group_by_answer(poll_responses):
-    poll_responses_by_response = defaultdict(list)
+def _group_by_answer(poll_responses, poll):
+    poll_responses_by_choice = defaultdict(list)
     for poll_response in poll_responses:
-        if 'yes' in poll_response.response:
-            poll_responses_by_response[poll_response.response].append(poll_response)
+        choice = _get_choice_from_response(poll_response, poll)
+        if choice.is_yes:
+            poll_responses_by_choice[choice].append(poll_response)
 
-    return dict(poll_responses_by_response)
+    return dict(poll_responses_by_choice)
+
+
+def _get_choice_from_response(poll_response, poll):
+    return [
+        choice
+        for choice in poll.choices
+        if choice.key == poll_response.response
+    ][0]
 
 
 def get_groups(elements, group_size, min_group_size, max_group_size):
