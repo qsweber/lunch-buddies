@@ -21,7 +21,33 @@ class PollsDao(Dao):
 
     def _as_model_hook(self, field, value):
         if field == 'choices':
-            # TODO: if there are only two elements instead of four, it's an old poll
+            # TODO: remove below
+            choices = json.loads(value)
+            if isinstance(choices, dict):
+                # version 1.0
+                return ChoiceList([
+                    Choice(
+                        key=key,
+                        is_yes=('yes' in key),
+                        time='{}:{}'.format(key[-4:-2], key[-2:]),
+                        display_text=display_text,
+                    )
+                    for key, display_text in choices.items()
+                ])
+            elif isinstance(choices, list):
+                if len(choices[0]) == 2:
+                    # version 2.0
+                    return ChoiceList([
+                        Choice(
+                            key=key,
+                            is_yes=('yes' in key),
+                            time=('{}:{}'.format(key[-4:-2], key[-2:]) if 'yes' in key else ''),
+                            display_text=display_text,
+                        )
+                        for key, display_text in choices
+                    ])
+            # TODO: remove above
+
             return ChoiceList([
                 Choice(
                     key=str(choice['key']),

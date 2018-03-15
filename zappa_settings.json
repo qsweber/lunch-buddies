@@ -23,5 +23,37 @@
                 "expression": "cron(4-59/5 * ? * * *)"
             }
         ]
+    },
+    "beta": {
+        "app_function": "lunch_buddies.app.http.app",
+        "aws_region": "us-west-2",
+        "project_name": "lunch-buddies",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-vt9hd6vy9",
+        "events": [
+            {
+                "function": "lunch_buddies.app.handlers.create_poll_from_queue",
+                "expression": "cron(1-59/5 * ? * * *)"
+            },
+            {
+                "function": "lunch_buddies.app.handlers.poll_users_from_queue",
+                "expression": "cron(2-59/5 * ? * * *)"
+            },
+            {
+                "function": "lunch_buddies.app.handlers.close_poll_from_queue",
+                "expression": "cron(3-59/5 * ? * * *)"
+            },
+            {
+                "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
+                "expression": "cron(4-59/5 * ? * * *)"
+            }
+        ]
+    },
+    "development": {
+        "app_function": "lunch_buddies.app.http.app",
+        "aws_region": "us-west-2",
+        "project_name": "lunch-buddies",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-vt9hd6vy9"
     }
 }
