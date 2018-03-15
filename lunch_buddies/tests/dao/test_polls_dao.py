@@ -15,7 +15,7 @@ def test_roundtrip_encoding():
         created_by_user_id='456',
         callback_id=uuid.uuid4(),
         state='CREATED',
-        choices=get_choices_from_message_text('1230'),
+        choices=get_choices_from_message_text('1230')[1],
     )
 
     after = polls_dao._as_model(polls_dao._as_dynamo_object(poll))

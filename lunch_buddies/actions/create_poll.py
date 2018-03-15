@@ -23,10 +23,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     callback_id = _get_uuid()
     created_at = _get_created_at()
 
-    if message.text:
-        choices = get_choices_from_message_text(message.text)
-    else:
-        choices = polls.CHOICES
+    channel_name, choices = get_choices_from_message_text(message.text)
 
     poll = Poll(
         team_id=message.team_id,
@@ -34,6 +31,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         created_by_user_id=message.user_id,
         callback_id=callback_id,
         state=polls.CREATED,
+        # channel_name=channel_name,
         choices=choices,
     )
 
@@ -41,7 +39,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     users_to_poll = [
         user
-        for user in slack_client.list_users(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        for user in slack_client.list_users(team, channel_name)
         if user['is_bot'] is False and user['name'] != 'slackbot'
     ]
     for user in users_to_poll:
@@ -70,7 +68,8 @@ class InvalidPollOption(Exception):
 
 
 def get_choices_from_message_text(text):
-    # TODO: first argument can be a channel?
+    if not text:
+        return slack.LUNCH_BUDDIES_CHANNEL_NAME, polls.CHOICES
 
     options = list(map(lambda o: o.strip(), text.split(',')))
 
@@ -82,7 +81,7 @@ def get_choices_from_message_text(text):
         display_text='No',
     ))
 
-    return ChoiceList(choices)
+    return slack.LUNCH_BUDDIES_CHANNEL_NAME, ChoiceList(choices)
 
 
 def get_choice_from_raw_option(option):

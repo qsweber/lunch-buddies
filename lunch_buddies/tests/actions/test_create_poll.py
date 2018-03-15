@@ -185,7 +185,7 @@ def test_create_poll_handles_first_time(mocker):
     ],
 )
 def test_get_choices_from_message_text_two_options(text):
-    actual = module.get_choices_from_message_text(text)
+    channel_name, actual = module.get_choices_from_message_text(text)
 
     expected = ChoiceList([
         Choice(
@@ -219,7 +219,7 @@ def test_get_choices_from_message_text_two_options(text):
     ],
 )
 def test_get_choices_from_message_text_one_option(text):
-    actual = module.get_choices_from_message_text(text)
+    channel_name, actual = module.get_choices_from_message_text(text)
 
     expected = ChoiceList([
         Choice(
