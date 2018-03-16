@@ -7,7 +7,8 @@ from lunch_buddies.clients.slack import SlackClient
 import lunch_buddies.constants.slack as slack_constants
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
-from lunch_buddies.tests import fixtures
+from lunch_buddies.tests.fixtures.dao import TEAM as team_fixture
+from lunch_buddies.tests.fixtures.slack import OAUTH_RESPONSE as oath_response_fixture
 
 
 def test_auth(mocker):
@@ -18,19 +19,19 @@ def test_auth(mocker):
         auto_spec=True,
         return_value=True,
     )
-    created_at = datetime.fromtimestamp(float(fixtures.dao.TEAM['created_at']))
+    created_at = datetime.fromtimestamp(float(team_fixture['created_at']))
     mocker.patch.object(
         teams_dao,
         '_read_internal',
         auto_spec=True,
-        return_value=[fixtures.dao.TEAM]
+        return_value=[team_fixture]
     )
 
     mocker.patch.object(
         module,
         '_get_slack_oauth',
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(fixtures.slack.OAUTH_RESPONSE)),
+        return_value=mocker.Mock(text=json.dumps(oath_response_fixture)),
     )
 
     mocker.patch.object(
@@ -62,11 +63,11 @@ def test_auth(mocker):
     )
 
     mocked_teams_dao_create_internal.assert_called_with(
-        fixtures.dao.TEAM,
+        team_fixture,
     )
 
     mocked_slack_client_create_channel.assert_called_with(
-        team=Team(**{**fixtures.dao.TEAM, **{'created_at': created_at}}),
+        team=Team(**{**team_fixture, **{'created_at': created_at}}),
         name='lunch_buddies',
         is_private=False,
     )
@@ -84,14 +85,14 @@ def test_auth_handles_case_when_channel_already_exists(mocker):
         teams_dao,
         '_read_internal',
         auto_spec=True,
-        return_value=[fixtures.dao.TEAM],
+        return_value=[team_fixture],
     )
 
     mocker.patch.object(
         module,
         '_get_slack_oauth',
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(fixtures.slack.OAUTH_RESPONSE)),
+        return_value=mocker.Mock(text=json.dumps(oath_response_fixture)),
     )
 
     slack_client = SlackClient()
