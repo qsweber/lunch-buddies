@@ -109,16 +109,6 @@ def test_create_poll_from_queue(mocker):
         return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
     )
 
-    mocked_slack_client_users_info_internal = mocker.patch.object(
-        slack_client,
-        '_users_info_internal',
-        auto_spec=True,
-    )
-    mocked_slack_client_users_info_internal.side_effect = [
-        {'user': {'id': 'user_id_one', 'name': 'user_name_one', 'is_bot': False}},
-        {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
-    ]
-
     teams_dao = TeamsDao()
     mocker.patch.object(
         teams_dao,
@@ -268,16 +258,6 @@ def test_create_poll_from_queue_custom_times(mocker):
         auto_spec=True,
         return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
     )
-
-    mocked_slack_client_users_info_internal = mocker.patch.object(
-        slack_client,
-        '_users_info_internal',
-        auto_spec=True,
-    )
-    mocked_slack_client_users_info_internal.side_effect = [
-        {'user': {'id': 'user_id_one', 'name': 'user_name_one', 'is_bot': False}},
-        {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
-    ]
 
     teams_dao = TeamsDao()
     mocker.patch.object(

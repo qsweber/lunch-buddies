@@ -59,12 +59,7 @@ class SlackClient(object):
     def list_users(self, team, channel_name):
         lunch_buddies_channel = self.get_channel(team, channel_name)
 
-        user_ids_in_channel = self._channels_info_internal(
+        return self._channels_info_internal(
             team,
             channel=lunch_buddies_channel['id']
         )['channel']['members']
-
-        return [
-            self._users_info_internal(team, user=user_id)['user']
-            for user_id in user_ids_in_channel
-        ]

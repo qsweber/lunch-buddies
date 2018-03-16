@@ -148,16 +148,6 @@ def test_create_poll_handles_first_time(mocker):
         return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
     )
 
-    mocked_slack_client_users_info_internal = mocker.patch.object(
-        slack_client,
-        '_users_info_internal',
-        auto_spec=True,
-    )
-    mocked_slack_client_users_info_internal.side_effect = [
-        {'user': {'id': 'user_id_one', 'name': 'user_name_one', 'is_bot': False}},
-        {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
-    ]
-
     module.create_poll(
         queues_constants.PollsToStartMessage(
             team_id='123',
