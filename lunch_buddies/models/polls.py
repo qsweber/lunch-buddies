@@ -2,6 +2,22 @@ from datetime import datetime
 from typing import NamedTuple
 from uuid import UUID
 
+
+Choice = NamedTuple(
+    'Choice',
+    [
+        ('key', str),
+        ('is_yes', bool),
+        ('time', str),
+        ('display_text', str),
+    ]
+)
+
+
+class ChoiceList(list):
+    pass
+
+
 Poll = NamedTuple(
     'Poll',
     [
@@ -10,6 +26,6 @@ Poll = NamedTuple(
         ('created_by_user_id', str),
         ('callback_id', UUID),
         ('state', str),
-        ('choices', list),
+        ('choices', ChoiceList),
     ]
 )

@@ -5,17 +5,29 @@ class ChannelDoesNotExist(Exception):
     pass
 
 
+class ChannelCannotBeCreated(Exception):
+    pass
+
+
 class SlackClient(object):
     def _get_base_client_for_team(self, token):
         return BaseSlackClient(token)
 
     def create_channel(self, team, name, is_private, **kwargs):
-        return self._get_base_client_for_team(team.access_token).api_call(
+        response = self._get_base_client_for_team(team.access_token).api_call(
             'conversations.create',
             name=name,
             is_private=is_private,
             **kwargs
         )
+
+        if response['ok'] is False:
+            if response['error'] == 'name_taken':
+                raise ChannelCannotBeCreated(response['error'])
+            else:
+                raise Exception(response['error'])
+
+        return response
 
     def open_conversation(self, team, **kwargs):
         return self._get_base_client_for_team(team.bot_access_token).api_call('conversations.open', **kwargs)
@@ -47,12 +59,7 @@ class SlackClient(object):
     def list_users(self, team, channel_name):
         lunch_buddies_channel = self.get_channel(team, channel_name)
 
-        user_ids_in_channel = self._channels_info_internal(
+        return self._channels_info_internal(
             team,
             channel=lunch_buddies_channel['id']
         )['channel']['members']
-
-        return [
-            self._users_info_internal(team, user=user_id)['user']
-            for user_id in user_ids_in_channel
-        ]

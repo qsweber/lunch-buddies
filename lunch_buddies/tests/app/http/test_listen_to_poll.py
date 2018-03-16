@@ -1,5 +1,4 @@
 import datetime
-import json
 import os
 
 import pytest
@@ -136,7 +135,7 @@ def test_listen_to_poll(mocker):
             'created_by_user_id': 'foo',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
             'state': polls_constants.CREATED,
-            'choices': json.dumps(polls_constants.CHOICES),
+            'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
         }],
     )
 

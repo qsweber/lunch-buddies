@@ -1,5 +1,4 @@
 import datetime
-import json
 import random
 from uuid import UUID
 
@@ -10,6 +9,7 @@ from lunch_buddies.constants import polls as polls_constants, queues as queues_c
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
+from lunch_buddies.models.polls import Poll, Choice, ChoiceList
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 
@@ -66,6 +66,38 @@ def test_works_for_this_app(elements):
 
 
 def test_group_by_answer():
+    choice_1145 = Choice(
+        key='yes_1145',
+        is_yes=True,
+        time='11:45',
+        display_text='Yes (11:45)',
+    )
+
+    choice_1230 = Choice(
+        key='yes_1230',
+        is_yes=True,
+        time='12:30',
+        display_text='Yes (12:30)',
+    )
+
+    poll = Poll(
+        team_id='123',
+        created_at=datetime.datetime.now(),
+        created_by_user_id='456',
+        callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'),
+        state='CREATED',
+        choices=ChoiceList([
+            choice_1145,
+            choice_1230,
+            Choice(
+                key='no',
+                is_yes=False,
+                time='',
+                display_text='No',
+            ),
+        ]),
+    )
+
     poll_responses = [
         PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U3LTPT61J', created_at=datetime.datetime(2018, 1, 31, 16, 43, 19, 93329), response='yes_1230'),
         PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U69J2B8E8', created_at=datetime.datetime(2018, 1, 31, 16, 43, 5, 494358), response='yes_1145'),
@@ -74,16 +106,16 @@ def test_group_by_answer():
     ]
 
     expected = {
-        'yes_1145': [
+        choice_1145: [
             PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U69J2B8E8', created_at=datetime.datetime(2018, 1, 31, 16, 43, 5, 494358), response='yes_1145'),
             PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U799LRKSA', created_at=datetime.datetime(2018, 1, 31, 16, 43, 36, 221596), response='yes_1145'),
         ],
-        'yes_1230': [
+        choice_1230: [
             PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U3LTPT61J', created_at=datetime.datetime(2018, 1, 31, 16, 43, 19, 93329), response='yes_1230'),
         ],
     }
 
-    actual = module._group_by_answer(poll_responses)
+    actual = module._group_by_answer(poll_responses, poll)
 
     assert actual == expected
 
@@ -101,7 +133,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
             {
                 'team_id': '123',
@@ -109,7 +141,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CLOSED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
         ]
     )

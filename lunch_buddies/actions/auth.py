@@ -1,5 +1,6 @@
 import datetime
 import json
+import logging
 import os
 
 import requests
@@ -7,6 +8,9 @@ import requests
 from lunch_buddies.clients.slack import ChannelDoesNotExist
 from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
 from lunch_buddies.models.teams import Team
+
+
+logger = logging.getLogger(__name__)
 
 
 def auth(request_args, teams_dao, slack_client):

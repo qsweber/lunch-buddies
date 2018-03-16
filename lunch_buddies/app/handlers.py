@@ -23,11 +23,11 @@ logger = logging.getLogger(__name__)
 def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_responses_dao, teams_dao):
     '''
     Pulls messages from the specific queue and passes them to the specified action
-    Handles up to 30 messages, but if 3 consecutive iterations result in no message received, exit the loop
+    Handles up to 15 messages, but if 3 consecutive iterations result in no message received, exit the loop
     '''
     messages_handled = 0
     consecutive_blanks = 0
-    while messages_handled < 30 and consecutive_blanks < 3:
+    while messages_handled < 15 and consecutive_blanks < 3:
         message, receipt_handle = sqs_client.receive_message(queue)
 
         if not message:

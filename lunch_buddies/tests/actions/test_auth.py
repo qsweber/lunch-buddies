@@ -1,11 +1,14 @@
 from datetime import datetime
-from decimal import Decimal
 import json
+import os
 
 import lunch_buddies.actions.auth as module
 from lunch_buddies.clients.slack import SlackClient
+import lunch_buddies.constants.slack as slack_constants
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
+from lunch_buddies.tests.fixtures.dao import TEAM as team_fixture
+from lunch_buddies.tests.fixtures.slack import OAUTH_RESPONSE as oath_response_fixture
 
 
 def test_auth(mocker):
@@ -16,45 +19,26 @@ def test_auth(mocker):
         auto_spec=True,
         return_value=True,
     )
-    created_at = datetime.now()
+    created_at = datetime.fromtimestamp(float(team_fixture['created_at']))
     mocker.patch.object(
         teams_dao,
         '_read_internal',
         auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
-            'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
-            'created_at': created_at.timestamp(),
-        }]
+        return_value=[team_fixture]
     )
 
     mocker.patch.object(
         module,
         '_get_slack_oauth',
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps({
-            "access_token": "xoxp-XXXXXXXX-XXXXXXXX-XXXXX",
-            "scope": "incoming-webhook,commands,bot",
-            "team_name": "Team Installing Your Hook",
-            "team_id": "XXXXXXXXXX",
-            "incoming_webhook": {
-                "url": "https://hooks.slack.com/TXXXXX/BXXXXX/XXXXXXXXXX",
-                "channel": "#channel-it-will-post-to",
-                "configuration_url": "https://teamname.slack.com/services/BXXXXX"
-            },
-            "bot": {
-                "bot_user_id": "UTTTTTTTTTTR",
-                "bot_access_token": "xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT"
-            }
-        })),
+        return_value=mocker.Mock(text=json.dumps(oath_response_fixture)),
     )
 
     mocker.patch.object(
         module,
         '_get_created_at',
         auto_spec=True,
-        return_value=created_at
+        return_value=created_at,
     )
 
     slack_client = SlackClient()
@@ -79,21 +63,11 @@ def test_auth(mocker):
     )
 
     mocked_teams_dao_create_internal.assert_called_with(
-        {
-            'team_id': 'XXXXXXXXXX',
-            'access_token': 'xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
-            'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
-            'created_at': Decimal(created_at.timestamp()),
-        }
+        team_fixture,
     )
 
     mocked_slack_client_create_channel.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
-            bot_access_token='xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
-            created_at=created_at,
-        ),
+        team=Team(**{**team_fixture, **{'created_at': created_at}}),
         name='lunch_buddies',
         is_private=False,
     )
@@ -101,51 +75,24 @@ def test_auth(mocker):
 
 def test_auth_handles_case_when_channel_already_exists(mocker):
     teams_dao = TeamsDao()
-    mocked_teams_dao_create_internal = mocker.patch.object(
+    mocker.patch.object(
         teams_dao,
         '_create_internal',
         auto_spec=True,
         return_value=True,
     )
-    created_at = datetime.now()
     mocker.patch.object(
         teams_dao,
         '_read_internal',
         auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
-            'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
-            'created_at': created_at.timestamp(),
-        }]
+        return_value=[team_fixture],
     )
 
     mocker.patch.object(
         module,
         '_get_slack_oauth',
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps({
-            "access_token": "xoxp-XXXXXXXX-XXXXXXXX-XXXXX",
-            "scope": "incoming-webhook,commands,bot",
-            "team_name": "Team Installing Your Hook",
-            "team_id": "XXXXXXXXXX",
-            "incoming_webhook": {
-                "url": "https://hooks.slack.com/TXXXXX/BXXXXX/XXXXXXXXXX",
-                "channel": "#channel-it-will-post-to",
-                "configuration_url": "https://teamname.slack.com/services/BXXXXX"
-            },
-            "bot": {
-                "bot_user_id": "UTTTTTTTTTTR",
-                "bot_access_token": "xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT"
-            }
-        })),
-    )
-
-    mocker.patch.object(
-        module,
-        '_get_created_at',
-        auto_spec=True,
-        return_value=created_at
+        return_value=mocker.Mock(text=json.dumps(oath_response_fixture)),
     )
 
     slack_client = SlackClient()
@@ -154,7 +101,7 @@ def test_auth_handles_case_when_channel_already_exists(mocker):
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [{'name': 'lunch_buddies'}]},
+        return_value={'channels': [{'name': slack_constants.LUNCH_BUDDIES_CHANNEL_NAME}]},
     )
     mocked_slack_client_create_channel = mocker.patch.object(
         slack_client,
@@ -169,13 +116,26 @@ def test_auth_handles_case_when_channel_already_exists(mocker):
         slack_client,
     )
 
-    mocked_teams_dao_create_internal.assert_called_with(
-        {
-            'team_id': 'XXXXXXXXXX',
-            'access_token': 'xoxp-XXXXXXXX-XXXXXXXX-XXXXX',
-            'bot_access_token': 'xoxb-XXXXXXXXXXXX-TTTTTTTTTTTTTT',
-            'created_at': Decimal(created_at.timestamp()),
-        }
+    mocked_slack_client_create_channel.assert_not_called()
+
+
+def test_calls_correct_slack_endpoint(mocker):
+    mocked_requests_get = mocker.patch.object(
+        module.requests,
+        'get',
+        auto_spec=True,
     )
 
-    mocked_slack_client_create_channel.assert_not_called()
+    os.environ['CLIENT_ID'] = 'fake_client_id'
+    os.environ['CLIENT_SECRET'] = 'fake_client_secret'
+
+    module._get_slack_oauth({'code': 'test_code'})
+
+    mocked_requests_get.assert_called_with(
+        'https://slack.com/api/oauth.access',
+        params={
+            'client_id': 'fake_client_id',
+            'client_secret': 'fake_client_secret',
+            'code': 'test_code',
+        },
+    )

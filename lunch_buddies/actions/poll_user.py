@@ -32,8 +32,8 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, 
                 'color': '#3AA3E3',
                 'attachment_type': 'default',
                 'actions': [
-                    {'name': 'answer', 'text': value, 'type': 'button', 'value': key}
-                    for key, value in poll.choices
+                    {'name': 'answer', 'text': choice.display_text, 'type': 'button', 'value': choice.key}
+                    for choice in poll.choices
                 ],
             },
         ]

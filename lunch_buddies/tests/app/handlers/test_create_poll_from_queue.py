@@ -1,5 +1,4 @@
 from datetime import datetime
-import json
 from uuid import UUID
 
 import pytz
@@ -61,7 +60,7 @@ def test_create_poll_from_queue(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CLOSED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
         ]
     )
@@ -110,16 +109,6 @@ def test_create_poll_from_queue(mocker):
         return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
     )
 
-    mocked_slack_client_users_info_internal = mocker.patch.object(
-        slack_client,
-        '_users_info_internal',
-        auto_spec=True,
-    )
-    mocked_slack_client_users_info_internal.side_effect = [
-        {'user': {'id': 'user_id_one', 'name': 'user_name_one', 'is_bot': False}},
-        {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
-    ]
-
     teams_dao = TeamsDao()
     mocker.patch.object(
         teams_dao,
@@ -149,7 +138,7 @@ def test_create_poll_from_queue(mocker):
         'created_by_user_id': 'abc',
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'state': polls_constants.CREATED,
-        'choices': json.dumps(polls_constants.CHOICES),
+        'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
     }
 
     mocked_polls_dao_create_internal.assert_called_with(
@@ -221,7 +210,7 @@ def test_create_poll_from_queue_custom_times(mocker):
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CLOSED,
-                'choices': json.dumps(polls_constants.CHOICES),
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
             },
         ]
     )
@@ -270,16 +259,6 @@ def test_create_poll_from_queue_custom_times(mocker):
         return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
     )
 
-    mocked_slack_client_users_info_internal = mocker.patch.object(
-        slack_client,
-        '_users_info_internal',
-        auto_spec=True,
-    )
-    mocked_slack_client_users_info_internal.side_effect = [
-        {'user': {'id': 'user_id_one', 'name': 'user_name_one', 'is_bot': False}},
-        {'user': {'id': 'user_id_two', 'name': 'user_name_two', 'is_bot': False}},
-    ]
-
     teams_dao = TeamsDao()
     mocker.patch.object(
         teams_dao,
@@ -309,7 +288,7 @@ def test_create_poll_from_queue_custom_times(mocker):
         'created_by_user_id': 'abc',
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'state': polls_constants.CREATED,
-        'choices': '[["yes_1200", "Yes (12:00)"], ["no", "No"]]',
+        'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
     }
 
     mocked_polls_dao_create_internal.assert_called_with(
