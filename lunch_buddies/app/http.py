@@ -25,7 +25,10 @@ logger = logging.getLogger(__name__)
 
 
 def _validate_request_token(request_form):
-    if request_form['token'] != os.environ['VERIFICATION_TOKEN']:
+    if (
+        request_form['token'] != os.environ['VERIFICATION_TOKEN'] or
+        request_form['token'] != os.environ['VERIFICATION_TOKEN_DEV']
+    ):
         raise Exception('you are not authorized to call this URL')
 
 
