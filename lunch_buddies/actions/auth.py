@@ -38,12 +38,9 @@ def auth(request_args, teams_dao, slack_client):
 def _get_slack_oauth(request_args):
     request_client_id = request_args['client_id']
 
-    production_client_id = os.environ['CLIENT_ID']
-    development_client_id = os.environ['CLIENT_ID_DEV']
-
-    if request_client_id == production_client_id:
+    if request_client_id == os.environ['CLIENT_ID']:
         client_secret = os.environ['CLIENT_SECRET']
-    elif request_client_id == development_client_id:
+    elif request_client_id == os.environ['CLIENT_ID_DEV']:
         client_secret = os.environ['CLIENT_SECRET_DEV']
     else:
         raise Exception('client id does not match expectation')
