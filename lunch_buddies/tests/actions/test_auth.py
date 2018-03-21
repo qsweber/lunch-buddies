@@ -132,37 +132,13 @@ def test_calls_correct_slack_endpoint(mocker):
     os.environ['CLIENT_ID'] = 'fake_client_id'
     os.environ['CLIENT_SECRET'] = 'fake_client_secret'
 
-    module._get_slack_oauth({'code': 'test_code', 'client_id': 'fake_client_id'})
+    module._get_slack_oauth({'code': 'test_code'})
 
     mocked_requests_get.assert_called_with(
         'https://slack.com/api/oauth.access',
         params={
             'client_id': 'fake_client_id',
             'client_secret': 'fake_client_secret',
-            'code': 'test_code',
-        },
-    )
-
-
-def test_calls_correct_slack_endpoint_for_dev_app(mocker):
-    mocked_requests_get = mocker.patch.object(
-        module.requests,
-        'get',
-        auto_spec=True,
-    )
-
-    os.environ['CLIENT_ID'] = 'fake_client_id'
-    os.environ['CLIENT_ID_DEV'] = 'fake_dev_client_id'
-    os.environ['CLIENT_SECRET'] = 'fake_client_secret'
-    os.environ['CLIENT_SECRET_DEV'] = 'fake_dev_client_secret'
-
-    module._get_slack_oauth({'code': 'test_code', 'client_id': 'fake_dev_client_id'})
-
-    mocked_requests_get.assert_called_with(
-        'https://slack.com/api/oauth.access',
-        params={
-            'client_id': 'fake_dev_client_id',
-            'client_secret': 'fake_dev_client_secret',
             'code': 'test_code',
         },
     )
