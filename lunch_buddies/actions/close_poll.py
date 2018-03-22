@@ -7,7 +7,8 @@ from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessa
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team = teams_dao.read('team_id', message.team_id)[0]
-    poll = polls_dao.find_latest_by_team_id(message.team_id)
+    channel_id = message.channel_id
+    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll.state != CREATED:
         slack_client.post_message(
@@ -31,7 +32,12 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
                 GROUPS_TO_NOTIFY,
-                GroupsToNotifyMessage(**{'team_id': message.team_id, 'user_ids': user_ids, 'response': choice.key}),
+                GroupsToNotifyMessage(
+                    team_id=message.team_id,
+                    callback_id=message.callback_id,
+                    user_ids=user_ids,
+                    response=choice.key,
+                ),
             )
 
     return True

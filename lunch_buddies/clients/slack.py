@@ -56,10 +56,8 @@ class SlackClient(object):
         except IndexError:
             raise ChannelDoesNotExist()
 
-    def list_users(self, team, channel_name):
-        lunch_buddies_channel = self.get_channel(team, channel_name)
-
+    def list_users(self, team, channel_id):
         return self._channels_info_internal(
             team,
-            channel=lunch_buddies_channel['id']
+            channel=channel_id
         )['channel']['members']

@@ -10,6 +10,7 @@ PollsToStartMessage = NamedTuple(
     'PollsToStartMessage',
     [
         ('team_id', str),
+        ('channel_id', str),
         ('user_id', str),
         ('text', str),
     ],
@@ -24,12 +25,20 @@ UsersToPollMessage = NamedTuple(
     ],
 )
 
-PollsToCloseMessage = NamedTuple('PollsToCloseMessage', [('team_id', str), ('user_id', str)])
+PollsToCloseMessage = NamedTuple(
+    'PollsToCloseMessage',
+    [
+        ('team_id', str),
+        ('channel_id', str),
+        ('user_id', str),
+    ],
+)
 
 GroupsToNotifyMessage = NamedTuple(
     'GroupsToNotifyMessage',
     [
         ('team_id', str),
+        ('callback_id', str),
         ('response', str),
         ('user_ids', list),
     ],

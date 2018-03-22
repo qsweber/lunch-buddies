@@ -3,7 +3,7 @@ import random
 
 def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team = teams_dao.read('team_id', message.team_id)[0]
-    poll = polls_dao.find_latest_by_team_id(message.team_id)
+    poll = polls_dao.find_by_callback_id(message.team_id, message.callback_id)
     choice = [
         choice
         for choice in poll.choices

@@ -162,8 +162,6 @@ def close_poll_http():
 
 @validate
 def _help(request_form, teams_dao):
-    _validate_request_token(request_form)
-
     return {'text': APP_EXPLANATION}
 
 
@@ -200,3 +198,34 @@ def auth_http():
     auth_action(request.args, teams_dao, slack_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
+
+
+@validate
+def _bot(request_form, teams_dao):
+    _validate_request_token(request_form)
+
+    logger.info('in here!')
+
+    return {'text': 'hello to you'}
+
+
+@app.route('/api/v0/bot', methods=['POST'])
+def bot_http():
+    '''
+    Listen to bot mentions
+    '''
+    request_form = request.form
+    logger.info('request.form: {}'.format(request_form))
+    if not request_form:
+        # TODO: Why?
+        logger.info('request.data: {}'.format(json.loads(request.data)))
+        request_form = json.loads(request.data)
+
+    teams_dao = TeamsDao()
+
+    outgoing_message = _bot(request_form, teams_dao)
+
+    response = jsonify(outgoing_message)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response

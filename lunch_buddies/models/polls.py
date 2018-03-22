@@ -22,7 +22,8 @@ Poll = NamedTuple(
     'Poll',
     [
         ('team_id', str),
-        ('created_at', datetime),
+        ('created_at', datetime),  # TODO check for uniqueness upon creating
+        ('channel_id', str),
         ('created_by_user_id', str),
         ('callback_id', UUID),
         ('state', str),

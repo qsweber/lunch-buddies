@@ -1,14 +1,15 @@
 from datetime import datetime
 import uuid
 
-from lunch_buddies.constants import polls, slack
+from lunch_buddies.constants import polls
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll, ChoiceList, Choice
 
 
 def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team = teams_dao.read('team_id', message.team_id)[0]
-    poll = polls_dao.find_latest_by_team_id(message.team_id)
+    channel_id = message.channel_id
+    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll and poll.state != polls.CLOSED:
         slack_client.post_message(
@@ -23,7 +24,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     callback_id = _get_uuid()
     created_at = _get_created_at()
 
-    channel_name, choices = get_choices_from_message_text(message.text)
+    choices = get_choices_from_message_text(message.text)
 
     poll = Poll(
         team_id=message.team_id,
@@ -31,13 +32,13 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         created_by_user_id=message.user_id,
         callback_id=callback_id,
         state=polls.CREATED,
-        # channel_name=channel_name,
+        channel_id=channel_id,
         choices=choices,
     )
 
     polls_dao.create(poll)
 
-    for user_id in slack_client.list_users(team, channel_name):
+    for user_id in slack_client.list_users(team, channel_id):
         outgoing_message = {'team_id': message.team_id, 'user_id': user_id, 'callback_id': callback_id}
         sqs_client.send_message(
             USERS_TO_POLL,
@@ -64,7 +65,7 @@ class InvalidPollOption(Exception):
 
 def get_choices_from_message_text(text):
     if not text:
-        return slack.LUNCH_BUDDIES_CHANNEL_NAME, polls.CHOICES
+        return polls.CHOICES
 
     options = list(map(lambda o: o.strip(), text.split(',')))
 
@@ -76,7 +77,7 @@ def get_choices_from_message_text(text):
         display_text='No',
     ))
 
-    return slack.LUNCH_BUDDIES_CHANNEL_NAME, ChoiceList(choices)
+    return ChoiceList(choices)
 
 
 def get_choice_from_raw_option(option):
