@@ -66,8 +66,11 @@ def test_auth(mocker):
         team_fixture,
     )
 
+    team_fixture_copy = team_fixture.copy()
+    team_fixture_copy['created_at'] = created_at
+
     mocked_slack_client_create_channel.assert_called_with(
-        team=Team(**{**team_fixture, **{'created_at': created_at}}),
+        team=Team(**team_fixture_copy),
         name='lunch_buddies',
         is_private=False,
     )

@@ -17,6 +17,7 @@ def test_help_fails_without_verification_token(mocker):
     }
 
     os.environ['VERIFICATION_TOKEN'] = 'wrong_verification_token'
+    os.environ['VERIFICATION_TOKEN_DEV'] = 'wrong_dev_verification_token'
 
     teams_dao = TeamsDao()
     mocker.patch.object(
