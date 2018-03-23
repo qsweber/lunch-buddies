@@ -5,6 +5,7 @@
         "project_name": "lunch-buddies",
         "runtime": "python3.6",
         "s3_bucket": "zappa-vt9hd6vy9",
+        "log_level": "INFO",
         "events": [
             {
                 "function": "lunch_buddies.app.handlers.create_poll_from_queue",
