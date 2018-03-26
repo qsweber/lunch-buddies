@@ -207,3 +207,13 @@ def auth_http():
     auth_action(request.args, teams_dao, slack_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
+
+
+@app.route('/api/v0/bot', methods=['POST'])
+def bot_http():
+    '''
+    Listen to bot mentions
+    '''
+    logger.info('bot message: {}'.format(json.dumps(request.form)))
+
+    return 'ok', 200
