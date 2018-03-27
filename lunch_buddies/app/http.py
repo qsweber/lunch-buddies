@@ -78,6 +78,7 @@ def _create_poll(request_form, teams_dao, sqs_client):
 
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
+        channel_id=request_form['channel_id'],
         user_id=request_form['user_id'],
         text=request_form['text'],
     )
@@ -99,7 +100,10 @@ def create_poll_http():
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
 
-    outgoing_message = _create_poll(request.form, teams_dao, sqs_client)
+    request_form = request.form.copy()
+    request_form['channel_id'] = None  # This will be filled in later with the default
+
+    outgoing_message = _create_poll(request_form, teams_dao, sqs_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -138,6 +142,7 @@ def _close_poll(request_form, teams_dao, sqs_client):
         POLLS_TO_CLOSE,
         PollsToCloseMessage(
             team_id=request_form['team_id'],
+            channel_id=request_form['channel_id'],
             user_id=request_form['user_id'],
         )
     )
@@ -152,7 +157,11 @@ def close_poll_http():
     '''
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
-    outgoing_message = _close_poll(request.form, teams_dao, sqs_client)
+
+    request_form = request.form.copy()
+    request_form['channel_id'] = None  # This will be filled in later with the default
+
+    outgoing_message = _close_poll(request_form, teams_dao, sqs_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -162,8 +171,6 @@ def close_poll_http():
 
 @validate
 def _help(request_form, teams_dao):
-    _validate_request_token(request_form)
-
     return {'text': APP_EXPLANATION}
 
 

@@ -83,6 +83,7 @@ def test_group_by_answer():
     poll = Poll(
         team_id='123',
         created_at=datetime.datetime.now(),
+        channel_id='test_channel_id',
         created_by_user_id='456',
         callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'),
         state='CREATED',
@@ -130,6 +131,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
@@ -138,6 +140,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CLOSED,
@@ -169,7 +172,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
     )
 
     module.close_poll(
-        queues_constants.PollsToCloseMessage(team_id='123', user_id='closing_user_id'),
+        queues_constants.PollsToCloseMessage(team_id='123', channel_id='test_channel_id', user_id='closing_user_id'),
         slack_client,
         None,
         polls_dao,

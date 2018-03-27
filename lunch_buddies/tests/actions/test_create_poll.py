@@ -22,6 +22,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
@@ -55,6 +56,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
     module.create_poll(
         queues_constants.PollsToStartMessage(
             team_id='123',
+            channel_id='test_channel_id',
             user_id='creating_user_id',
             text='',
         ),
@@ -151,6 +153,7 @@ def test_create_poll_handles_first_time(mocker):
     module.create_poll(
         queues_constants.PollsToStartMessage(
             team_id='123',
+            channel_id='test_channel_id',
             user_id='creating_user_id',
             text='',
         ),
@@ -175,7 +178,7 @@ def test_create_poll_handles_first_time(mocker):
     ],
 )
 def test_get_choices_from_message_text_two_options(text):
-    channel_name, actual = module.get_choices_from_message_text(text)
+    actual = module.get_choices_from_message_text(text)
 
     expected = ChoiceList([
         Choice(
@@ -209,7 +212,7 @@ def test_get_choices_from_message_text_two_options(text):
     ],
 )
 def test_get_choices_from_message_text_one_option(text):
-    channel_name, actual = module.get_choices_from_message_text(text)
+    actual = module.get_choices_from_message_text(text)
 
     expected = ChoiceList([
         Choice(

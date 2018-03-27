@@ -59,7 +59,9 @@ class Dao(object):
     def _as_model(self, dynamo_object):
         kwargs = {}
         for field, field_type in self.model_class._field_types.items():
-            value = dynamo_object[field]
+            value = dynamo_object.get(field)
+            if value is None:
+                value = value
             if field_type == dict:
                 value = json.loads(value)
             elif field_type == list:

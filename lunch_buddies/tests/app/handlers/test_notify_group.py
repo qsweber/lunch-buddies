@@ -22,7 +22,7 @@ def test_notify_group_from_queue(mocker):
     mocked_receive_message_internal.side_effect = [
         {
             'Messages': [{
-                'Body': '{"team_id": "123", "response": "yes_1145", "user_ids": ["user_id_one", "user_id_two"]}',
+                'Body': '{"team_id": "123", "callback_id": {"_type": "UUID", "value": "f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb"}, "response": "yes_1145", "user_ids": ["user_id_one", "user_id_two"]}',
                 'ReceiptHandle': 'test receipt handle',
             }]
         },
@@ -62,6 +62,7 @@ def test_notify_group_from_queue(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
