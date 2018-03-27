@@ -6,6 +6,16 @@ USERS_TO_POLL = 'users_to_poll'
 POLLS_TO_CLOSE = 'polls_to_close'
 GROUPS_TO_NOTIFY = 'groups_to_notify'
 
+BotMessage = NamedTuple(
+    'BotMessage',
+    [
+        ('team_id', str),
+        ('channel_id', str),
+        ('user_id', str),
+        ('text', str),
+    ]
+)
+
 PollsToStartMessage = NamedTuple(
     'PollsToStartMessage',
     [
