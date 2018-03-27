@@ -34,7 +34,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
                 GROUPS_TO_NOTIFY,
                 GroupsToNotifyMessage(
                     team_id=message.team_id,
-                    callback_id=message.callback_id,
+                    callback_id=poll.callback_id,
                     user_ids=user_ids,
                     response=choice.key,
                 ),

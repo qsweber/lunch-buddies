@@ -12,10 +12,11 @@ def test_roundtrip_encoding():
     poll = Poll(
         team_id='123',
         created_at=datetime.now(),
+        channel_id='test_channel_id',
         created_by_user_id='456',
         callback_id=uuid.uuid4(),
         state='CREATED',
-        choices=get_choices_from_message_text('1230')[1],
+        choices=get_choices_from_message_text('1230'),
     )
 
     after = polls_dao._as_model(polls_dao._as_dynamo_object(poll))

@@ -78,6 +78,7 @@ def _create_poll(request_form, teams_dao, sqs_client):
 
     message = PollsToStartMessage(
         team_id=request_form['team_id'],
+        channel_id=request_form['channel_id'],
         user_id=request_form['user_id'],
         text=request_form['text'],
     )
@@ -99,7 +100,10 @@ def create_poll_http():
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
 
-    outgoing_message = _create_poll(request.form, teams_dao, sqs_client)
+    request_form = request.form
+    request_form['channel_id'] = None  # This will be filled in later with the default
+
+    outgoing_message = _create_poll(request_form, teams_dao, sqs_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -138,6 +142,7 @@ def _close_poll(request_form, teams_dao, sqs_client):
         POLLS_TO_CLOSE,
         PollsToCloseMessage(
             team_id=request_form['team_id'],
+            channel_id=request_form['channel_id'],
             user_id=request_form['user_id'],
         )
     )
@@ -152,7 +157,11 @@ def close_poll_http():
     '''
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
-    outgoing_message = _close_poll(request.form, teams_dao, sqs_client)
+
+    request_form = request.form
+    request_form['channel_id'] = None  # This will be filled in later with the default
+
+    outgoing_message = _close_poll(request_form, teams_dao, sqs_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -198,34 +207,3 @@ def auth_http():
     auth_action(request.args, teams_dao, slack_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
-
-
-@validate
-def _bot(request_form, teams_dao):
-    _validate_request_token(request_form)
-
-    logger.info('in here!')
-
-    return {'text': 'hello to you'}
-
-
-@app.route('/api/v0/bot', methods=['POST'])
-def bot_http():
-    '''
-    Listen to bot mentions
-    '''
-    request_form = request.form
-    logger.info('request.form: {}'.format(request_form))
-    if not request_form:
-        # TODO: Why?
-        logger.info('request.data: {}'.format(json.loads(request.data)))
-        request_form = json.loads(request.data)
-
-    teams_dao = TeamsDao()
-
-    outgoing_message = _bot(request_form, teams_dao)
-
-    response = jsonify(outgoing_message)
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response

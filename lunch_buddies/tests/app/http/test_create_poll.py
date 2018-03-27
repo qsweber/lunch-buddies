@@ -13,6 +13,7 @@ import lunch_buddies.app.http as module
 def test_create_poll_fails_without_verification_token(mocker):
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': '',
@@ -43,6 +44,7 @@ def test_create_poll_fails_without_verification_token(mocker):
 def test_create_poll_fails_without_authorized_team(mocker):
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': '',
@@ -67,6 +69,7 @@ def test_create_poll_fails_without_authorized_team(mocker):
 def test_create_poll_handles_help_request(mocker):
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': 'help',
@@ -97,6 +100,7 @@ def test_create_poll_fails_with_bad_text(mocker):
 
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': 'foo bar',  # this is bad
@@ -127,6 +131,7 @@ def test_create_poll(mocker):
 
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': '1200, 1230',
@@ -158,5 +163,5 @@ def test_create_poll(mocker):
 
     mocked_send_message_internal.assert_called_with(
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
-        MessageBody='{"team_id": "123", "user_id": "abc", "text": "1200, 1230"}',
+        MessageBody='{"team_id": "123", "channel_id": "test_channel_id", "user_id": "abc", "text": "1200, 1230"}',
     )

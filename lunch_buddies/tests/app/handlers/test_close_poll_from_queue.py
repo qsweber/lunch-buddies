@@ -22,7 +22,7 @@ def test_close_poll_from_queue(mocker):
     mocked_receive_message_internal.side_effect = [
         {
             'Messages': [{
-                'Body': '{"team_id": "123", "user_id": "abc"}',
+                'Body': '{"team_id": "123", "channel_id": "test_channel_id", "user_id": "abc"}',
                 'ReceiptHandle': 'test receipt handle',
             }]
         },
@@ -55,6 +55,7 @@ def test_close_poll_from_queue(mocker):
             {
                 'team_id': '123',
                 'created_at': created_at_one.timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
@@ -63,6 +64,7 @@ def test_close_poll_from_queue(mocker):
             {
                 'team_id': '123',
                 'created_at': created_at_two.timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
@@ -126,6 +128,7 @@ def test_close_poll_from_queue(mocker):
         poll=Poll(
             team_id='123',
             created_at=created_at_two,
+            channel_id='test_channel_id',
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
             state='CREATED',
@@ -136,6 +139,6 @@ def test_close_poll_from_queue(mocker):
     assert mocked_send_message_internal.call_count == 1
 
     mocked_send_message_internal.assert_called_with(
-        MessageBody='{"team_id": "123", "response": "yes_1200", "user_ids": ["user_id_one", "user_id_two"]}',
+        MessageBody='{"team_id": "123", "callback_id": {"_type": "UUID", "value": "f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb"}, "response": "yes_1200", "user_ids": ["user_id_one", "user_id_two"]}',
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/groups_to_notify',
     )

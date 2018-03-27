@@ -13,6 +13,7 @@ import lunch_buddies.app.http as module
 def test_help_fails_without_verification_token(mocker):
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': '',
@@ -43,6 +44,7 @@ def test_help_fails_without_verification_token(mocker):
 def test_help_fails_without_authorized_team(mocker):
     request_form = {
         'team_id': '123',
+        'channel_id': 'test_channel_id',
         'user_id': 'abc',
         'token': 'fake_verification_token',
         'text': '',
@@ -133,6 +135,7 @@ def test_listen_to_poll(mocker):
         return_value=[{
             'team_id': '123',
             'created_at': datetime.datetime.now().timestamp(),
+            'channel_id': 'test_channel_id',
             'created_by_user_id': 'foo',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
             'state': polls_constants.CREATED,

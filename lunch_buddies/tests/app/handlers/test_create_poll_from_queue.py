@@ -24,7 +24,7 @@ def test_create_poll_from_queue(mocker):
     mocked_receive_message_internal.side_effect = [
         {
             'Messages': [{
-                'Body': '{"team_id": "123", "user_id": "abc", "text": ""}',
+                'Body': '{"team_id": "123", "channel_id": "test_channel_id", "user_id": "abc", "text": ""}',
                 'ReceiptHandle': 'test receipt handle',
             }]
         },
@@ -57,6 +57,7 @@ def test_create_poll_from_queue(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CLOSED,
@@ -135,6 +136,7 @@ def test_create_poll_from_queue(mocker):
     expected_poll = {
         'team_id': '123',
         'created_at': 1516117984.234873,
+        'channel_id': 'test_channel_id',
         'created_by_user_id': 'abc',
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'state': polls_constants.CREATED,
@@ -174,7 +176,7 @@ def test_create_poll_from_queue_custom_times(mocker):
     mocked_receive_message_internal.side_effect = [
         {
             'Messages': [{
-                'Body': '{"team_id": "123", "user_id": "abc", "text": "1200"}',
+                'Body': '{"team_id": "123", "channel_id": "test_channel_id", "user_id": "abc", "text": "1200"}',
                 'ReceiptHandle': 'test receipt handle',
             }]
         },
@@ -207,6 +209,7 @@ def test_create_poll_from_queue_custom_times(mocker):
             {
                 'team_id': '123',
                 'created_at': datetime.now().timestamp(),
+                'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CLOSED,
@@ -285,6 +288,7 @@ def test_create_poll_from_queue_custom_times(mocker):
     expected_poll = {
         'team_id': '123',
         'created_at': 1516117984.234873,
+        'channel_id': 'test_channel_id',
         'created_by_user_id': 'abc',
         'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
         'state': polls_constants.CREATED,

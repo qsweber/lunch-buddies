@@ -70,6 +70,7 @@ def test_poll_users_from_queue(mocker):
         return_value=[{
             'team_id': '123',
             'created_at': datetime.now().timestamp(),
+            'channel_id': 'test_channel_id',
             'created_by_user_id': 'foo',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
             'state': polls_constants.CREATED,
