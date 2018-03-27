@@ -100,7 +100,7 @@ def create_poll_http():
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
 
-    request_form = request.form
+    request_form = request.form.copy()
     request_form['channel_id'] = None  # This will be filled in later with the default
 
     outgoing_message = _create_poll(request_form, teams_dao, sqs_client)
@@ -158,7 +158,7 @@ def close_poll_http():
     sqs_client = SqsClient(QUEUES)
     teams_dao = TeamsDao()
 
-    request_form = request.form
+    request_form = request.form.copy()
     request_form['channel_id'] = None  # This will be filled in later with the default
 
     outgoing_message = _close_poll(request_form, teams_dao, sqs_client)
