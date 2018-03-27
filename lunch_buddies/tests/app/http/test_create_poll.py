@@ -165,3 +165,44 @@ def test_create_poll(mocker):
         QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
         MessageBody='{"team_id": "123", "channel_id": "test_channel_id", "user_id": "abc", "text": "1200, 1230"}',
     )
+
+
+def test_create_poll_null_channel_id(mocker):
+    sqs_client = SqsClient(queues_constants.QUEUES)
+
+    request_form = {
+        'team_id': '123',
+        'channel_id': None,
+        'user_id': 'abc',
+        'token': 'fake_verification_token',
+        'text': '1200, 1230',
+    }
+
+    os.environ['VERIFICATION_TOKEN'] = 'fake_verification_token'
+
+    mocked_send_message_internal = mocker.patch.object(
+        sqs_client,
+        '_send_message_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.datetime.now().timestamp(),
+        }]
+    )
+
+    module._create_poll(request_form, teams_dao, sqs_client)
+
+    mocked_send_message_internal.assert_called_with(
+        QueueUrl='https://us-west-2.queue.amazonaws.com/120356305272/polls_to_start',
+        MessageBody='{"team_id": "123", "channel_id": null, "user_id": "abc", "text": "1200, 1230"}',
+    )

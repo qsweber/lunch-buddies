@@ -2,12 +2,17 @@ from collections import defaultdict
 import random
 
 from lunch_buddies.constants.polls import CREATED
+from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
 from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessage
 
 
 def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id
+    if not channel_id:
+        lunch_buddies_channel = slack_client.get_channel(team, LUNCH_BUDDIES_CHANNEL_NAME)
+        channel_id = lunch_buddies_channel['id']
+
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll.state != CREATED:

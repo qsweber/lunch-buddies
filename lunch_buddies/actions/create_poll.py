@@ -1,7 +1,7 @@
 from datetime import datetime
 import uuid
 
-from lunch_buddies.constants import polls
+from lunch_buddies.constants import polls, slack
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
 from lunch_buddies.models.polls import Poll, ChoiceList, Choice
 
@@ -9,6 +9,10 @@ from lunch_buddies.models.polls import Poll, ChoiceList, Choice
 def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id
+    if not channel_id:
+        lunch_buddies_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        channel_id = lunch_buddies_channel['id']
+
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll and poll.state != polls.CLOSED:
