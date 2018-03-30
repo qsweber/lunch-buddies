@@ -14,11 +14,11 @@ def bot(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_
     logger.info('Handling message: {}'.format(text))
 
     if text.startswith('create'):
-        rest_of_command = text.lstrip('create')
+        rest_of_command = text.lstrip('create').strip()
         logger.info('Rest of command: {}'.format(rest_of_command))
         response_text = _create(message, rest_of_command, sqs_client)
     elif text.startswith('close'):
-        rest_of_command = text.lstrip('close')
+        rest_of_command = text.lstrip('close').strip()
         logger.info('Rest of command: {}'.format(rest_of_command))
         response_text = _close(message, rest_of_command, sqs_client)
     elif text.startswith('help'):
