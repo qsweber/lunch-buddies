@@ -15,7 +15,17 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
 
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
-    if poll and poll.state != CREATED:
+    if not poll:
+        slack_client.post_message(
+            team=team,
+            channel=message.user_id,
+            as_user=True,
+            text='No poll found',
+        )
+
+        return
+
+    if poll.state != CREATED:
         slack_client.post_message(
             team=team,
             channel=message.user_id,
@@ -23,7 +33,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
             text='The poll you tried to close has already been closed',
         )
 
-        return True
+        return
 
     # Close right away for idempotentcy
     polls_dao.mark_poll_closed(poll=poll)
@@ -45,7 +55,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
                 ),
             )
 
-    return True
+    return
 
 
 def _group_by_answer(poll_responses, poll):

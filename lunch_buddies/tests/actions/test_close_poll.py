@@ -191,3 +191,75 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
         as_user=True,
         text='The poll you tried to close has already been closed',
     )
+
+
+def test_close_poll_messages_creating_user_if_does_not_exist(mocker):
+    polls_dao = PollsDao()
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': datetime.datetime.now().timestamp(),
+                'channel_id': 'wrong_channel_id',
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': polls_constants.CREATED,
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+            },
+            {
+                'team_id': '123',
+                'created_at': datetime.datetime.now().timestamp(),
+                'channel_id': 'wrong_channel_id',
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'state': polls_constants.CLOSED,
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+            },
+        ]
+    )
+
+    slack_client = SlackClient()
+    mocked_slack_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    teams_dao = TeamsDao()
+    created_at = datetime.datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
+
+    module.close_poll(
+        queues_constants.PollsToCloseMessage(team_id='123', channel_id='test_channel_id', user_id='closing_user_id'),
+        slack_client,
+        None,
+        polls_dao,
+        None,
+        teams_dao,
+    )
+
+    mocked_slack_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='closing_user_id',
+        as_user=True,
+        text='No poll found',
+    )
