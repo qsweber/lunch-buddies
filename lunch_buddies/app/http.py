@@ -9,11 +9,13 @@ from lunch_buddies.constants.queues import (
     POLLS_TO_START, PollsToStartMessage,
     POLLS_TO_CLOSE, PollsToCloseMessage,
     QUEUES,
+    BotMessage,
 )
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.actions.auth import auth as auth_action
+from lunch_buddies.actions.bot import bot as bot_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.create_poll import get_choices_from_message_text, InvalidPollOption
 from lunch_buddies.clients.slack import SlackClient
@@ -207,3 +209,48 @@ def auth_http():
     auth_action(request.args, teams_dao, slack_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
+
+
+@validate
+def _bot(request_form, teams_dao, slack_client, sqs_client, polls_dao, poll_responses_dao):
+    bot_action(
+        BotMessage(
+            team_id=request_form['team_id'],
+            channel_id=request_form['event']['channel'],
+            user_id=request_form['event']['user'],
+            text=request_form['event']['text'],
+        ),
+        slack_client,
+        sqs_client,
+        polls_dao,
+        poll_responses_dao,
+        teams_dao,
+    )
+
+    return {'ok': True}
+
+
+@app.route('/api/v0/bot', methods=['POST'])
+def bot_http():
+    '''
+    Listen to bot mentions
+    '''
+    request_form = request.form
+    logger.info('request.form: {}'.format(request_form))
+    if not request_form:
+        # TODO: Why?
+        logger.info('request.data: {}'.format(json.loads(request.data)))
+        request_form = json.loads(request.data)
+
+    teams_dao = TeamsDao()
+    polls_dao = PollsDao()
+    poll_responses_dao = PollResponsesDao()
+    slack_client = SlackClient()
+    sqs_client = SqsClient(QUEUES)
+
+    outgoing_message = _bot(request_form, teams_dao, slack_client, sqs_client, polls_dao, poll_responses_dao)
+
+    response = jsonify(outgoing_message)
+    response.headers.add('Access-Control-Allow-Origin', '*')
+
+    return response
