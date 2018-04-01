@@ -1,4 +1,7 @@
+import json
 import logging
+
+import boto3
 
 from lunch_buddies.constants.queues import (
     POLLS_TO_START,
@@ -28,7 +31,10 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
     messages_handled = 0
     consecutive_blanks = 0
     while messages_handled < 15 and consecutive_blanks < 3:
-        message, receipt_handle = sqs_client.receive_message(queue)
+        try:
+            message, receipt_handle = sqs_client.receive_message(queue)
+        except json.decoder.JSONDecodeError:
+            continue
 
         if not message:
             consecutive_blanks = consecutive_blanks + 1
@@ -53,7 +59,7 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
     return messages_handled
 
 
-def create_poll_from_queue():
+def create_poll_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
@@ -71,7 +77,7 @@ def create_poll_from_queue():
     )
 
 
-def poll_users_from_queue():
+def poll_users_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
@@ -89,7 +95,7 @@ def poll_users_from_queue():
     )
 
 
-def close_poll_from_queue():
+def close_poll_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
@@ -107,7 +113,7 @@ def close_poll_from_queue():
     )
 
 
-def notify_groups_from_queue():
+def notify_groups_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
     slack_client = SlackClient()
     polls_dao = PollsDao()
@@ -123,3 +129,31 @@ def notify_groups_from_queue():
         poll_responses_dao,
         teams_dao,
     )
+
+
+def check_sqs_and_ping_sns():
+    '''
+    Runs every minute
+    '''
+    sns = boto3.resource('sns')
+    sqs = boto3.resource('sqs')
+
+    for queue_attributes in QUEUES.values():
+        queue_url = queue_attributes['url']
+        sns_arn = queue_attributes['sns']
+        queue = sqs.Queue(queue_url)
+        if int(queue.attributes['ApproximateNumberOfMessages']) > 0:
+            topic = sns.Topic(sns_arn)
+            logger.info('sending to {}'.format(sns_arn))
+            topic.publish(Message='you have messages')
+
+    # alarms = cloudwatch.describe_alarms()['MetricAlarms']
+    # for alarm in alarms:
+    #     if alarm['StateValue'] == 'ALARM':
+    #         actions = alarm['AlarmActions']
+    #         first_action = actions[0]
+    #         topic = sns.Topic(first_action)
+    #         logger.info('sending to {}'.format(first_action))
+    #         topic.publish(Message='you have messages')
+
+    return
