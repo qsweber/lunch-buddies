@@ -7,14 +7,9 @@
         "s3_bucket": "zappa-vt9hd6vy9",
         "log_level": "INFO",
         "timeout_seconds": 55,
-        "extra_permissions": [{
-            "Effect": "Allow",
-            "Action": ["cloudwatch:*"],
-            "Resource": "*"
-        }],
         "events": [
             {
-                "function": "lunch_buddies.app.handlers.run",
+                "function": "lunch_buddies.app.http.check_sqs_and_ping_sns",
                 "expression": "cron(* * ? * * *)"
             },
             {

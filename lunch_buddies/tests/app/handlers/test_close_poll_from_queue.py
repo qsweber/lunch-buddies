@@ -6,6 +6,7 @@ from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
+from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
@@ -43,6 +44,14 @@ def test_close_poll_from_queue(mocker):
         '_delete_message_internal',
         auto_spec=True,
     )
+    mocker.patch.object(
+        sqs_client,
+        'message_count',
+        auto_spec=True,
+        return_value=0,
+    )
+
+    sns_client = SnsClient()
 
     created_at_one = datetime.now()
     created_at_two = datetime.now()
@@ -119,6 +128,7 @@ def test_close_poll_from_queue(mocker):
         queues_constants.POLLS_TO_CLOSE,
         close_poll_module.close_poll,
         sqs_client,
+        sns_client,
         None,
         polls_dao,
         poll_responses_dao,
@@ -175,6 +185,15 @@ def test_close_poll_from_queue_null_team(mocker):
         '_delete_message_internal',
         auto_spec=True,
     )
+
+    mocker.patch.object(
+        sqs_client,
+        'message_count',
+        auto_spec=True,
+        return_value=0,
+    )
+
+    sns_client = SnsClient()
 
     created_at_one = datetime.now()
     created_at_two = datetime.now()
@@ -263,6 +282,7 @@ def test_close_poll_from_queue_null_team(mocker):
         queues_constants.POLLS_TO_CLOSE,
         close_poll_module.close_poll,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         poll_responses_dao,

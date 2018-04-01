@@ -89,3 +89,9 @@ class SqsClient(object):
             QueueUrl=self._url_for_queue(queue),
             ReceiptHandle=receipt_handle,
         )
+
+    def message_count(self, queue):
+        sqs = boto3.resource('sqs')
+        sqs_queue = sqs.Queue(self._url_for_queue(queue))
+
+        return int(sqs_queue.attributes['ApproximateNumberOfMessages'])

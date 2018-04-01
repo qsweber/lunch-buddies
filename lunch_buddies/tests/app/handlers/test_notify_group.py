@@ -4,6 +4,7 @@ import random
 from lunch_buddies.actions import notify_group as notify_group_module
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
+from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
@@ -36,6 +37,15 @@ def test_notify_group_from_queue(mocker):
         '_delete_message_internal',
         auto_spec=True,
     )
+
+    mocker.patch.object(
+        sqs_client,
+        'message_count',
+        auto_spec=True,
+        return_value=0,
+    )
+
+    sns_client = SnsClient()
 
     slack_client = SlackClient()
 
@@ -91,6 +101,7 @@ def test_notify_group_from_queue(mocker):
         queues_constants.GROUPS_TO_NOTIFY,
         notify_group_module.notify_group,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         None,
