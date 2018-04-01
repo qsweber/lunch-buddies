@@ -16,9 +16,11 @@ from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action
+from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.create_poll import get_choices_from_message_text, InvalidPollOption
 from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 
 
@@ -100,12 +102,15 @@ def create_poll_http():
     This is connected to an incoming slash command from Slack
     '''
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     teams_dao = TeamsDao()
 
     request_form = request.form.copy()
     request_form['channel_id'] = None  # This will be filled in later with the default
 
     outgoing_message = _create_poll(request_form, teams_dao, sqs_client)
+
+    check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -158,12 +163,15 @@ def close_poll_http():
     Close a poll
     '''
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     teams_dao = TeamsDao()
 
     request_form = request.form.copy()
     request_form['channel_id'] = None  # This will be filled in later with the default
 
     outgoing_message = _close_poll(request_form, teams_dao, sqs_client)
+
+    check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -247,10 +255,23 @@ def bot_http():
     poll_responses_dao = PollResponsesDao()
     slack_client = SlackClient()
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
 
     outgoing_message = _bot(request_form, teams_dao, slack_client, sqs_client, polls_dao, poll_responses_dao)
+
+    check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
 
     return response
+
+
+def check_sqs_and_ping_sns():
+    '''
+    Runs every minute
+    '''
+    sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
+
+    check_sqs_and_ping_sns_action(sqs_client, sns_client)

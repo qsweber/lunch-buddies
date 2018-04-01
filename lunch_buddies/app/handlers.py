@@ -10,17 +10,19 @@ from lunch_buddies.constants.queues import (
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
 from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.poll_user import poll_user as poll_user_action
 from lunch_buddies.actions.notify_group import notify_group as notify_group_action
 from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 
 logger = logging.getLogger(__name__)
 
 
-def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_responses_dao, teams_dao):
+def _read_from_queue(queue, action, sqs_client, sns_client, slack_client, polls_dao, poll_responses_dao, teams_dao):
     '''
     Pulls messages from the specific queue and passes them to the specified action
     Handles up to 15 messages, but if 3 consecutive iterations result in no message received, exit the loop
@@ -50,11 +52,14 @@ def _read_from_queue(queue, action, sqs_client, slack_client, polls_dao, poll_re
         consecutive_blanks,
     ))
 
+    check_sqs_and_ping_sns_action(sqs_client, sns_client)
+
     return messages_handled
 
 
-def create_poll_from_queue():
+def create_poll_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -64,6 +69,7 @@ def create_poll_from_queue():
         POLLS_TO_START,
         create_poll_action,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         poll_responses_dao,
@@ -71,8 +77,9 @@ def create_poll_from_queue():
     )
 
 
-def poll_users_from_queue():
+def poll_users_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -82,6 +89,7 @@ def poll_users_from_queue():
         USERS_TO_POLL,
         poll_user_action,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         poll_responses_dao,
@@ -89,8 +97,9 @@ def poll_users_from_queue():
     )
 
 
-def close_poll_from_queue():
+def close_poll_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -100,6 +109,7 @@ def close_poll_from_queue():
         POLLS_TO_CLOSE,
         close_poll_action,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         poll_responses_dao,
@@ -107,8 +117,9 @@ def close_poll_from_queue():
     )
 
 
-def notify_groups_from_queue():
+def notify_groups_from_queue(event, context):
     sqs_client = SqsClient(QUEUES)
+    sns_client = SnsClient()
     slack_client = SlackClient()
     polls_dao = PollsDao()
     poll_responses_dao = PollResponsesDao()
@@ -118,6 +129,7 @@ def notify_groups_from_queue():
         GROUPS_TO_NOTIFY,
         notify_group_action,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         poll_responses_dao,

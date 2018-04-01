@@ -16,6 +16,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if not poll:
+        # TODO: give the use some more information since they probably just need to find the right poll to close
         slack_client.post_message(
             team=team,
             channel=message.user_id,

@@ -3,6 +3,7 @@ from datetime import datetime
 from lunch_buddies.actions import poll_user as poll_user_module
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.constants import queues as queues_constants
+from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
@@ -37,6 +38,15 @@ def test_poll_users_from_queue(mocker):
         auto_spec=True,
         return_value=True,
     )
+
+    mocker.patch.object(
+        sqs_client,
+        'message_count',
+        auto_spec=True,
+        return_value=0,
+    )
+
+    sns_client = SnsClient()
 
     slack_client = SlackClient()
 
@@ -82,6 +92,7 @@ def test_poll_users_from_queue(mocker):
         queues_constants.USERS_TO_POLL,
         poll_user_module.poll_user,
         sqs_client,
+        sns_client,
         slack_client,
         polls_dao,
         None,
