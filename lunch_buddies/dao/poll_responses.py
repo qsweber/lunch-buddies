@@ -2,6 +2,6 @@ from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.poll_responses import PollResponse
 
 
-class PollResponsesDao(Dao):
+class PollResponsesDao(Dao[PollResponse]):
     def __init__(self):
-        super(PollResponsesDao, self).__init__(PollResponse)
+        super(PollResponsesDao, self).__init__(PollResponse, 'PollResponse')

@@ -6,9 +6,9 @@ from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.polls import Poll, ChoiceList, Choice
 
 
-class PollsDao(Dao):
+class PollsDao(Dao[Poll]):
     def __init__(self):
-        super(PollsDao, self).__init__(Poll)
+        super(PollsDao, self).__init__(Poll, 'Poll')
 
     def _as_dynamo_object_hook(self, field, value):
         if field == 'choices':
