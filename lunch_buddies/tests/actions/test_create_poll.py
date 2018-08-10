@@ -27,6 +27,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
         ]
     )
@@ -177,8 +178,8 @@ def test_create_poll_handles_first_time(mocker):
         ('  1145,   1230 '),
     ],
 )
-def test_get_choices_from_message_text_two_options(text):
-    actual = module.get_choices_from_message_text(text)
+def test_parse_message_text_two_options(text):
+    actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = ChoiceList([
         Choice(
@@ -201,18 +202,20 @@ def test_get_choices_from_message_text_two_options(text):
         ),
     ])
 
-    assert actual == expected
+    assert actual_choices == expected
 
 
 @pytest.mark.parametrize(
-    'text',
+    'text, expected_group_size',
     [
-        ('1200'),
-        (' 1200   '),
+        ('1200', polls_constants.DEFAULT_GROUP_SIZE),
+        (' 1200   ', polls_constants.DEFAULT_GROUP_SIZE),
+        (' 1200   size=5', 5),
+        (' 1200   size=11', 11),
     ],
 )
-def test_get_choices_from_message_text_one_option(text):
-    actual = module.get_choices_from_message_text(text)
+def test_parse_message_text(text, expected_group_size):
+    actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = ChoiceList([
         Choice(
@@ -229,4 +232,40 @@ def test_get_choices_from_message_text_one_option(text):
         ),
     ])
 
-    assert actual == expected
+    assert actual_choices == expected
+    assert expected_group_size == actual_group_size
+
+
+@pytest.mark.parametrize(
+    'text, expected_group_size',
+    [
+        ('1145,1200 size=3', 3),
+        (' 1145, 1200      size=5', 5),
+    ],
+)
+def test_parse_message_text_group_multiple_times(text, expected_group_size):
+    actual_choices, actual_group_size = module.parse_message_text(text)
+
+    expected = ChoiceList([
+        Choice(
+            key='yes_1145',
+            is_yes=True,
+            time='11:45',
+            display_text='Yes (11:45)',
+        ),
+        Choice(
+            key='yes_1200',
+            is_yes=True,
+            time='12:00',
+            display_text='Yes (12:00)',
+        ),
+        Choice(
+            key='no',
+            is_yes=False,
+            time='',
+            display_text='No',
+        ),
+    ])
+
+    assert actual_choices == expected
+    assert expected_group_size == actual_group_size

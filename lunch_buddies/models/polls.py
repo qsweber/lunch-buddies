@@ -28,5 +28,6 @@ Poll = NamedTuple(
         ('callback_id', UUID),
         ('state', str),
         ('choices', ChoiceList),
+        ('group_size', int),
     ]
 )

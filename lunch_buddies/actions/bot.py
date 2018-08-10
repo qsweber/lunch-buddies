@@ -1,7 +1,7 @@
 import logging
 import re
 
-from lunch_buddies.actions.create_poll import get_choices_from_message_text, InvalidPollOption
+from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOption
 from lunch_buddies.constants.help import CREATE_POLL as CREATE_POLL_HELP_TEXT, CLOSE_POLL as CLOSE_POLL_HELP_TEXT, APP_EXPLANATION
 from lunch_buddies.constants.queues import POLLS_TO_START, PollsToStartMessage, POLLS_TO_CLOSE, PollsToCloseMessage
 
@@ -46,7 +46,7 @@ def _create(message, rest_of_command, sqs_client):
         return CREATE_POLL_HELP_TEXT
 
     try:
-        get_choices_from_message_text(rest_of_command)
+        parse_message_text(rest_of_command)
     except InvalidPollOption as e:
         return 'Failed: {}'.format(str(e))
 

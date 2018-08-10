@@ -1,9 +1,10 @@
 from datetime import datetime
 import uuid
 
+from lunch_buddies.constants.polls import DEFAULT_GROUP_SIZE
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.polls import Poll
-from lunch_buddies.actions.create_poll import get_choices_from_message_text
+from lunch_buddies.actions.create_poll import parse_message_text
 
 
 def test_handles_null_values_in_dynamo(mocker):
@@ -24,11 +25,14 @@ def test_handles_null_values_in_dynamo(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': 'CREATED',
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': DEFAULT_GROUP_SIZE,
             },
         ]
     )
 
     polls = polls_dao.read()
+
+    choices, group_size = parse_message_text('1200')
 
     expected_polls = [
         Poll(
@@ -38,7 +42,8 @@ def test_handles_null_values_in_dynamo(mocker):
             created_by_user_id='456',
             callback_id=uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
             state='CREATED',
-            choices=get_choices_from_message_text('1200'),
+            choices=choices,
+            group_size=DEFAULT_GROUP_SIZE,
         ),
     ]
 

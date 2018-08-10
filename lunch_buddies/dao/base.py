@@ -39,6 +39,8 @@ class Dao(object):
                 value = str(value)
             elif field_type == str:
                 value = value
+            elif field_type == int:
+                value = value
             else:
                 value = self._as_dynamo_object_hook(field, value)
 
@@ -71,6 +73,8 @@ class Dao(object):
             elif field_type == UUID:
                 value = UUID(value)
             elif field_type == str:
+                value = value
+            elif field_type == int:
                 value = value
             else:
                 value = self._as_model_hook(field, value)
