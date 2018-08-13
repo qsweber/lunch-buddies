@@ -72,7 +72,7 @@ class InvalidPollOption(Exception):
 class InvalidPollSize(Exception):
     def __init__(self, size):
         super(InvalidPollSize, self).__init__(
-            'Size could not be parsed: "{}"'.format(size)
+            'Size must be between 2 and 6. Received: "{}"'.format(size)
         )
 
 
@@ -101,6 +101,8 @@ def _get_group_size_from_text(text):
     if size_search:
         try:
             group_size = int(size_search.group(2))
+            if group_size <= 1 or group_size > 6:
+                raise InvalidPollSize(group_size)
             text = size_search.group(1)
         except ValueError:
             raise InvalidPollSize(size_search.group(2))

@@ -211,7 +211,7 @@ def test_parse_message_text_two_options(text):
         ('1200', polls_constants.DEFAULT_GROUP_SIZE),
         (' 1200   ', polls_constants.DEFAULT_GROUP_SIZE),
         (' 1200   size=5', 5),
-        (' 1200   size=11', 11),
+        (' 1200   size=4', 4),
     ],
 )
 def test_parse_message_text(text, expected_group_size):
