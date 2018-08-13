@@ -69,17 +69,18 @@ class InvalidPollOption(Exception):
         )
 
 
+class InvalidPollSize(Exception):
+    def __init__(self, size):
+        super(InvalidPollSize, self).__init__(
+            'Size could not be parsed: "{}"'.format(size)
+        )
+
+
 def parse_message_text(text):
     if not text:
         return polls.CHOICES, polls.DEFAULT_GROUP_SIZE
 
-    text = text.strip()
-    size_search = re.search(r'(.*)size=([0-9]+)', text)
-    if size_search:
-        group_size = int(size_search.group(2))
-        text = size_search.group(1)
-    else:
-        group_size = polls.DEFAULT_GROUP_SIZE
+    text, group_size = _get_group_size_from_text(text)
 
     options = list(map(lambda o: o.strip(), text.split(',')))
 
@@ -92,6 +93,21 @@ def parse_message_text(text):
     ))
 
     return ChoiceList(choices), group_size
+
+
+def _get_group_size_from_text(text):
+    text = text.strip()
+    size_search = re.search(r'(.*)size=(.+)', text)
+    if size_search:
+        try:
+            group_size = int(size_search.group(2))
+            text = size_search.group(1)
+        except ValueError:
+            raise InvalidPollSize(size_search.group(2))
+    else:
+        group_size = polls.DEFAULT_GROUP_SIZE
+
+    return text, group_size
 
 
 def get_choice_from_raw_option(option):

@@ -18,7 +18,7 @@ from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
-from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOption
+from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOption, InvalidPollSize
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
@@ -77,7 +77,7 @@ def _create_poll(request_form, teams_dao, sqs_client):
 
     try:
         validate_create_poll(request_form)
-    except InvalidPollOption as e:
+    except (InvalidPollOption, InvalidPollSize) as e:
         return {'text': 'Failed: {}'.format(str(e))}
 
     message = PollsToStartMessage(
