@@ -1,4 +1,5 @@
 from datetime import datetime
+import re
 import uuid
 
 from lunch_buddies.constants import polls, slack
@@ -28,7 +29,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
     callback_id = _get_uuid()
     created_at = _get_created_at()
 
-    choices = get_choices_from_message_text(message.text)
+    choices, group_size = parse_message_text(message.text)
 
     poll = Poll(
         team_id=message.team_id,
@@ -38,6 +39,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
         state=polls.CREATED,
         channel_id=channel_id,
         choices=choices,
+        group_size=group_size,
     )
 
     polls_dao.create(poll)
@@ -67,9 +69,18 @@ class InvalidPollOption(Exception):
         )
 
 
-def get_choices_from_message_text(text):
+class InvalidPollSize(Exception):
+    def __init__(self, size):
+        super(InvalidPollSize, self).__init__(
+            'Size must be between 2 and 6. Received: "{}"'.format(size)
+        )
+
+
+def parse_message_text(text):
     if not text:
-        return polls.CHOICES
+        return polls.CHOICES, polls.DEFAULT_GROUP_SIZE
+
+    text, group_size = _get_group_size_from_text(text)
 
     options = list(map(lambda o: o.strip(), text.split(',')))
 
@@ -81,7 +92,24 @@ def get_choices_from_message_text(text):
         display_text='No',
     ))
 
-    return ChoiceList(choices)
+    return ChoiceList(choices), group_size
+
+
+def _get_group_size_from_text(text):
+    text = text.strip()
+    size_search = re.search(r'(.*)size=(.+)', text)
+    if size_search:
+        try:
+            group_size = int(size_search.group(2))
+            if group_size <= 1 or group_size > 6:
+                raise InvalidPollSize(group_size)
+            text = size_search.group(1)
+        except ValueError:
+            raise InvalidPollSize(size_search.group(2))
+    else:
+        group_size = polls.DEFAULT_GROUP_SIZE
+
+    return text, group_size
 
 
 def get_choice_from_raw_option(option):

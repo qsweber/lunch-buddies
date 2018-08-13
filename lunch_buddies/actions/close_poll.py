@@ -44,7 +44,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
     for choice, poll_responses_for_choice in poll_responses_by_choice.items():
-        for group in get_groups(poll_responses_for_choice, 6, 5, 7):
+        for group in get_groups(poll_responses_for_choice, poll.group_size, max(1, poll.group_size - 1), 7):
             user_ids = [poll_response.user_id for poll_response in group]
             sqs_client.send_message(
                 GROUPS_TO_NOTIFY,

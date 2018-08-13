@@ -77,6 +77,7 @@ def test_notify_group_from_queue(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1145", "is_yes": true, "time": "11:45", "display_text": "Yes (11:45)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
         ]
     )

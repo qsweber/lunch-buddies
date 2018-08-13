@@ -70,6 +70,7 @@ def test_close_poll_from_queue(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
             {
                 'team_id': '123',
@@ -79,6 +80,7 @@ def test_close_poll_from_queue(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
         ]
     )
@@ -144,6 +146,7 @@ def test_close_poll_from_queue(mocker):
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
             state='CREATED',
             choices=polls_constants.CHOICES,
+            group_size=polls_constants.DEFAULT_GROUP_SIZE,
         ),
     )
 
@@ -212,6 +215,7 @@ def test_close_poll_from_queue_null_team(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
             {
                 'team_id': '123',
@@ -221,6 +225,7 @@ def test_close_poll_from_queue_null_team(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
             },
         ]
     )
@@ -298,6 +303,7 @@ def test_close_poll_from_queue_null_team(mocker):
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
             state='CREATED',
             choices=polls_constants.CHOICES,
+            group_size=polls_constants.DEFAULT_GROUP_SIZE,
         ),
     )
 
