@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 from decimal import Decimal
 import json
 from uuid import UUID
@@ -11,6 +11,23 @@ class Dao(object):
     def __init__(self, model_class):
         self.model_class = model_class
 
+        self.to_dynamo = {
+            dict: json.dumps,
+            list: json.dumps,
+            datetime: lambda v: Decimal(v.timestamp()),
+            UUID: str,
+            int: int,
+        }
+
+        self.from_dynamo = {
+            dict: json.loads,
+            list: json.loads,
+            datetime: lambda v: datetime.fromtimestamp(float(v)),
+            UUID: UUID,
+            str: str,
+            int: int,
+        }
+
     def _get_dynamo_table_name(self):
         return 'lunch_buddies_{}'.format(self.model_class.__name__)
 
@@ -22,66 +39,24 @@ class Dao(object):
         dynamo_table = self._get_dynamo_table()
         return dynamo_table.put_item(Item=object_for_dynamo)
 
-    def _as_dynamo_object_hook(self, field, value):
-        return value
+    def _to_dynamo_object(self, model_instance):
+        return {
+            field: self.to_dynamo[field_type](getattr(model_instance, field))
+            for field, field_type in model_instance._field_types.items()
+        }
 
-    def _as_dynamo_object(self, model_instance):
-        object_for_dynamo = {}
-        for field, field_type in model_instance._field_types.items():
-            value = getattr(model_instance, field)
-            if field_type == dict:
-                value = json.dumps(value)
-            elif field_type == list:
-                value = json.dumps(value)
-            elif field_type == datetime.datetime:
-                value = Decimal(value.timestamp())
-            elif field_type == UUID:
-                value = str(value)
-            elif field_type == str:
-                value = value
-            elif field_type == int:
-                value = value
-            else:
-                value = self._as_dynamo_object_hook(field, value)
-
-            object_for_dynamo[field] = value
-
-        return object_for_dynamo
+    def _from_dynamo_object(self, dynamo_object):
+        return {
+            field: self.from_dynamo[field_type](dynamo_object.get(field))
+            for field, field_type in self.model_class._field_types.items()
+        }
 
     def create(self, model_instance):
-        object_for_dynamo = self._as_dynamo_object(model_instance)
+        object_for_dynamo = self._to_dynamo_object(model_instance)
 
         self._create_internal(object_for_dynamo)
 
         return True
-
-    def _as_model_hook(self, field, value):
-        return value
-
-    def _as_model(self, dynamo_object):
-        kwargs = {}
-        for field, field_type in self.model_class._field_types.items():
-            value = dynamo_object.get(field)
-            if value is None:
-                value = value
-            if field_type == dict:
-                value = json.loads(value)
-            elif field_type == list:
-                value = json.loads(value)
-            elif field_type == datetime.datetime:
-                value = datetime.datetime.fromtimestamp(float(value))
-            elif field_type == UUID:
-                value = UUID(value)
-            elif field_type == str:
-                value = value
-            elif field_type == int:
-                value = value
-            else:
-                value = self._as_model_hook(field, value)
-
-            kwargs[field] = value
-
-        return self.model_class(**kwargs)
 
     def _read_internal(self, key, value):
         dynamo_table = self._get_dynamo_table()
@@ -94,6 +69,6 @@ class Dao(object):
         result = self._read_internal(key, value)
 
         return [
-            self._as_model(item)
+            self._from_dynamo_object(item)
             for item in result
         ]
