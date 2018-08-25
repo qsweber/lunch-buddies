@@ -1,17 +1,18 @@
 from decimal import Decimal
 import json
+import typing
 
 from lunch_buddies.constants.polls import CLOSED
 from lunch_buddies.dao.base import Dao
-from lunch_buddies.models.polls import Poll, ChoiceList, Choice
+from lunch_buddies.models.polls import Poll, Choice
 
 
 class PollsDao(Dao):
     def __init__(self):
         super(PollsDao, self).__init__(Poll)
 
-        self.from_dynamo[ChoiceList] = choices_from_dynamo
-        self.to_dynamo[ChoiceList] = choices_to_dynamo
+        self.from_dynamo[typing.List[Choice]] = choices_from_dynamo
+        self.to_dynamo[typing.List[Choice]] = choices_to_dynamo
 
     def find_by_callback_id(self, team_id, callback_id):
         polls = [
@@ -58,7 +59,7 @@ def choices_from_dynamo(value):
     choices = json.loads(value)
     if isinstance(choices, dict):
         # version 1.0
-        return ChoiceList([
+        return [
             Choice(
                 key=key,
                 is_yes=('yes' in key),
@@ -66,11 +67,11 @@ def choices_from_dynamo(value):
                 display_text=display_text,
             )
             for key, display_text in choices.items()
-        ])
+        ]
     elif isinstance(choices, list):
         if len(choices[0]) == 2:
             # version 2.0
-            return ChoiceList([
+            return [
                 Choice(
                     key=key,
                     is_yes=('yes' in key),
@@ -78,10 +79,10 @@ def choices_from_dynamo(value):
                     display_text=display_text,
                 )
                 for key, display_text in choices
-            ])
+            ]
     # TODO: remove above
 
-    return ChoiceList([
+    return [
         Choice(
             key=str(choice['key']),
             is_yes=bool(choice['is_yes']),
@@ -89,7 +90,7 @@ def choices_from_dynamo(value):
             display_text=str(choice['display_text']),
         )
         for choice in json.loads(value)
-    ])
+    ]
 
 
 def choices_to_dynamo(value):

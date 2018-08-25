@@ -16,6 +16,7 @@ class Dao(object):
             list: json.dumps,
             datetime: lambda v: Decimal(v.timestamp()),
             UUID: str,
+            str: str,
             int: int,
         }
 
@@ -46,10 +47,10 @@ class Dao(object):
         }
 
     def _from_dynamo_object(self, dynamo_object):
-        return {
-            field: self.from_dynamo[field_type](dynamo_object.get(field))
+        return self.model_class(**{
+            field: self.from_dynamo[field_type](dynamo_object.get(field)) if dynamo_object.get(field) else None
             for field, field_type in self.model_class._field_types.items()
-        }
+        })
 
     def create(self, model_instance):
         object_for_dynamo = self._to_dynamo_object(model_instance)
