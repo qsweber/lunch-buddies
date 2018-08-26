@@ -5,15 +5,16 @@ import os
 
 import requests
 
-from lunch_buddies.clients.slack import ChannelDoesNotExist
+from lunch_buddies.clients.slack import ChannelDoesNotExist, SlackClient
 from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
+from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
 
 
 logger = logging.getLogger(__name__)
 
 
-def auth(request_args, teams_dao, slack_client):
+def auth(request_args: dict, teams_dao: TeamsDao, slack_client: SlackClient):
     response = _get_slack_oauth(request_args)
 
     response_dict = json.loads(response.text)
@@ -35,7 +36,7 @@ def auth(request_args, teams_dao, slack_client):
     return True
 
 
-def _get_slack_oauth(request_args):
+def _get_slack_oauth(request_args: dict):
     return requests.get('https://slack.com/api/oauth.access', params={
         'client_id': os.environ['CLIENT_ID'],
         'client_secret': os.environ['CLIENT_SECRET'],
@@ -43,5 +44,5 @@ def _get_slack_oauth(request_args):
     })
 
 
-def _get_created_at():
+def _get_created_at() -> datetime.datetime:
     return datetime.datetime.now()

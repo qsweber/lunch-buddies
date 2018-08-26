@@ -1,26 +1,19 @@
 import datetime
 from decimal import Decimal
 import json
+from typing import TypeVar, Generic, List
 from uuid import UUID
 
-import boto3
-from boto3.dynamodb.conditions import Key
+from lunch_buddies.clients.dynamodb import DynamodbClient
+
+T = TypeVar('T', bound=tuple)
 
 
-class Dao(object):
-    def __init__(self, model_class):
+class Dao(Generic[T]):
+    def __init__(self, model_class: T, table_name_root: str, dynamodb_client: DynamodbClient) -> None:
         self.model_class = model_class
-
-    def _get_dynamo_table_name(self):
-        return 'lunch_buddies_{}'.format(self.model_class.__name__)
-
-    def _get_dynamo_table(self):
-        dynamodb = boto3.resource('dynamodb')
-        return dynamodb.Table(self._get_dynamo_table_name())
-
-    def _create_internal(self, object_for_dynamo):
-        dynamo_table = self._get_dynamo_table()
-        return dynamo_table.put_item(Item=object_for_dynamo)
+        self.table_name = 'lunch_buddies_{}'.format(table_name_root)
+        self.dynamodb_client = dynamodb_client
 
     def _as_dynamo_object_hook(self, field, value):
         return value
@@ -48,17 +41,17 @@ class Dao(object):
 
         return object_for_dynamo
 
-    def create(self, model_instance):
+    def create(self, model_instance: T):
         object_for_dynamo = self._as_dynamo_object(model_instance)
 
-        self._create_internal(object_for_dynamo)
+        self.dynamodb_client.put_item(self.table_name, object_for_dynamo)
 
         return True
 
     def _as_model_hook(self, field, value):
         return value
 
-    def _as_model(self, dynamo_object):
+    def _as_model(self, dynamo_object: dict) -> T:
         kwargs = {}
         for field, field_type in self.model_class._field_types.items():
             value = dynamo_object.get(field)
@@ -83,15 +76,8 @@ class Dao(object):
 
         return self.model_class(**kwargs)
 
-    def _read_internal(self, key, value):
-        dynamo_table = self._get_dynamo_table()
-        if not key:
-            return dynamo_table.scan().get('Items')
-        else:
-            return dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
-
-    def read(self, key=None, value=None):
-        result = self._read_internal(key, value)
+    def read(self, key: str=None, value: str=None) -> List[T]:
+        result = self.dynamodb_client.read_items(self.table_name, key, value)
 
         return [
             self._as_model(item)
