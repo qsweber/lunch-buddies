@@ -36,25 +36,25 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
 
         return
 
-    # Close right away for idempotentcy
-    polls_dao.mark_poll_closed(poll=poll)
-
     poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
-    for choice, poll_responses_for_choice in poll_responses_by_choice.items():
-        for group in get_groups(poll_responses_for_choice, poll.group_size, max(1, poll.group_size - 1), 7):
-            user_ids = [poll_response.user_id for poll_response in group]
-            sqs_client.send_message(
-                GROUPS_TO_NOTIFY,
-                GroupsToNotifyMessage(
-                    team_id=message.team_id,
-                    callback_id=poll.callback_id,
-                    user_ids=user_ids,
-                    response=choice.key,
-                ),
-            )
+    messages_to_send = [
+        GroupsToNotifyMessage(
+            team_id=message.team_id,
+            callback_id=poll.callback_id,
+            user_ids=[poll_response.user_id for poll_response in group],
+            response=choice.key,
+        )
+        for choice, poll_responses_for_choice in poll_responses_by_choice.items()
+        for group in get_groups(poll_responses_for_choice, poll.group_size, max(1, poll.group_size - 1), 7)
+    ]
+
+    # Close right before notifying groups to keep this as atomic as possible with Dynamo
+    polls_dao.mark_poll_closed(poll=poll)
+    for message in messages_to_send:
+        sqs_client.send_message(GROUPS_TO_NOTIFY, message)
 
     return
 
