@@ -137,7 +137,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+                'group_size': 6.0,
             },
             {
                 'team_id': '123',
@@ -147,7 +147,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CLOSED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+                'group_size': 6.0,
             },
         ]
     )
