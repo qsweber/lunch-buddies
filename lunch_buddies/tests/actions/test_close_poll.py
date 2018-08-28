@@ -9,7 +9,7 @@ from lunch_buddies.constants import polls as polls_constants, queues as queues_c
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
-from lunch_buddies.models.polls import Poll, Choice, ChoiceList
+from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 
@@ -87,7 +87,7 @@ def test_group_by_answer():
         created_by_user_id='456',
         callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'),
         state='CREATED',
-        choices=ChoiceList([
+        choices=[
             choice_1145,
             choice_1230,
             Choice(
@@ -96,7 +96,7 @@ def test_group_by_answer():
                 time='',
                 display_text='No',
             ),
-        ]),
+        ],
         group_size=polls_constants.DEFAULT_GROUP_SIZE,
     )
 
@@ -137,7 +137,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'state': polls_constants.CREATED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+                'group_size': 6.0,
             },
             {
                 'team_id': '123',
@@ -147,7 +147,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
                 'state': polls_constants.CLOSED,
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+                'group_size': 6.0,
             },
         ]
     )

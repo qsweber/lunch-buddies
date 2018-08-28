@@ -8,7 +8,7 @@ from lunch_buddies.constants import polls as polls_constants, queues as queues_c
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
-from lunch_buddies.models.polls import Choice, ChoiceList
+from lunch_buddies.models.polls import Choice
 import lunch_buddies.actions.create_poll as module
 
 
@@ -181,7 +181,7 @@ def test_create_poll_handles_first_time(mocker):
 def test_parse_message_text_two_options(text):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
-    expected = ChoiceList([
+    expected = [
         Choice(
             key='yes_1145',
             is_yes=True,
@@ -200,7 +200,7 @@ def test_parse_message_text_two_options(text):
             time='',
             display_text='No',
         ),
-    ])
+    ]
 
     assert actual_choices == expected
 
@@ -217,7 +217,7 @@ def test_parse_message_text_two_options(text):
 def test_parse_message_text(text, expected_group_size):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
-    expected = ChoiceList([
+    expected = [
         Choice(
             key='yes_1200',
             is_yes=True,
@@ -230,7 +230,7 @@ def test_parse_message_text(text, expected_group_size):
             time='',
             display_text='No',
         ),
-    ])
+    ]
 
     assert actual_choices == expected
     assert expected_group_size == actual_group_size
@@ -246,7 +246,7 @@ def test_parse_message_text(text, expected_group_size):
 def test_parse_message_text_group_multiple_times(text, expected_group_size):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
-    expected = ChoiceList([
+    expected = [
         Choice(
             key='yes_1145',
             is_yes=True,
@@ -265,7 +265,7 @@ def test_parse_message_text_group_multiple_times(text, expected_group_size):
             time='',
             display_text='No',
         ),
-    ])
+    ]
 
     assert actual_choices == expected
     assert expected_group_size == actual_group_size

@@ -4,7 +4,7 @@ import uuid
 
 from lunch_buddies.constants import polls, slack
 from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
-from lunch_buddies.models.polls import Poll, ChoiceList, Choice
+from lunch_buddies.models.polls import Poll, Choice
 
 
 def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
@@ -92,7 +92,7 @@ def parse_message_text(text):
         display_text='No',
     ))
 
-    return ChoiceList(choices), group_size
+    return choices, group_size
 
 
 def _get_group_size_from_text(text):

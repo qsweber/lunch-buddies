@@ -1,7 +1,7 @@
-from lunch_buddies.models.polls import Choice, ChoiceList
+from lunch_buddies.models.polls import Choice
 
 
-CHOICES = ChoiceList([
+CHOICES = [
     Choice(
         key='yes_1200',
         is_yes=True,
@@ -14,7 +14,7 @@ CHOICES = ChoiceList([
         time='',
         display_text='No',
     ),
-])
+]
 
 CREATED = 'CREATED'
 CLOSED = 'CLOSED'

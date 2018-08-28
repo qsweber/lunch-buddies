@@ -22,6 +22,6 @@ def test_roundtrip_encoding():
         group_size=group_size,
     )
 
-    after = polls_dao._as_model(polls_dao._as_dynamo_object(poll))
+    after = polls_dao._from_dynamo_object(polls_dao._to_dynamo_object(poll))
 
     assert after == poll

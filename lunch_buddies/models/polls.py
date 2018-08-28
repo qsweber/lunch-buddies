@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import NamedTuple
+from typing import NamedTuple, List
 from uuid import UUID
 
 
@@ -13,11 +13,6 @@ Choice = NamedTuple(
     ]
 )
 
-
-class ChoiceList(list):
-    pass
-
-
 Poll = NamedTuple(
     'Poll',
     [
@@ -27,7 +22,7 @@ Poll = NamedTuple(
         ('created_by_user_id', str),
         ('callback_id', UUID),
         ('state', str),
-        ('choices', ChoiceList),
+        ('choices', List[Choice]),
         ('group_size', int),
     ]
 )
