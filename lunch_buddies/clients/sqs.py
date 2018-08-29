@@ -1,8 +1,12 @@
 from datetime import datetime
 import json
+import logging
+from typing import Tuple, Iterable, List
 from uuid import UUID
 
 import boto3
+
+logger = logging.getLogger(__name__)
 
 
 class RoundTripEncoder(json.JSONEncoder):
@@ -40,58 +44,69 @@ class RoundTripDecoder(json.JSONDecoder):
             return obj
 
 
-class SqsClient(object):
-    def __init__(self, queues):
-        self.queues = queues
-
-    def _url_for_queue(self, queue):
-        return self.queues[queue]['url']
+class SqsClient:
+    def _url_for_queue(self, queue_name: str) -> str:
+        return 'https://us-west-2.queue.amazonaws.com/120356305272/{}'.format(queue_name)
 
     def _send_message_internal(self, **kwargs):
         sqs = boto3.client('sqs')
         return sqs.send_message(**kwargs)
 
-    def send_message(self, queue, message):
-        if not isinstance(message, self.queues[queue]['type']):
-            raise Exception('invalid message type being added to the queue')
+    def send_message(self, queue_name: str, message: dict):
         return self._send_message_internal(
-            QueueUrl=self._url_for_queue(queue),
-            MessageBody=json.dumps(message._asdict(), cls=RoundTripEncoder),
+            QueueUrl=self._url_for_queue(queue_name),
+            MessageBody=json.dumps(message, cls=RoundTripEncoder),
         )
 
-    def _receive_message_internal(self, **kwargs):
+    def send_messages(self, queue_name: str, messages: List[dict]):
+        for message in messages:
+            self.send_message(queue_name, message)
+
+    def _receive_message_internal(self, **kwargs) -> dict:
         sqs = boto3.client('sqs')
         return sqs.receive_message(**kwargs)
 
-    def receive_message(self, queue):
-        result = self._receive_message_internal(
-            QueueUrl=self._url_for_queue(queue),
-            MaxNumberOfMessages=1,
-            VisibilityTimeout=60,
-        )
-        if not result or 'Messages' not in result:
-            return None, None
+    def receive_messages(self, queue_name: str, maximum: int) -> Iterable[Tuple[dict, str]]:
+        count = 0
+        consecutive_empty = 0
+        url = self._url_for_queue(queue_name)
+        while count < maximum and consecutive_empty < 3:
+            result = self._receive_message_internal(
+                QueueUrl=url,
+                MaxNumberOfMessages=1,
+                VisibilityTimeout=60,
+            )
 
-        messages = result['Messages']
-        message = json.loads(messages[0]['Body'], cls=RoundTripDecoder)
-        receipt_handle = messages[0]['ReceiptHandle']
+            if not result or 'Messages' not in result:
+                consecutive_empty = consecutive_empty + 1
+                continue
+            else:
+                count = count + 1
 
-        message_object = self.queues[queue]['type'](**message)
+            messages = result['Messages'][0]
+            message = json.loads(messages[0]['Body'], cls=RoundTripDecoder)
+            receipt_handle = messages[0]['ReceiptHandle']
 
-        return message_object, receipt_handle
+            yield message, receipt_handle
 
-    def _delete_message_internal(self, **kwargs):
+        logger.info('action: {}, count: {}, consecutive_empty: {}'.format(
+            url,
+            count,
+            consecutive_empty,
+        ))
+
+    def _delete_message_internal(self, **kwargs) -> None:
         sqs = boto3.client('sqs')
         return sqs.delete_message(**kwargs)
 
-    def delete_message(self, queue, receipt_handle):
+    def delete_message(self, queue_name: str, receipt_handle: str) -> None:
         return self._delete_message_internal(
-            QueueUrl=self._url_for_queue(queue),
+            QueueUrl=self._url_for_queue(queue_name),
             ReceiptHandle=receipt_handle,
         )
 
-    def message_count(self, queue):
+    def message_count(self, queue_name: str) -> int:
         sqs = boto3.resource('sqs')
-        sqs_queue = sqs.Queue(self._url_for_queue(queue))
+        sqs_queue = sqs.Queue(self._url_for_queue(queue_name))
 
         return int(sqs_queue.attributes['ApproximateNumberOfMessages'])

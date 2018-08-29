@@ -1,19 +1,33 @@
 from collections import defaultdict
 import random
+from typing import Dict, List
 
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.constants.polls import CREATED
 from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
-from lunch_buddies.constants.queues import GROUPS_TO_NOTIFY, GroupsToNotifyMessage
+from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.poll_responses import PollResponsesDao
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.models.poll_responses import PollResponse
+from lunch_buddies.models.polls import Poll, Choice
+from lunch_buddies.models.teams import Team
+from lunch_buddies.types import GroupsToNotifyMessage, PollsToCloseMessage
 
 
-def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
-    team = teams_dao.read('team_id', message.team_id)[0]
+def close_poll(
+    message: PollsToCloseMessage,
+    slack_client: SlackClient,
+    polls_dao: PollsDao,
+    poll_responses_dao: PollResponsesDao,
+    teams_dao: TeamsDao,
+) -> List[GroupsToNotifyMessage]:
+    team: Team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id
     if not channel_id:
         lunch_buddies_channel = slack_client.get_channel(team, LUNCH_BUDDIES_CHANNEL_NAME)
         channel_id = lunch_buddies_channel['id']
 
-    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
+    poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if not poll:
         # TODO: give the use some more information since they probably just need to find the right poll to close
@@ -24,7 +38,7 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
             text='No poll found',
         )
 
-        return
+        return []
 
     if poll.state != CREATED:
         slack_client.post_message(
@@ -34,9 +48,9 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
             text='The poll you tried to close has already been closed',
         )
 
-        return
+        return []
 
-    poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
+    poll_responses: List[PollResponse] = poll_responses_dao.read('callback_id', str(poll.callback_id))
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
@@ -53,23 +67,21 @@ def close_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao,
 
     # Close right before notifying groups to keep this as atomic as possible with Dynamo
     polls_dao.mark_poll_closed(poll=poll)
-    for message in messages_to_send:
-        sqs_client.send_message(GROUPS_TO_NOTIFY, message)
 
-    return
+    return messages_to_send
 
 
-def _group_by_answer(poll_responses, poll):
-    poll_responses_by_choice = defaultdict(list)
+def _group_by_answer(poll_responses: List[PollResponse], poll: Poll) -> Dict[Choice, List[PollResponse]]:
+    poll_responses_by_choice: Dict[Choice, List[PollResponse]] = defaultdict(list)
     for poll_response in poll_responses:
         choice = _get_choice_from_response(poll_response, poll)
         if choice.is_yes:
             poll_responses_by_choice[choice].append(poll_response)
 
-    return dict(poll_responses_by_choice)
+    return poll_responses_by_choice
 
 
-def _get_choice_from_response(poll_response, poll):
+def _get_choice_from_response(poll_response: PollResponse, poll: Poll) -> Choice:
     return [
         choice
         for choice in poll.choices
@@ -77,7 +89,7 @@ def _get_choice_from_response(poll_response, poll):
     ][0]
 
 
-def get_groups(elements, group_size, min_group_size, max_group_size):
+def get_groups(elements: List[PollResponse], group_size: int, min_group_size: int, max_group_size: int) -> List[List[PollResponse]]:
     if len(elements) <= group_size:
         return [elements]
 

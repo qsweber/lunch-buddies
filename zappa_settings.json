@@ -9,7 +9,7 @@
         "timeout_seconds": 55,
         "events": [
             {
-                "function": "lunch_buddies.app.http.check_sqs_and_ping_sns",
+                "function": "lunch_buddies.app.handlers.check_sqs_and_ping_sns",
                 "expression": "cron(* * ? * * *)"
             },
             {
