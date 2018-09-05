@@ -66,7 +66,7 @@ def create_poll_http() -> str:
         channel_id='',  # This will be filled in later with the default
     )
 
-    outgoing_text = queue_create_poll(request_form, teams_dao, sqs_client)
+    outgoing_text = queue_create_poll(request_form, sqs_client)
 
     check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
@@ -102,7 +102,7 @@ def listen_to_poll_http() -> str:
 
 
 @app.route('/api/v0/poll/close', methods=['POST'])
-def close_poll_http():
+def close_poll_http() -> str:
     '''
     Close a poll
     '''
@@ -116,7 +116,7 @@ def close_poll_http():
         text=request.form['text'],
     )
 
-    outgoing_message = queue_close_poll(request_form, teams_dao, sqs_client)
+    outgoing_message = queue_close_poll(request_form, sqs_client)
 
     check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
@@ -169,6 +169,9 @@ def bot_http():
     '''
     raw_request_form = request.form or json.loads(request.data)
 
+    _validate_request_token(raw_request_form['token'])
+    _validate_team(raw_request_form['team_id'], teams_dao)
+
     request_form = BotMention(
         team_id=raw_request_form['team_id'],
         channel_id=raw_request_form['event']['channel'],
@@ -179,7 +182,6 @@ def bot_http():
     outgoing_message = bot_action(
         request_form,
         sqs_client,
-        teams_dao,
     )
 
     check_sqs_and_ping_sns_action(sqs_client, sns_client)

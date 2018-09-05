@@ -6,7 +6,6 @@ from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.types import BotMention, ClosePoll, CreatePoll
 
 
@@ -16,7 +15,6 @@ logger = logging.getLogger(__name__)
 def bot(
     message: BotMention,
     sqs_client: SqsClient,
-    teams_dao: TeamsDao,
 ) -> str:
     parsed_text = _parse_text(message.text)
 
@@ -37,7 +35,6 @@ def bot(
                 channel_id=message.channel_id,
                 user_id=message.user_id,
             ),
-            teams_dao,
             sqs_client,
         )
 
@@ -49,7 +46,6 @@ def bot(
                 user_id=message.user_id,
                 text=rest_of_command,
             ),
-            teams_dao,
             sqs_client,
         )
     elif first_word == 'help':

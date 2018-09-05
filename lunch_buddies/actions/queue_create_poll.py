@@ -2,11 +2,10 @@ from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOpt
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import CREATE_POLL
 from lunch_buddies.constants.queues import POLLS_TO_START, PollsToStartMessage
-from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.types import CreatePoll
 
 
-def queue_create_poll(request_form: CreatePoll, teams_dao: TeamsDao, sqs_client: SqsClient) -> str:
+def queue_create_poll(request_form: CreatePoll, sqs_client: SqsClient) -> str:
     if _is_help(request_form):
         return CREATE_POLL
 

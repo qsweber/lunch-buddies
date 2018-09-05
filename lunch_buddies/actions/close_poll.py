@@ -37,7 +37,6 @@ def close_poll(
             as_user=True,
             text='No poll found',
         )
-
         return []
 
     if poll.state != CREATED:
@@ -47,7 +46,6 @@ def close_poll(
             as_user=True,
             text='The poll you tried to close has already been closed',
         )
-
         return []
 
     poll_responses: List[PollResponse] = poll_responses_dao.read('callback_id', str(poll.callback_id))
@@ -62,7 +60,7 @@ def close_poll(
             response=choice.key,
         )
         for choice, poll_responses_for_choice in poll_responses_by_choice.items()
-        for group in get_groups(poll_responses_for_choice, poll.group_size, max(1, poll.group_size - 1), 7)
+        for group in _get_groups(poll_responses_for_choice, poll.group_size, max(1, poll.group_size - 1), 7)
     ]
 
     # Close right before notifying groups to keep this as atomic as possible with Dynamo
@@ -89,7 +87,7 @@ def _get_choice_from_response(poll_response: PollResponse, poll: Poll) -> Choice
     ][0]
 
 
-def get_groups(elements: List[PollResponse], group_size: int, min_group_size: int, max_group_size: int) -> List[List[PollResponse]]:
+def _get_groups(elements: List[PollResponse], group_size: int, min_group_size: int, max_group_size: int) -> List[List[PollResponse]]:
     if len(elements) <= group_size:
         return [elements]
 
@@ -112,6 +110,6 @@ def get_groups(elements: List[PollResponse], group_size: int, min_group_size: in
                     i = i + 1
         else:
             # try with a smaller group size
-            return get_groups(elements, group_size - 1, min(group_size - 1, min_group_size), max_group_size)
+            return _get_groups(elements, group_size - 1, min(group_size - 1, min_group_size), max_group_size)
 
     return groups
