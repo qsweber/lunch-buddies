@@ -21,6 +21,8 @@ def bot(
     slack_client: SlackClient,
     teams_dao: TeamsDao,
 ) -> None:
+    logger.info('Input: {}'.format(message.text))
+
     parsed_text = _parse_text(message.text)
 
     if not parsed_text:
@@ -70,10 +72,11 @@ def bot(
 
 
 def _parse_text(text: str) -> Optional[Tuple[str, str]]:
-    search = re.search('\<\@[0-9A-Z]+\> (.*)', text)
+    search = re.search('.*\<\@.+\> (.*)', text)
 
     if search:
-        return _split_text(search.groups('0')[0].lower().strip())
+        cleaned_text = search.groups('0')[0].lower().strip().strip('.')
+        return _split_text(cleaned_text)
     else:
         return None
 

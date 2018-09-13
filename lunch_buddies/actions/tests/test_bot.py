@@ -17,6 +17,8 @@ import lunch_buddies.actions.bot as module
         ('<@123> hello there', ('hello', 'there')),
         ('<@123> hello there today', ('hello', 'there today')),
         ('<@123> create 1130, 1230', ('create', '1130, 1230')),
+        ('Reminder: <@U8PRM6XHN|lunch_buddies> create 1123.', ('create', '1123')),
+        ('Reminder: create 1123.', None),
     ]
 )
 def test_parse_text(text, expected):
