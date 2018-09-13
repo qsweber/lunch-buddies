@@ -47,6 +47,8 @@ class QueueHandler:
                     sqs_client.send_message(self.output_queue.queue_name, sink_message._asdict())
             sqs_client.delete_message(self.input_queue.queue_name, receipt_handle)
 
+        check_sqs_and_ping_sns_action(sqs_client, sns_client)
+
 
 def create_poll_from_queue(event: dict, context: dict) -> None:
     polls_to_start_queue_handler = QueueHandler(
