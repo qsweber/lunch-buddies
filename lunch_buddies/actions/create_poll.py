@@ -1,13 +1,22 @@
 from datetime import datetime
 import re
+from typing import List, Tuple
 import uuid
 
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.constants import polls, slack
-from lunch_buddies.constants.queues import USERS_TO_POLL, UsersToPollMessage
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.polls import Poll, Choice
+from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
 
 
-def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
+def create_poll(
+    message: PollsToStartMessage,
+    slack_client: SlackClient,
+    polls_dao: PollsDao,
+    teams_dao: TeamsDao,
+) -> List[UsersToPollMessage]:
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id
     if not channel_id:
@@ -24,7 +33,7 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
             text='There is already an active poll',
         )
 
-        return True
+        return []
 
     callback_id = _get_uuid()
     created_at = _get_created_at()
@@ -44,39 +53,35 @@ def create_poll(message, slack_client, sqs_client, polls_dao, poll_responses_dao
 
     polls_dao.create(poll)
 
-    for user_id in slack_client.list_users(team, channel_id):
-        outgoing_message = {'team_id': message.team_id, 'user_id': user_id, 'callback_id': callback_id}
-        sqs_client.send_message(
-            USERS_TO_POLL,
-            UsersToPollMessage(**outgoing_message),
-        )
-
-    return True
+    return [
+        UsersToPollMessage(team_id=message.team_id, user_id=user_id, callback_id=callback_id)
+        for user_id in slack_client.list_users(team, channel_id)
+    ]
 
 
-def _get_uuid():
+def _get_uuid() -> uuid.UUID:
     return uuid.uuid4()
 
 
-def _get_created_at():
+def _get_created_at() -> datetime:
     return datetime.now()
 
 
 class InvalidPollOption(Exception):
-    def __init__(self, option):
+    def __init__(self, option: str) -> None:
         super(InvalidPollOption, self).__init__(
             'Option could not be parsed into a time: "{}"'.format(option)
         )
 
 
 class InvalidPollSize(Exception):
-    def __init__(self, size):
+    def __init__(self, size: str) -> None:
         super(InvalidPollSize, self).__init__(
             'Size must be between 2 and 6. Received: "{}"'.format(size)
         )
 
 
-def parse_message_text(text):
+def parse_message_text(text: str) -> Tuple[List[Choice], int]:
     if not text:
         return polls.CHOICES, polls.DEFAULT_GROUP_SIZE
 
@@ -95,14 +100,14 @@ def parse_message_text(text):
     return choices, group_size
 
 
-def _get_group_size_from_text(text):
+def _get_group_size_from_text(text: str) -> Tuple[str, int]:
     text = text.strip()
     size_search = re.search(r'(.*)size=(.+)', text)
     if size_search:
         try:
             group_size = int(size_search.group(2))
             if group_size <= 1 or group_size > 6:
-                raise InvalidPollSize(group_size)
+                raise InvalidPollSize(str(group_size))
             text = size_search.group(1)
         except ValueError:
             raise InvalidPollSize(size_search.group(2))
@@ -112,7 +117,7 @@ def _get_group_size_from_text(text):
     return text, group_size
 
 
-def get_choice_from_raw_option(option):
+def get_choice_from_raw_option(option: str) -> Choice:
     try:
         int(option)
     except ValueError:
@@ -128,7 +133,7 @@ def get_choice_from_raw_option(option):
     )
 
 
-def get_time_from_raw_option(raw_option):
+def get_time_from_raw_option(raw_option: str) -> str:
     hour = int(raw_option[:-2])
     minute = int(raw_option[-2:])
 

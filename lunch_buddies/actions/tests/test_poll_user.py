@@ -1,53 +1,16 @@
 from datetime import datetime
+from uuid import UUID
 
-from lunch_buddies.actions import poll_user as poll_user_module
 from lunch_buddies.constants import polls as polls_constants
-from lunch_buddies.constants import queues as queues_constants
-from lunch_buddies.clients.sns import SnsClient
-from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
-import lunch_buddies.app.handlers as module
+import lunch_buddies.actions.poll_user as module
+from lunch_buddies.types import UsersToPollMessage
 
 
-def test_poll_users_from_queue(mocker):
-    sqs_client = SqsClient(queues_constants.QUEUES)
-
-    mocked_receive_message_internal = mocker.patch.object(
-        sqs_client,
-        '_receive_message_internal',
-        auto_spec=True,
-    )
-    mocked_receive_message_internal.side_effect = [
-        {
-            'Messages': [{
-                'Body': '{"team_id": "123", "user_id": "test_user_id", "callback_id": {"_type": "UUID", "value": "f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb"}}',
-                'ReceiptHandle': 'test receipt handle',
-            }]
-        },
-        None,
-        None,
-        None,
-        None,
-    ]
-    mocker.patch.object(
-        sqs_client,
-        '_delete_message_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    mocker.patch.object(
-        sqs_client,
-        'message_count',
-        auto_spec=True,
-        return_value=0,
-    )
-
-    sns_client = SnsClient()
-
+def test_poll_user(mocker):
     slack_client = SlackClient()
 
     teams_dao = TeamsDao()
@@ -89,14 +52,14 @@ def test_poll_users_from_queue(mocker):
         }]
     )
 
-    module._read_from_queue(
-        queues_constants.USERS_TO_POLL,
-        poll_user_module.poll_user,
-        sqs_client,
-        sns_client,
+    module.poll_user(
+        UsersToPollMessage(
+            team_id='123',
+            user_id='test_user_id',
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
+        ),
         slack_client,
         polls_dao,
-        None,
         teams_dao,
     )
 

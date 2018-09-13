@@ -9,7 +9,7 @@
         "timeout_seconds": 55,
         "events": [
             {
-                "function": "lunch_buddies.app.http.check_sqs_and_ping_sns",
+                "function": "lunch_buddies.app.handlers.check_sqs_and_ping_sns",
                 "expression": "cron(* * ? * * *)"
             },
             {
@@ -43,6 +43,57 @@
                 "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
                 "event_source": {
                     "arn":  "arn:aws:sns:us-west-2:120356305272:groups_to_notify_messages_visible",
+                    "events": [
+                        "sns:Publish"
+                    ]
+                }
+            }
+        ]
+    },
+    "dev": {
+        "app_function": "lunch_buddies.app.http.app",
+        "aws_region": "us-west-2",
+        "project_name": "lunch-buddies",
+        "runtime": "python3.6",
+        "s3_bucket": "zappa-vt9hd6vy9",
+        "log_level": "INFO",
+        "timeout_seconds": 55,
+        "events": [
+            {
+                "function": "lunch_buddies.app.handlers.check_sqs_and_ping_sns",
+                "expression": "cron(* * ? * * *)"
+            },
+            {
+                "function": "lunch_buddies.app.handlers.create_poll_from_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sns:us-west-2:120356305272:dev_polls_to_start_messages_visible",
+                    "events": [
+                        "sns:Publish"
+                    ]
+                }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.poll_users_from_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sns:us-west-2:120356305272:dev_users_to_poll_messages_visible",
+                    "events": [
+                        "sns:Publish"
+                    ]
+                }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.close_poll_from_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sns:us-west-2:120356305272:dev_polls_to_close_messages_visible",
+                    "events": [
+                        "sns:Publish"
+                    ]
+                }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sns:us-west-2:120356305272:dev_groups_to_notify_messages_visible",
                     "events": [
                         "sns:Publish"
                     ]

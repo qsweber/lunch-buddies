@@ -1,7 +1,17 @@
 import random
 
+from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.types import GroupsToNotifyMessage
 
-def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
+
+def notify_group(
+    message: GroupsToNotifyMessage,
+    slack_client: SlackClient,
+    polls_dao: PollsDao,
+    teams_dao: TeamsDao,
+) -> None:
     team = teams_dao.read('team_id', message.team_id)[0]
     poll = polls_dao.find_by_callback_id(message.team_id, message.callback_id)
     choice = [
@@ -29,4 +39,4 @@ def notify_group(message, slack_client, sqs_client, polls_dao, poll_responses_da
         text=text,
     )
 
-    return True
+    return

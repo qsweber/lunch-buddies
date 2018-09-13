@@ -1,47 +1,58 @@
-import datetime
+from datetime import datetime
 import json
 import logging
 import os
 
 import requests
 
-from lunch_buddies.clients.slack import ChannelDoesNotExist
+from lunch_buddies.clients.slack import ChannelDoesNotExist, SlackClient
+from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
+from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
+from lunch_buddies.types import Auth
 
 
 logger = logging.getLogger(__name__)
 
 
-def auth(request_args, teams_dao, slack_client):
-    response = _get_slack_oauth(request_args)
+def auth(request_form: Auth, teams_dao: TeamsDao, slack_client: SlackClient, http_client: HttpClient) -> None:
+    response = json.loads(http_client.get(
+        url='https://slack.com/api/oauth.access',
+        params={
+            'client_id': os.environ['CLIENT_ID'],
+            'client_secret': os.environ['CLIENT_SECRET'],
+            'code': request_form.code,
+        }
+    ).text)
 
-    response_dict = json.loads(response.text)
-
-    teams_dao.create(Team(
-        team_id=response_dict['team_id'],
-        access_token=response_dict['access_token'],
-        bot_access_token=response_dict['bot']['bot_access_token'],
+    team = Team(
+        team_id=response['team_id'],
+        access_token=response['access_token'],
+        bot_access_token=response['bot']['bot_access_token'],
         created_at=_get_created_at(),
-    ))
+    )
 
-    team = teams_dao.read('team_id', response_dict['team_id'])[0]
+    teams_dao.create(team)
 
     try:
         slack_client.get_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME)
     except ChannelDoesNotExist:
         slack_client.create_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME, is_private=False)
 
-    return True
+    return
 
 
-def _get_slack_oauth(request_args):
-    return requests.get('https://slack.com/api/oauth.access', params={
-        'client_id': os.environ['CLIENT_ID'],
-        'client_secret': os.environ['CLIENT_SECRET'],
-        'code': request_args['code'],
-    })
+def _get_slack_oauth(http_client: HttpClient, request_form: Auth) -> requests.Response:
+    return http_client.get(
+        url='https://slack.com/api/oauth.access',
+        params={
+            'client_id': os.environ['CLIENT_ID'],
+            'client_secret': os.environ['CLIENT_SECRET'],
+            'code': request_form.code,
+        }
+    )
 
 
-def _get_created_at():
-    return datetime.datetime.now()
+def _get_created_at() -> datetime:
+    return datetime.now()

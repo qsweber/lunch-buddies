@@ -1,9 +1,18 @@
 import time
 
+from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.constants.polls import CREATED
+from lunch_buddies.types import UsersToPollMessage
 
 
-def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, teams_dao):
+def poll_user(
+    message: UsersToPollMessage,
+    slack_client: SlackClient,
+    polls_dao: PollsDao,
+    teams_dao: TeamsDao,
+) -> None:
     team_id = message.team_id
     team = teams_dao.read('team_id', team_id)[0]
 
@@ -39,4 +48,4 @@ def poll_user(message, slack_client, sqs_client, polls_dao, poll_responses_dao, 
         ]
     )
 
-    return True
+    return

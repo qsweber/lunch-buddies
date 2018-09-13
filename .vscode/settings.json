@@ -1,6 +1,22 @@
 {
+  "editor.tabSize": 4,
   "python.envFile": "${workspaceRoot}/.env",
   "python.pythonPath": "${workspaceRoot}/.env/bin/python",
   "python.linting.flake8Enabled": true,
-  "python.linting.pylintEnabled": false
+  "python.linting.pylintEnabled": false,
+  "python.linting.mypyEnabled": true,
+  "python.linting.mypyArgs": [
+    "--ignore-missing-imports"
+  ],
+  "cSpell.words": [
+    "asdict",
+    "boto",
+    "defaultdict",
+    "excinfo",
+    "jsonify",
+    "oauth",
+    "parametrize",
+    "pytest",
+    "zfill"
+  ]
 }
