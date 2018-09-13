@@ -25,7 +25,7 @@ def test_queue_close_poll(mocker):
     )
 
     mocked_send_message.assert_called_with(
-        POLLS_TO_CLOSE,
+        POLLS_TO_CLOSE.queue_name,
         {'team_id': 'test_team_id', 'channel_id': 'test_channel_id', 'user_id': 'test_user_id'}
     )
 

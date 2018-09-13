@@ -1,10 +1,12 @@
 import logging
+from typing import Any, List, Optional
 
 from lunch_buddies.constants.queues import (
     POLLS_TO_START,
     USERS_TO_POLL,
     POLLS_TO_CLOSE,
     GROUPS_TO_NOTIFY,
+    Queue,
 )
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
@@ -17,7 +19,7 @@ from lunch_buddies.actions.notify_group import notify_group as notify_group_acti
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
-from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage, PollsToCloseMessage, GroupsToNotifyMessage
+
 
 logger = logging.getLogger(__name__)
 
@@ -29,32 +31,61 @@ polls_dao = PollsDao()
 poll_responses_dao = PollResponsesDao()
 
 
+class QueueHandler:
+    def __init__(self, input_queue: Queue, output_queue: Optional[Queue], handler: Any, extras: List[Any]) -> None:
+        self.input_queue = input_queue
+        self.output_queue = output_queue
+        self.handler = handler
+        self.extras = extras
+
+    def run(self) -> None:
+        for raw_message, receipt_handle in sqs_client.receive_messages(self.input_queue.queue_name, 15):
+            message = self.input_queue.message_type(**raw_message)
+            sink_messages = self.handler(message, *self.extras)
+            if self.output_queue:
+                for sink_message in sink_messages:
+                    sqs_client.send_message(self.output_queue.queue_name, sink_message._asdict())
+            sqs_client.delete_message(self.input_queue.queue_name, receipt_handle)
+
+
 def create_poll_from_queue(event: dict, context: dict) -> None:
-    for raw_message, receipt_handle in sqs_client.receive_messages(POLLS_TO_START, 15):
-        message = PollsToStartMessage(**raw_message)
-        sink_messages = create_poll_action(message, slack_client, polls_dao, teams_dao)
-        for sink_message in sink_messages:
-            sqs_client.send_message(USERS_TO_POLL, sink_message._asdict())
+    polls_to_start_queue_handler = QueueHandler(
+        POLLS_TO_START,
+        USERS_TO_POLL,
+        create_poll_action,
+        [slack_client, polls_dao, teams_dao],
+    )
+    polls_to_start_queue_handler.run()
 
 
 def poll_users_from_queue(event: dict, context: dict) -> None:
-    for raw_message, receipt_handle in sqs_client.receive_messages(USERS_TO_POLL, 15):
-        message = UsersToPollMessage(**raw_message)
-        poll_user_action(message, slack_client, polls_dao, teams_dao)
+    users_to_poll_queue_handler = QueueHandler(
+        USERS_TO_POLL,
+        None,
+        poll_user_action,
+        [slack_client, polls_dao, teams_dao]
+    )
+    users_to_poll_queue_handler.run()
 
 
 def close_poll_from_queue(event: dict, context: dict) -> None:
-    for raw_message, receipt_handle in sqs_client.receive_messages(POLLS_TO_CLOSE, 15):
-        message = PollsToCloseMessage(**raw_message)
-        sink_messages = close_poll_action(message, slack_client, polls_dao, poll_responses_dao, teams_dao)
-        for sink_message in sink_messages:
-            sqs_client.send_message(GROUPS_TO_NOTIFY, sink_message._asdict())
+    polls_to_close_queue_handler = QueueHandler(
+        POLLS_TO_CLOSE,
+        GROUPS_TO_NOTIFY,
+        close_poll_action,
+        [slack_client, polls_dao, poll_responses_dao, teams_dao]
+    )
+    polls_to_close_queue_handler.run()
 
 
 def notify_groups_from_queue(event: dict, context: dict) -> None:
-    for raw_message, receipt_handle in sqs_client.receive_messages(GROUPS_TO_NOTIFY, 15):
-        message = GroupsToNotifyMessage(**raw_message)
-        notify_group_action(message, slack_client, polls_dao, teams_dao)
+    groups_to_notify_queue_handler = QueueHandler(
+        GROUPS_TO_NOTIFY,
+        None,
+        notify_group_action,
+        [slack_client, polls_dao, teams_dao]
+    )
+    groups_to_notify_queue_handler.run()
 
 
 def check_sqs_and_ping_sns() -> None:

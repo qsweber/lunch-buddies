@@ -1,7 +1,12 @@
+from datetime import datetime
+
 import pytest
 
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
+from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, CreatePoll, ClosePoll
 import lunch_buddies.actions.bot as module
 
@@ -34,7 +39,28 @@ def test_split_text(text, expected):
 
 
 def test_bot_help(mocker):
-    result = module.bot(
+    teams_dao = TeamsDao()
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
+    slack_client = SlackClient()
+    mocked_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    module.bot(
         BotMention(
             team_id='test_team_id',
             channel_id='foo',
@@ -42,18 +68,51 @@ def test_bot_help(mocker):
             text='<@BOT> help',
         ),
         None,
+        slack_client,
+        teams_dao,
     )
 
-    assert result == APP_EXPLANATION
+    mocked_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='foo',
+        as_user=True,
+        text=APP_EXPLANATION,
+    )
 
 
 def test_bot_create(mocker):
-    sqs_client = SqsClient()
+    teams_dao = TeamsDao()
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
 
-    mocked = mocker.patch.object(
+    slack_client = SlackClient()
+    mocked_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    sqs_client = SqsClient()
+    mocked_queue_create_poll = mocker.patch.object(
         module,
         'queue_create_poll',
-        return_value='ok',
+        return_value='mocked_return_value',
         auto_spec=True,
     )
 
@@ -65,9 +124,11 @@ def test_bot_create(mocker):
             text='<@BOT> create 1130',
         ),
         sqs_client,
+        slack_client,
+        teams_dao,
     )
 
-    mocked.assert_called_with(
+    mocked_queue_create_poll.assert_called_with(
         CreatePoll(
             text='1130',
             team_id='test_team_id',
@@ -77,14 +138,48 @@ def test_bot_create(mocker):
         sqs_client,
     )
 
+    mocked_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='test_channel_id',
+        as_user=True,
+        text='mocked_return_value',
+    )
+
 
 def test_bot_close(mocker):
+    teams_dao = TeamsDao()
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
+
+    slack_client = SlackClient()
+    mocked_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+
     sqs_client = SqsClient()
 
     mocked = mocker.patch.object(
         module,
         'queue_close_poll',
-        return_value='ok',
+        return_value='mocked_return_value',
         auto_spec=True,
     )
 
@@ -96,6 +191,8 @@ def test_bot_close(mocker):
             text='<@BOT> close',
         ),
         sqs_client,
+        slack_client,
+        teams_dao,
     )
 
     mocked.assert_called_with(
@@ -106,4 +203,16 @@ def test_bot_close(mocker):
             user_id='test_user_id',
         ),
         sqs_client,
+    )
+
+    mocked_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='test_channel_id',
+        as_user=True,
+        text='mocked_return_value',
     )

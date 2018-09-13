@@ -15,7 +15,7 @@ def queue_close_poll(request_form: ClosePoll, sqs_client: SqsClient) -> str:
     )
 
     sqs_client.send_message(
-        POLLS_TO_CLOSE,
+        POLLS_TO_CLOSE.queue_name,
         message._asdict(),
     )
 

@@ -1,6 +1,7 @@
 import logging
 import json
 import os
+from typing import Tuple
 from uuid import UUID
 
 from flask import Flask, jsonify, request, redirect
@@ -127,7 +128,7 @@ def close_poll_http() -> str:
 
 
 @app.route('/api/v0/help', methods=['POST'])
-def help_http():
+def help_http() -> str:
     '''
     Explains the app.
     '''
@@ -141,7 +142,7 @@ def help_http():
 
 
 @app.route('/api/v0/install', methods=['GET'])
-def install_http():
+def install_http() -> str:
     '''
     Install a new workspace
     '''
@@ -149,7 +150,7 @@ def install_http():
 
 
 @app.route('/api/v0/auth', methods=['GET'])
-def auth_http():
+def auth_http() -> str:
     '''
     Authorize a new workspace
     '''
@@ -163,7 +164,7 @@ def auth_http():
 
 
 @app.route('/api/v0/bot', methods=['POST'])
-def bot_http():
+def bot_http() -> Tuple[str, int]:
     '''
     Listen to bot mentions
     '''
@@ -179,14 +180,13 @@ def bot_http():
         text=raw_request_form['event']['text'],
     )
 
-    outgoing_message = bot_action(
+    bot_action(
         request_form,
         sqs_client,
+        slack_client,
+        teams_dao,
     )
 
     check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
-    response = jsonify({'text': outgoing_message})
-    response.headers.add('Access-Control-Allow-Origin', '*')
-
-    return response
+    return 'ok', 200

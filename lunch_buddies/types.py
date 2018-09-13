@@ -66,11 +66,3 @@ class GroupsToNotifyMessage(NamedTuple):
     callback_id: UUID
     response: str
     user_ids: list
-
-
-# Other
-
-class QueueConfig(NamedTuple):
-    url: str
-    message_type: type
-    sns_trigger: str

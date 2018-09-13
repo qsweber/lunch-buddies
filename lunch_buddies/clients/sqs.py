@@ -1,10 +1,13 @@
 from datetime import datetime
 import json
 import logging
+import os
 from typing import Tuple, Iterable, List
 from uuid import UUID
 
 import boto3
+
+from lunch_buddies.constants.stages import Stage
 
 logger = logging.getLogger(__name__)
 
@@ -46,17 +49,19 @@ class RoundTripDecoder(json.JSONDecoder):
 
 class SqsClient:
     def _url_for_queue(self, queue_name: str) -> str:
-        return 'https://us-west-2.queue.amazonaws.com/120356305272/{}'.format(queue_name)
+        return 'https://us-west-2.queue.amazonaws.com/120356305272/{}'.format(
+            name_for_queue_stage(queue_name, Stage.PROD if os.environ['STAGE'] == Stage.PROD.value else Stage.DEV),
+        )
 
-    def _send_message_internal(self, **kwargs):
+    def _send_message_internal(self, queue_name: str, message: dict) -> None:
         sqs = boto3.client('sqs')
-        return sqs.send_message(**kwargs)
-
-    def send_message(self, queue_name: str, message: dict):
-        return self._send_message_internal(
+        sqs.send_message(
             QueueUrl=self._url_for_queue(queue_name),
             MessageBody=json.dumps(message, cls=RoundTripEncoder),
         )
+
+    def send_message(self, queue_name: str, message: dict) -> None:
+        self._send_message_internal(queue_name, message)
 
     def send_messages(self, queue_name: str, messages: List[dict]):
         for message in messages:
@@ -83,7 +88,7 @@ class SqsClient:
             else:
                 count = count + 1
 
-            messages = result['Messages'][0]
+            messages = result['Messages']
             message = json.loads(messages[0]['Body'], cls=RoundTripDecoder)
             receipt_handle = messages[0]['ReceiptHandle']
 
@@ -110,3 +115,10 @@ class SqsClient:
         sqs_queue = sqs.Queue(self._url_for_queue(queue_name))
 
         return int(sqs_queue.attributes['ApproximateNumberOfMessages'])
+
+
+def name_for_queue_stage(queue_name: str, stage: Stage) -> str:
+    if stage == Stage.PROD:
+        return queue_name
+    else:
+        return '{}_{}'.format(stage.value, queue_name)

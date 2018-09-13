@@ -34,7 +34,5 @@ agg = {k: team_summary(k, v) for k, v in polls_by_team.items()}
 
 sorted(agg.items(), key=lambda v: v[1]['latest'])
 
-{
-    poll.created_at: len(poll_responses_dao.read('callback_id', str(poll.callback_id)))
-    for poll in polls_by_team['T03PGMUHK']
-}
+team = teams_dao.read('team_id', 'T03PGMUHK')[0]
+[m for m in slack_client._get_base_client_for_team(team.bot_access_token).api_call('users.list')['members'] if m['id'] == 'UB4QKGYU8']

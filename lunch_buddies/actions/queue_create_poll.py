@@ -22,7 +22,7 @@ def queue_create_poll(request_form: CreatePoll, sqs_client: SqsClient) -> str:
     )
 
     sqs_client.send_message(
-        POLLS_TO_START,
+        POLLS_TO_START.queue_name,
         message._asdict(),
     )
 
