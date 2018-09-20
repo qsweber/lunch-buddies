@@ -5,6 +5,9 @@ from typing import Tuple
 from uuid import UUID
 
 from flask import Flask, jsonify, request, redirect
+from raven import Client
+from raven.contrib.flask import Sentry
+from raven.transport.requests import RequestsHTTPTransport
 
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.polls import PollsDao
@@ -23,6 +26,12 @@ from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.types import Auth, BotMention, ClosePoll, CreatePoll, ListenToPoll
 
 app = Flask(__name__)
+sentry = Sentry(
+    app,
+    client=Client(
+        transport=RequestsHTTPTransport,
+    ),
+)
 logger = logging.getLogger(__name__)
 
 slack_client = SlackClient()
@@ -190,3 +199,11 @@ def bot_http() -> Tuple[str, int]:
     check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
     return 'ok', 200
+
+
+@app.route('/api/v0/error', methods=['GET'])
+def error_http() -> str:
+    '''
+    Test error handler
+    '''
+    raise Exception('test error')

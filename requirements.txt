@@ -1,3 +1,4 @@
 Boto3
 Flask
 slackclient
+raven[flask]
