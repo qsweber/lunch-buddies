@@ -5,6 +5,7 @@ import pytest
 
 from lunch_buddies.dao.teams import TeamsDao
 import lunch_buddies.app.http as module
+from lunch_buddies.types import CreatePoll
 
 
 def test_validate_request_token():
@@ -69,67 +70,106 @@ def test_validate_team_fails_if_invalid_team(mocker):
     assert 'your team is not authorized for this app' == str(excinfo.value)
 
 
-def test_listen_to_poll_http(mocker):
-    # request_payload = {
-    #     'type': 'interactive_message',
-    #     'actions': [{
-    #         'name': 'answer',
-    #         'type': 'button',
-    #         'value': 'yes_1200'
-    #     }],
-    #     'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-    #     'team': {
-    #         'id': 'fake_team_id',
-    #     },
-    #     'channel': {
-    #         'id': 'fake_channel_id',
-    #         'name': 'directmessage'
-    #     },
-    #     'user': {
-    #         'id': 'fake_user_id',
-    #         'name': 'quinnsweber'
-    #     },
-    #     'action_ts': '1516117984.234873',
-    #     'message_ts': '1516117976.000223',
-    #     'attachment_id': '1',
-    #     'token': 'fake_verification_token',
-    #     'is_app_unfurl': False,
-    #     'original_message': {
-    #         'text': 'Are you able to participate in Lunch Buddies today?',
-    #         'username': 'Lunch Buddies',
-    #         'bot_id': 'fake_bot_id',
-    #         'attachments': [{
-    #             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-    #             'fallback': 'Something has gone wrong.',
-    #             'id': 1,
-    #             'color': '3AA3E3',
-    #             'actions': [{
-    #                 'id': '1',
-    #                 'name': 'answer',
-    #                 'text': 'Yes (12:00)',
-    #                 'type': 'button',
-    #                 'value': 'yes_1200',
-    #                 'style': '',
-    #             }, {
-    #                 'id': '2',
-    #                 'name': 'answer',
-    #                 'text': 'No',
-    #                 'type': 'button',
-    #                 'value': 'no',
-    #                 'style': '',
-    #             }]
-    #         }],
-    #         'type': 'message',
-    #         'subtype': 'bot_message',
-    #         'ts': '1516117976.000223',
-    #     },
-    #     'response_url': 'fake_response_url',
-    #     'trigger_id': 'fake_trigger_id',
-    # }
+@pytest.fixture
+def client():
+    client = module.app.test_client()
 
-    # TODO: do this
+    yield client
 
-    assert 1 == 1
+
+def test_create_poll_http(mocker, client):
+    os.environ['VERIFICATION_TOKEN'] = 'test_token'
+
+    mocked_queue_create_poll = mocker.patch.object(
+        module,
+        'queue_create_poll',
+        return_value=None,
+        auto_spec=True,
+    )
+
+    mocker.patch.object(
+        module,
+        '_validate_team',
+        return_value=None,
+        auto_spec=True,
+    )
+
+    client.post('/api/v0/poll/create', data={
+        'token': 'test_token',
+        'team_id': 'T0001',
+        'team_domain': 'example',
+        'channel_id': 'C2147483705',
+        'channel_name': 'test',
+        'user_id': 'U2147483697',
+        'user_name': 'Steve',
+        'command': '/weather',
+        'text': '94070',
+        'response_url': 'https://hooks.slack.com/commands/1234/5678',
+        'trigger_id': '13345224609.738474920.8088930838d88f008e0',
+    })
+
+    mocked_queue_create_poll.assert_called_with(
+        CreatePoll(text='94070', team_id='T0001', channel_id='', user_id='U2147483697'),
+        module.sqs_client,
+    )
+
+
+# listen_to_poll_payload = {
+#     'type': 'interactive_message',
+#     'actions': [{
+#         'name': 'answer',
+#         'type': 'button',
+#         'value': 'yes_1200'
+#     }],
+#     'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+#     'team': {
+#         'id': 'fake_team_id',
+#     },
+#     'channel': {
+#         'id': 'fake_channel_id',
+#         'name': 'directmessage'
+#     },
+#     'user': {
+#         'id': 'fake_user_id',
+#         'name': 'quinnsweber'
+#     },
+#     'action_ts': '1516117984.234873',
+#     'message_ts': '1516117976.000223',
+#     'attachment_id': '1',
+#     'token': 'fake_verification_token',
+#     'is_app_unfurl': False,
+#     'original_message': {
+#         'text': 'Are you able to participate in Lunch Buddies today?',
+#         'username': 'Lunch Buddies',
+#         'bot_id': 'fake_bot_id',
+#         'attachments': [{
+#             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+#             'fallback': 'Something has gone wrong.',
+#             'id': 1,
+#             'color': '3AA3E3',
+#             'actions': [{
+#                 'id': '1',
+#                 'name': 'answer',
+#                 'text': 'Yes (12:00)',
+#                 'type': 'button',
+#                 'value': 'yes_1200',
+#                 'style': '',
+#             }, {
+#                 'id': '2',
+#                 'name': 'answer',
+#                 'text': 'No',
+#                 'type': 'button',
+#                 'value': 'no',
+#                 'style': '',
+#             }]
+#         }],
+#         'type': 'message',
+#         'subtype': 'bot_message',
+#         'ts': '1516117976.000223',
+#     },
+#     'response_url': 'fake_response_url',
+#     'trigger_id': 'fake_trigger_id',
+# }
 
 # OAUTH_RESPONSE = {
 #     "access_token": "xoxp-XXXXXXXX-XXXXXXXX-XXXXX",
