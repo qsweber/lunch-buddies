@@ -1,6 +1,9 @@
 import logging
 from typing import Any, List, Optional
 
+from raven import Client
+from raven.transport.requests import RequestsHTTPTransport
+
 from lunch_buddies.constants.queues import (
     POLLS_TO_START,
     USERS_TO_POLL,
@@ -21,6 +24,7 @@ from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 
 
+sentry = Client(transport=RequestsHTTPTransport)
 logger = logging.getLogger(__name__)
 
 slack_client = SlackClient()
@@ -29,6 +33,17 @@ sns_client = SnsClient()
 teams_dao = TeamsDao()
 polls_dao = PollsDao()
 poll_responses_dao = PollResponsesDao()
+
+
+def captureErrors(func):
+    def wrapper(*args, **kwargs):
+        try:
+            func(*args, **kwargs)
+        except Exception:
+            sentry.captureException()
+            raise
+
+    return wrapper
 
 
 class QueueHandler:
@@ -50,6 +65,7 @@ class QueueHandler:
         check_sqs_and_ping_sns_action(sqs_client, sns_client)
 
 
+@captureErrors
 def create_poll_from_queue(event: dict, context: dict) -> None:
     polls_to_start_queue_handler = QueueHandler(
         POLLS_TO_START,
@@ -60,6 +76,7 @@ def create_poll_from_queue(event: dict, context: dict) -> None:
     polls_to_start_queue_handler.run()
 
 
+@captureErrors
 def poll_users_from_queue(event: dict, context: dict) -> None:
     users_to_poll_queue_handler = QueueHandler(
         USERS_TO_POLL,
@@ -70,6 +87,7 @@ def poll_users_from_queue(event: dict, context: dict) -> None:
     users_to_poll_queue_handler.run()
 
 
+@captureErrors
 def close_poll_from_queue(event: dict, context: dict) -> None:
     polls_to_close_queue_handler = QueueHandler(
         POLLS_TO_CLOSE,
@@ -80,6 +98,7 @@ def close_poll_from_queue(event: dict, context: dict) -> None:
     polls_to_close_queue_handler.run()
 
 
+@captureErrors
 def notify_groups_from_queue(event: dict, context: dict) -> None:
     groups_to_notify_queue_handler = QueueHandler(
         GROUPS_TO_NOTIFY,
@@ -90,7 +109,8 @@ def notify_groups_from_queue(event: dict, context: dict) -> None:
     groups_to_notify_queue_handler.run()
 
 
-def check_sqs_and_ping_sns() -> None:
+@captureErrors
+def check_sqs_and_ping_sns(*args) -> None:
     '''
     Runs every minute
     '''
