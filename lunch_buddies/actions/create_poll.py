@@ -3,7 +3,7 @@ import re
 from typing import List, Tuple
 import uuid
 
-from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
 from lunch_buddies.constants import polls, slack
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.dao.polls import PollsDao
@@ -20,7 +20,22 @@ def create_poll(
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id
     if not channel_id:
-        lunch_buddies_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        try:
+            lunch_buddies_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        except ChannelDoesNotExist:
+            slack_client.post_message(
+                team=team,
+                channel=message.user_id,
+                as_user=True,
+                text=(
+                    'Error creating poll. When creating a poll via the slash command "/lunch_buddies_create", there must be a channel named "#lunch_buddies", '
+                    'however that channel could not be found. You can either create a channel named "#lunch_buddies" and try again, or create a poll by inviting "@Lunch Buddies" to any channel '
+                    'and saying "@Lunch Buddies create"'
+                ),
+            )
+
+            return []
+
         channel_id = lunch_buddies_channel['id']
 
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
