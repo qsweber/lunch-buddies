@@ -10,6 +10,12 @@ from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
 
+DEFAULT_CHANNEL_NOT_FOUND = (
+    'Error creating poll. When creating a poll via the slash command "/lunch_buddies_create", there must be a channel named "#lunch_buddies", '
+    'however that channel could not be found. You can either create a channel named "#lunch_buddies" and try again, or create a poll by inviting "@Lunch Buddies" to any channel '
+    'and saying "@Lunch Buddies create"'
+)
+
 
 def create_poll(
     message: PollsToStartMessage,
@@ -27,11 +33,7 @@ def create_poll(
                 team=team,
                 channel=message.user_id,
                 as_user=True,
-                text=(
-                    'Error creating poll. When creating a poll via the slash command "/lunch_buddies_create", there must be a channel named "#lunch_buddies", '
-                    'however that channel could not be found. You can either create a channel named "#lunch_buddies" and try again, or create a poll by inviting "@Lunch Buddies" to any channel '
-                    'and saying "@Lunch Buddies create"'
-                ),
+                text=DEFAULT_CHANNEL_NOT_FOUND,
             )
 
             return []
