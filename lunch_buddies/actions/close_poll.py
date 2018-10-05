@@ -1,8 +1,8 @@
 from collections import defaultdict
 import random
-from typing import Dict, List
+from typing import Dict, List, Optional
 
-from lunch_buddies.clients.slack import SlackClient
+from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
 from lunch_buddies.constants.polls import CREATED
 from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
 from lunch_buddies.dao.polls import PollsDao
@@ -22,10 +22,7 @@ def close_poll(
     teams_dao: TeamsDao,
 ) -> List[GroupsToNotifyMessage]:
     team: Team = teams_dao.read('team_id', message.team_id)[0]
-    channel_id = message.channel_id
-    if not channel_id:
-        lunch_buddies_channel = slack_client.get_channel(team, LUNCH_BUDDIES_CHANNEL_NAME)
-        channel_id = lunch_buddies_channel['id']
+    channel_id = message.channel_id or _guess_channel_id(slack_client, team)
 
     poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
@@ -67,6 +64,14 @@ def close_poll(
     polls_dao.mark_poll_closed(poll=poll)
 
     return messages_to_send
+
+
+def _guess_channel_id(slack_client: SlackClient, team: Team) -> Optional[str]:
+    try:
+        lunch_buddies_channel = slack_client.get_channel(team, LUNCH_BUDDIES_CHANNEL_NAME)
+        return lunch_buddies_channel['id']
+    except ChannelDoesNotExist:
+        return None
 
 
 def _group_by_answer(poll_responses: List[PollResponse], poll: Poll) -> Dict[Choice, List[PollResponse]]:

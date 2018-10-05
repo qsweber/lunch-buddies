@@ -30,12 +30,16 @@ class PollsDao(Dao):
 
     def find_latest_by_team_channel(self, team_id, channel_id):
         polls = self.read('team_id', team_id)
-        if polls:
-            polls = [poll for poll in polls if poll.channel_id == channel_id]
-            if polls:
-                return polls[-1]
 
-        return None
+        if not polls:
+            return None
+
+        if channel_id:
+            polls = [poll for poll in polls if poll.channel_id == channel_id]
+            if not polls:
+                return None
+
+        return polls[-1]
 
     def mark_poll_closed(self, poll):
         dynamo_table = self._get_dynamo_table()
