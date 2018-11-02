@@ -11,5 +11,7 @@ after_success:
 - coveralls
 - pip install -r requirements.txt
 - pip install zappa
+- zappa update dev
+- zappa schedule dev
 - test $TRAVIS_BRANCH = "master" && zappa update production
 - test $TRAVIS_BRANCH = "master" && zappa schedule production

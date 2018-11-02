@@ -44,10 +44,7 @@ poll_responses_dao = PollResponsesDao()
 
 
 def _validate_request_token(token: str) -> bool:
-    if (
-        token != os.environ['VERIFICATION_TOKEN'] and
-        token != os.environ['VERIFICATION_TOKEN_DEV']
-    ):
+    if (token != os.environ['VERIFICATION_TOKEN'] and token != os.environ['VERIFICATION_TOKEN_DEV']):
         raise Exception('you are not authorized to call this URL')
 
     return True
