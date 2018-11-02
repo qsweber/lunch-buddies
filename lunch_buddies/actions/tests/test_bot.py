@@ -50,6 +50,7 @@ def test_bot_help(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -78,6 +79,7 @@ def test_bot_help(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),
@@ -97,6 +99,7 @@ def test_bot_create(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -144,6 +147,7 @@ def test_bot_create(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),
@@ -163,6 +167,7 @@ def test_bot_close(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -211,6 +216,7 @@ def test_bot_close(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),

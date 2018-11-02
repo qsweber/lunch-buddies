@@ -85,6 +85,7 @@ def test_close_poll(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -194,6 +195,7 @@ def test_close_poll_null_channel(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -314,6 +316,7 @@ def test_close_poll_null_channel_no_default_channel(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -412,6 +415,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -433,6 +437,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),
@@ -491,6 +496,7 @@ def test_close_poll_messages_creating_user_if_does_not_exist(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -512,6 +518,7 @@ def test_close_poll_messages_creating_user_if_does_not_exist(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),

@@ -73,6 +73,7 @@ def test_listen_to_poll(mocker):
         return_value=[{
             'team_id': 'fake_team_id',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': datetime.datetime.now().timestamp(),
         }]

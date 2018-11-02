@@ -87,6 +87,7 @@ def test_create_poll(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': datetime.now().timestamp(),
         }]
@@ -194,6 +195,7 @@ def test_create_poll_custom_times(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': datetime.now().timestamp(),
         }]
@@ -277,6 +279,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -298,6 +301,7 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),
@@ -344,6 +348,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
         return_value=[{
             'team_id': '123',
             'access_token': 'fake-token',
+            'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
@@ -365,6 +370,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
         team=Team(
             team_id='123',
             access_token='fake-token',
+            name='fake-team-name',
             bot_access_token='fake-bot-token',
             created_at=created_at,
         ),

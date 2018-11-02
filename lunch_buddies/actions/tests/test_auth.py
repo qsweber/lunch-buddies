@@ -65,6 +65,7 @@ def test_auth(mocker):
         team_id='fake_team_id',
         access_token='xxxx-1234',
         bot_access_token='xxxx-5678',
+        name='Fake Team Name',
         created_at=created_at
     )
 
@@ -82,6 +83,7 @@ def test_auth(mocker):
         {
             'team_id': 'fake_team_id',
             'access_token': 'xxxx-1234',
+            'name': 'Fake Team Name',
             'bot_access_token': 'xxxx-5678',
             'created_at': Decimal(created_at.timestamp()),
         },
