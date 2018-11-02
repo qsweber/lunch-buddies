@@ -72,7 +72,7 @@ def bot(
 
 
 def _parse_text(text: str) -> Optional[Tuple[str, str]]:
-    search = re.search('.*\<\@.+\> (.*)', text)
+    search = re.search(r'.*\<\@.+\> (.*)', text)
 
     if search:
         cleaned_text = search.groups('0')[0].lower().strip().strip('.')

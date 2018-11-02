@@ -5,9 +5,8 @@ import os
 
 import requests
 
-from lunch_buddies.clients.slack import ChannelDoesNotExist, SlackClient
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.http import HttpClient
-from lunch_buddies.constants.slack import LUNCH_BUDDIES_CHANNEL_NAME
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import Auth
@@ -35,10 +34,12 @@ def auth(request_form: Auth, teams_dao: TeamsDao, slack_client: SlackClient, htt
 
     teams_dao.create(team)
 
-    try:
-        slack_client.get_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME)
-    except ChannelDoesNotExist:
-        slack_client.create_channel(team=team, name=LUNCH_BUDDIES_CHANNEL_NAME, is_private=False)
+    slack_client.post_message(
+        team=team,
+        channel=response['user_id'],
+        as_user=True,
+        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
+    )
 
     return
 
