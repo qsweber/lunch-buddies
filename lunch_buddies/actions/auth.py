@@ -29,6 +29,7 @@ def auth(request_form: Auth, teams_dao: TeamsDao, slack_client: SlackClient, htt
         team_id=response['team_id'],
         access_token=response['access_token'],
         bot_access_token=response['bot']['bot_access_token'],
+        name=response['team_name'],
         created_at=_get_created_at(),
     )
 
