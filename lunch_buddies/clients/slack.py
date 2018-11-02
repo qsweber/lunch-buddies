@@ -5,10 +5,6 @@ class ChannelDoesNotExist(Exception):
     pass
 
 
-class ChannelCannotBeCreated(Exception):
-    pass
-
-
 class SlackClient(object):
     def _get_base_client_for_team(self, token):
         return BaseSlackClient(token)
