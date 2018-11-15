@@ -206,10 +206,10 @@ def test_close_poll_null_channel(mocker):
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [
+        return_value=[
             {'name': 'lunch_buddies', 'id': 'test_channel_id'},
             {'name': 'foo', 'id': 'foo'},
-        ]}
+        ]
     )
 
     result = module.close_poll(
@@ -327,10 +327,10 @@ def test_close_poll_null_channel_no_default_channel(mocker):
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [
+        return_value=[
             {'name': 'not_lunch_buddies', 'id': 'test_channel_id'},
             {'name': 'foo', 'id': 'foo'},
-        ]}
+        ]
     )
 
     result = module.close_poll(
