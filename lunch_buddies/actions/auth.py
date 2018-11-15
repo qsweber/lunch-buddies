@@ -25,6 +25,8 @@ def auth(request_form: Auth, teams_dao: TeamsDao, slack_client: SlackClient, htt
         }
     ).text)
 
+    logger.info(json.dumps(response))
+
     team = Team(
         team_id=response['team_id'],
         access_token=response['access_token'],

@@ -66,17 +66,17 @@ def test_create_poll(mocker):
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [
+        return_value=[
             {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
             {'name': 'foo', 'id': 'foo'},
-        ]}
+        ]
     )
 
     mocker.patch.object(
         slack_client,
         '_channels_info_internal',
         auto_spec=True,
-        return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
+        return_value={'members': ['user_id_one', 'user_id_two']}
     )
 
     teams_dao = TeamsDao()
@@ -174,17 +174,17 @@ def test_create_poll_custom_times(mocker):
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [
+        return_value=[
             {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
             {'name': 'foo', 'id': 'foo'},
-        ]}
+        ]
     )
 
     mocker.patch.object(
         slack_client,
         '_channels_info_internal',
         auto_spec=True,
-        return_value={'channel': {'members': ['user_id_one', 'user_id_two']}}
+        return_value={'members': ['user_id_one', 'user_id_two']}
     )
 
     teams_dao = TeamsDao()
@@ -333,10 +333,10 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
         slack_client,
         '_channels_list_internal',
         auto_spec=True,
-        return_value={'channels': [
+        return_value=[
             {'name': 'not_lunch_buddies', 'id': 'slack_channel_id'},
             {'name': 'foo', 'id': 'foo'},
-        ]}
+        ]
     )
 
     teams_dao = TeamsDao()
