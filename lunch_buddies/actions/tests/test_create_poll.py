@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from uuid import UUID
 
 import pytz
@@ -242,7 +242,7 @@ def test_create_poll_custom_times(mocker):
     ]
 
 
-def test_create_poll_messages_creating_user_if_already_closed(mocker):
+def test_create_poll_messages_creating_user_if_already_created(mocker):
     polls_dao = PollsDao()
     mocker.patch.object(
         polls_dao,
@@ -311,6 +311,125 @@ def test_create_poll_messages_creating_user_if_already_closed(mocker):
     )
 
     assert result == []
+
+
+def test_create_poll_works_if_existing_is_old(mocker):
+    polls_dao = PollsDao()
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': (datetime.now() - timedelta(days=2)).timestamp(),
+                'channel_id': 'test_channel_id',
+                'created_by_user_id': 'foo',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': polls_constants.CREATED,
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+            },
+        ]
+    )
+    mocked_polls_dao_create_internal = mocker.patch.object(
+        polls_dao,
+        '_create_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
+    expected_uuid = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
+    mocker.patch.object(
+        create_poll_module,
+        '_get_uuid',
+        auto_spec=True,
+        return_value=expected_uuid,
+    )
+
+    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
+    timezone = pytz.timezone("America/Los_Angeles")
+    d_aware = timezone.localize(d_naive)
+
+    mocker.patch.object(
+        create_poll_module,
+        '_get_created_at',
+        auto_spec=True,
+        return_value=d_aware,
+    )
+
+    slack_client = SlackClient()
+
+    mocker.patch.object(
+        slack_client,
+        '_channels_list_internal',
+        auto_spec=True,
+        return_value=[
+            {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
+            {'name': 'foo', 'id': 'foo'},
+        ]
+    )
+
+    mocker.patch.object(
+        slack_client,
+        '_channels_info_internal',
+        auto_spec=True,
+        return_value={'members': ['user_id_one', 'user_id_two']}
+    )
+
+    teams_dao = TeamsDao()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'name': 'fake-team-name',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': datetime.now().timestamp(),
+        }]
+    )
+
+    result = module.create_poll(
+        PollsToStartMessage(
+            team_id='123',
+            channel_id='test_channel_id',
+            user_id='abc',
+            text='',
+        ),
+        slack_client,
+        polls_dao,
+        teams_dao,
+    )
+
+    expected_poll = {
+        'team_id': '123',
+        'created_at': 1516117984.234873,
+        'channel_id': 'test_channel_id',
+        'created_by_user_id': 'abc',
+        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+        'state': polls_constants.CREATED,
+        'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+        'group_size': polls_constants.DEFAULT_GROUP_SIZE,
+    }
+
+    mocked_polls_dao_create_internal.assert_called_with(
+        expected_poll,
+    )
+
+    assert result == [
+        UsersToPollMessage(
+            team_id='123',
+            user_id='user_id_one',
+            callback_id=expected_uuid,
+        ),
+        UsersToPollMessage(
+            team_id='123',
+            user_id='user_id_two',
+            callback_id=expected_uuid,
+        )
+    ]
 
 
 def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker):
