@@ -8,12 +8,18 @@ from lunch_buddies.constants import polls, slack
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.polls import Poll, Choice
+from lunch_buddies.models.teams import Team
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
 
 DEFAULT_CHANNEL_NOT_FOUND = (
     'Error creating poll. When creating a poll via the slash command "/lunch_buddies_create", there must be a channel named "#lunch_buddies", '
     'however that channel could not be found. You can either create a channel named "#lunch_buddies" and try again, or create a poll by inviting "@Lunch Buddies" to any channel '
     'and saying "@Lunch Buddies create"'
+)
+
+USER_NOT_IN_DEFAULT_CHANNEL = (
+    'Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#{}|{}>. '
+    'You can join that channel and try again.'
 )
 
 
@@ -24,21 +30,9 @@ def create_poll(
     teams_dao: TeamsDao,
 ) -> List[UsersToPollMessage]:
     team = teams_dao.read('team_id', message.team_id)[0]
-    channel_id = message.channel_id
+    channel_id = message.channel_id or _get_default_channel_id(message, slack_client, team)
     if not channel_id:
-        try:
-            lunch_buddies_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
-        except ChannelDoesNotExist:
-            slack_client.post_message(
-                team=team,
-                channel=message.user_id,
-                as_user=True,
-                text=DEFAULT_CHANNEL_NOT_FOUND,
-            )
-
-            return []
-
-        channel_id = lunch_buddies_channel['id']
+        return []
 
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
@@ -74,6 +68,38 @@ def create_poll(
         UsersToPollMessage(team_id=message.team_id, user_id=user_id, callback_id=callback_id)
         for user_id in slack_client.list_users(team, channel_id)
     ]
+
+
+def _get_default_channel_id(
+    message: PollsToStartMessage,
+    slack_client: SlackClient,
+    team: Team,
+):
+    try:
+        default_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+    except ChannelDoesNotExist:
+        slack_client.post_message(
+            team=team,
+            channel=message.user_id,
+            as_user=True,
+            text=DEFAULT_CHANNEL_NOT_FOUND,
+        )
+
+        return None
+
+    channel_id = default_channel['id']
+
+    if message.user_id not in slack_client.list_users(team, channel_id):
+        slack_client.post_message(
+            team=team,
+            channel=message.user_id,
+            as_user=True,
+            text=USER_NOT_IN_DEFAULT_CHANNEL.format(channel_id, default_channel['name'])
+        )
+
+        return None
+
+    return channel_id
 
 
 def _get_uuid() -> uuid.UUID:
