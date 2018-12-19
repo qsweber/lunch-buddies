@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 from typing import List, Tuple
 import uuid
@@ -34,9 +34,9 @@ def create_poll(
     if not channel_id:
         return []
 
-    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
+    poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
-    if poll and poll.state != polls.CLOSED:
+    if poll and poll.state != polls.CLOSED and poll.created_at > (datetime.now() - timedelta(days=1)):
         slack_client.post_message(
             team=team,
             channel=message.user_id,
