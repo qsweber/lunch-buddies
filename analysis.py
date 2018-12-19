@@ -24,6 +24,7 @@ def team_summary(team_id, polls):
         'count': len(polls),
         'earliest': min(polls, key=lambda x: x.created_at).created_at,
         'latest': max(polls, key=lambda x: x.created_at).created_at,
+        'foo': max(polls, key=lambda x: x.created_at),
     }
 
 

@@ -382,6 +382,81 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
     assert result == []
 
 
+def test_create_poll_messages_creating_user_if_not_member_of_default_channel(mocker):
+    polls_dao = PollsDao()
+    mocker.patch.object(
+        polls_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[]
+    )
+
+    slack_client = SlackClient()
+    mocked_slack_post_message = mocker.patch.object(
+        slack_client,
+        'post_message',
+        auto_spec=True,
+        return_value=True,
+    )
+    mocker.patch.object(
+        slack_client,
+        '_channels_list_internal',
+        auto_spec=True,
+        return_value=[
+            {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
+            {'name': 'foo', 'id': 'foo'},
+        ]
+    )
+    mocker.patch.object(
+        slack_client,
+        '_channels_info_internal',
+        auto_spec=True,
+        return_value={'members': ['user_id_one', 'user_id_two']}
+    )
+
+    teams_dao = TeamsDao()
+    created_at = datetime.now()
+    mocker.patch.object(
+        teams_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'access_token': 'fake-token',
+            'name': 'fake-team-name',
+            'bot_access_token': 'fake-bot-token',
+            'created_at': created_at.timestamp(),
+        }]
+    )
+
+    result = module.create_poll(
+        PollsToStartMessage(
+            team_id='123',
+            channel_id='',
+            user_id='abc',
+            text='',
+        ),
+        slack_client,
+        polls_dao,
+        teams_dao,
+    )
+
+    mocked_slack_post_message.assert_called_with(
+        team=Team(
+            team_id='123',
+            access_token='fake-token',
+            name='fake-team-name',
+            bot_access_token='fake-bot-token',
+            created_at=created_at,
+        ),
+        channel='abc',
+        as_user=True,
+        text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#slack_channel_id|lunch_buddies>. You can join that channel and try again.',
+    )
+
+    assert result == []
+
+
 @pytest.mark.parametrize(
     'text',
     [
