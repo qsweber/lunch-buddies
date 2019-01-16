@@ -3,8 +3,6 @@ import json
 import logging
 import os
 
-import requests
-
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.dao.teams import TeamsDao
@@ -43,17 +41,6 @@ def auth(request_form: Auth, teams_dao: TeamsDao, slack_client: SlackClient, htt
     )
 
     return
-
-
-def _get_slack_oauth(http_client: HttpClient, request_form: Auth) -> requests.Response:
-    return http_client.get(
-        url='https://slack.com/api/oauth.access',
-        params={
-            'client_id': os.environ['CLIENT_ID'],
-            'client_secret': os.environ['CLIENT_SECRET'],
-            'code': request_form.code,
-        }
-    )
 
 
 def _get_created_at() -> datetime:
