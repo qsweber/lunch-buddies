@@ -102,6 +102,7 @@ def _get_groups(elements: List[PollResponse], group_size: int, min_group_size: i
     groups = [elements_copy[i:i + group_size] for i in range(0, len(elements_copy), group_size)]
 
     if len(groups[-1]) < min_group_size:
+        # our last group is too small
         last_group = groups.pop()
 
         if (max_group_size - group_size) * len(groups) >= len(last_group):
@@ -109,7 +110,7 @@ def _get_groups(elements: List[PollResponse], group_size: int, min_group_size: i
             i = 0
             while last_group:
                 groups[i].append(last_group.pop())
-                if i > (len(groups) - 1):
+                if i >= (len(groups) - 1):
                     i = 0
                 else:
                     i = i + 1
