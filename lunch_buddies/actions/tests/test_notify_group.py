@@ -6,6 +6,7 @@ from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.teams import Team
 import lunch_buddies.actions.notify_group as module
 from lunch_buddies.types import GroupsToNotifyMessage
@@ -45,6 +46,15 @@ def test_notify_group(mocker):
             },
         ]
     )
+
+    groups_dao = GroupsDao()
+    mocked_groups_dao_create_internal = mocker.patch.object(
+        groups_dao,
+        '_create_internal',
+        auto_spec=True,
+        return_value=True,
+    )
+
     mocker.patch.object(
         slack_client,
         'open_conversation',
@@ -69,6 +79,17 @@ def test_notify_group(mocker):
         slack_client,
         polls_dao,
         teams_dao,
+        groups_dao,
+    )
+
+    expected_group = {
+        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+        'user_ids': '["user_id_one", "user_id_two"]',
+        'response_key': 'yes_1145',
+    }
+
+    mocked_groups_dao_create_internal.assert_called_with(
+        expected_group,
     )
 
     assert mocked_post_message.call_count == 1

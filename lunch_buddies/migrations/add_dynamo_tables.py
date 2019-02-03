@@ -84,3 +84,33 @@ if __name__ == '__main__':
     )
 
     team.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Team')
+
+    groups = dynamodb.create_table(
+        TableName='lunch_buddies_Group',
+        KeySchema=[
+            {
+                'AttributeName': 'callback_id',  # globally unique partition
+                'KeyType': 'HASH',
+            },
+            {
+                'AttributeName': 'user_ids',
+                'KeyType': 'RANGE',
+            }
+        ],
+        AttributeDefinitions=[
+            {
+                'AttributeName': 'callback_id',
+                'AttributeType': 'S',
+            },
+            {
+                'AttributeName': 'user_ids',
+                'AttributeType': 'S',
+            },
+        ],
+        ProvisionedThroughput={
+            'ReadCapacityUnits': 5,
+            'WriteCapacityUnits': 5
+        }
+    )
+
+    groups.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Group')
