@@ -13,6 +13,7 @@ from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
@@ -41,6 +42,7 @@ http_client = HttpClient()
 teams_dao = TeamsDao()
 polls_dao = PollsDao()
 poll_responses_dao = PollResponsesDao()
+groups_dao = GroupsDao()
 
 
 def _validate_request_token(token: str) -> bool:
@@ -191,6 +193,8 @@ def bot_http() -> Tuple[str, int]:
         sqs_client,
         slack_client,
         teams_dao,
+        polls_dao,
+        groups_dao,
     )
 
     check_sqs_and_ping_sns_action(sqs_client, sns_client)

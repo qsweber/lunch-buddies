@@ -73,6 +73,8 @@ def test_bot_help(mocker):
         None,
         slack_client,
         teams_dao,
+        None,
+        None,
     )
 
     mocked_post_message.assert_called_with(
@@ -131,6 +133,8 @@ def test_bot_create(mocker):
         sqs_client,
         slack_client,
         teams_dao,
+        None,
+        None,
     )
 
     mocked_queue_create_poll.assert_called_with(
@@ -200,6 +204,8 @@ def test_bot_close(mocker):
         sqs_client,
         slack_client,
         teams_dao,
+        None,
+        None,
     )
 
     mocked.assert_called_with(

@@ -9,6 +9,8 @@ from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, ClosePoll, CreatePoll
 
@@ -21,6 +23,8 @@ def bot(
     sqs_client: SqsClient,
     slack_client: SlackClient,
     teams_dao: TeamsDao,
+    polls_dao: PollsDao,
+    groups_dao: GroupsDao,
 ) -> None:
     logger.info('Input: {}'.format(message.text))
 
@@ -59,7 +63,11 @@ def bot(
         )
     elif first_word == 'summary':
         response_text = get_summary(
+            message=message,
             rest_of_command=rest_of_command,
+            team=team,
+            polls_dao=polls_dao,
+            groups_dao=groups_dao,
         )
     elif first_word == 'help':
         response_text = APP_EXPLANATION
