@@ -4,6 +4,7 @@ from typing import Optional, Tuple
 
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
+from lunch_buddies.actions.get_summary import get_summary
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
@@ -55,6 +56,10 @@ def bot(
                 text=rest_of_command,
             ),
             sqs_client,
+        )
+    elif first_word == 'summary':
+        response_text = get_summary(
+            rest_of_command=rest_of_command,
         )
     elif first_word == 'help':
         response_text = APP_EXPLANATION
