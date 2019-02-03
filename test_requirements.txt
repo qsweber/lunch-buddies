@@ -3,6 +3,6 @@ mypy
 pytz
 pytest
 pytest-mock
-pytest-cov
+pytest-cov==2.6.0
 python-coveralls
 zappa
