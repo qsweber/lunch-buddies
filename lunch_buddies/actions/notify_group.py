@@ -3,6 +3,8 @@ import random
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.groups import GroupsDao
+from lunch_buddies.models.groups import Group
 from lunch_buddies.types import GroupsToNotifyMessage
 
 
@@ -11,6 +13,7 @@ def notify_group(
     slack_client: SlackClient,
     polls_dao: PollsDao,
     teams_dao: TeamsDao,
+    groups_dao: GroupsDao,
 ) -> None:
     team = teams_dao.read('team_id', message.team_id)[0]
     poll = polls_dao.find_by_callback_id(message.team_id, message.callback_id)
@@ -31,6 +34,14 @@ def notify_group(
         team=team,
         users=','.join(message.user_ids),
     )
+
+    group = Group(
+        callback_id=message.callback_id,
+        user_ids=message.user_ids,
+        response_key=message.response,
+    )
+
+    groups_dao.create(group)
 
     slack_client.post_message(
         team=team,
