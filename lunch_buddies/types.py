@@ -14,6 +14,7 @@ class BotMention(NamedTuple):
     channel_id: str
     user_id: str
     text: str
+    message_type: str
 
 
 class ClosePoll(NamedTuple):

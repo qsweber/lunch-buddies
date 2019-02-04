@@ -12,17 +12,33 @@ import lunch_buddies.actions.bot as module
 
 
 @pytest.mark.parametrize(
-    'text, expected',
+    'text, message_type, expected',
     [
-        ('<@123> hello there', ('hello', 'there')),
-        ('<@123> hello there today', ('hello', 'there today')),
-        ('<@123> create 1130, 1230', ('create', '1130, 1230')),
-        ('Reminder: <@U8PRM6XHN|lunch_buddies> create 1123.', ('create', '1123')),
-        ('Reminder: create 1123.', None),
+        # message_type=message
+        ('<@123> hello there', 'app_mention', ('hello', 'there')),
+        ('<@123> hello there today', 'app_mention', ('hello', 'there today')),
+        ('<@123> create 1130, 1230', 'app_mention', ('create', '1130, 1230')),
+        ('Reminder: <@U8PRM6XHN|lunch_buddies> create 1123.', 'app_mention', ('create', '1123')),
+        ('Reminder: create 1123.', 'app_mention', None),
+        # message_type=message
+        ('<@123> hello there', 'message', ('hello', 'there')),
+        ('<@123> hello there today', 'message', ('hello', 'there today')),
+        ('<@123> create 1130, 1230', 'message', ('create', '1130, 1230')),
+        ('Reminder: <@U8PRM6XHN|lunch_buddies> create 1123.', 'message', ('create', '1123')),
+        ('Reminder: create 1123.', 'message', ('reminder:', 'create 1123')),
+        ('create 1123', 'message', ('create', '1123')),
+        ('summary', 'message', ('summary', '')),
     ]
 )
-def test_parse_text(text, expected):
-    actual = module._parse_text(text)
+def test_parse_message(text, message_type, expected):
+    message = BotMention(
+        team_id='foo',
+        channel_id='foo',
+        user_id='foo',
+        text=text,
+        message_type=message_type,
+    )
+    actual = module._parse_message(message)
 
     assert actual == expected
 
@@ -69,6 +85,7 @@ def test_bot_help(mocker):
             channel_id='foo',
             user_id='foo',
             text='<@BOT> help',
+            message_type='app_mention',
         ),
         None,
         slack_client,
@@ -129,6 +146,7 @@ def test_bot_create(mocker):
             channel_id='test_channel_id',
             user_id='test_user_id',
             text='<@BOT> create 1130',
+            message_type='app_mention',
         ),
         sqs_client,
         slack_client,
@@ -200,6 +218,7 @@ def test_bot_close(mocker):
             channel_id='test_channel_id',
             user_id='test_user_id',
             text='<@BOT> close',
+            message_type='app_mention',
         ),
         sqs_client,
         slack_client,

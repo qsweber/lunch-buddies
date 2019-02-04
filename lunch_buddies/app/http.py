@@ -15,7 +15,7 @@ from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.auth import auth as auth_action
-from lunch_buddies.actions.bot import bot as bot_action
+from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
@@ -24,7 +24,7 @@ from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sns import SnsClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.clients.http import HttpClient
-from lunch_buddies.types import Auth, BotMention, ClosePoll, CreatePoll, ListenToPoll
+from lunch_buddies.types import Auth, ClosePoll, CreatePoll, ListenToPoll
 
 app = Flask(__name__)
 sentry = Sentry(
@@ -181,12 +181,7 @@ def bot_http() -> Tuple[str, int]:
     _validate_request_token(raw_request_form['token'])
     _validate_team(raw_request_form['team_id'], teams_dao)
 
-    request_form = BotMention(
-        team_id=raw_request_form['team_id'],
-        channel_id=raw_request_form['event']['channel'],
-        user_id=raw_request_form['event']['user'],
-        text=raw_request_form['event']['text'],
-    )
+    request_form = parse_raw_request(raw_request_form)
 
     bot_action(
         request_form,
