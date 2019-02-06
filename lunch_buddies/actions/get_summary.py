@@ -2,7 +2,9 @@ from datetime import datetime, timedelta
 import logging
 import re
 from typing import List
+import pytz
 
+from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.groups import Group
@@ -20,6 +22,7 @@ def get_summary(
     team: Team,
     polls_dao: PollsDao,
     groups_dao: GroupsDao,
+    slack_client: SlackClient
 ) -> str:
     polls: List[Poll] = polls_dao.read('team_id', team.team_id)
 
@@ -31,8 +34,10 @@ def get_summary(
         if poll.created_at > (datetime.now() - timedelta(days=lookback_days))
     ]
 
+    user_tz = slack_client.get_user_tz(team, message.user_id)
+
     return '\n\n'.join([
-        _get_summary_for_poll(poll, groups_dao)
+        _get_summary_for_poll(poll, groups_dao, user_tz)
         for poll in polls_filtered
     ])
 
@@ -43,10 +48,14 @@ def _get_lookback_days(rest_of_command: str) -> int:
     return int(search.groups('0')[0]) if search else 7
 
 
-def _get_summary_for_poll(poll: Poll, groups_dao: GroupsDao) -> str:
+def _get_summary_for_poll(poll: Poll, groups_dao: GroupsDao, user_tz: str) -> str:
+    created_at = poll.created_at
+    timezone = pytz.timezone(user_tz)
+    created_at_tz = timezone.localize(created_at)
+
     header = '*Created by* <@{}> *at {}*'.format(
         poll.created_by_user_id,
-        poll.created_at.strftime("%Y-%m-%d %H:%M:%S")
+        created_at_tz.strftime("%Y-%m-%d %H:%M:%S")
     )
 
     groups: List[Group] = groups_dao.read('callback_id', poll.callback_id)

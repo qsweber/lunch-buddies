@@ -68,6 +68,7 @@ def bot(
             team=team,
             polls_dao=polls_dao,
             groups_dao=groups_dao,
+            slack_client=slack_client,
         )
     elif first_word == 'help':
         response_text = APP_EXPLANATION

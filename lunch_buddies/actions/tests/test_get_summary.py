@@ -36,6 +36,7 @@ def test_get_summary_for_poll(mocker):
             group_size=5,
         ),
         groups_dao,
+        'America/Los_Angeles',
     )
 
     assert actual == '''*Created by* <@456> *at 2018-01-16 07:53:04*\nYes (12:00): <@abc> <@def>'''
