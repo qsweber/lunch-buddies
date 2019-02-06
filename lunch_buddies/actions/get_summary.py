@@ -1,3 +1,4 @@
+from datetime import datetime, timedelta
 import logging
 import re
 from typing import List
@@ -22,9 +23,18 @@ def get_summary(
 ) -> str:
     polls: List[Poll] = polls_dao.read('team_id', team.team_id)
 
-    poll = polls[-1]
+    lookback_days = _get_lookback_days(rest_of_command)
 
-    return _get_summary_for_poll(poll, groups_dao)
+    polls_filtered = [
+        poll
+        for poll in polls
+        if poll.created_at > (datetime.now() - timedelta(days=lookback_days))
+    ]
+
+    return '\n\n'.join([
+        _get_summary_for_poll(poll, groups_dao)
+        for poll in polls_filtered
+    ])
 
 
 def _get_lookback_days(rest_of_command: str) -> int:
