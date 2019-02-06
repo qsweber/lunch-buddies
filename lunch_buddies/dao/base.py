@@ -67,7 +67,9 @@ class Dao(object):
         if not key:
             return dynamo_table.scan().get('Items')
         else:
-            return dynamo_table.query(KeyConditionExpression=Key(key).eq(value)).get('Items')
+            field_type = self.model_class._field_types[key]
+            value_dynamo = self.to_dynamo[field_type](value)
+            return dynamo_table.query(KeyConditionExpression=Key(key).eq(value_dynamo)).get('Items')
 
     def read(self, key=None, value=None):
         result = self._read_internal(key, value)
