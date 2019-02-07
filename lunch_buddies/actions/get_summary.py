@@ -49,13 +49,17 @@ def _get_lookback_days(rest_of_command: str) -> int:
 
 
 def _get_summary_for_poll(poll: Poll, groups_dao: GroupsDao, user_tz: str) -> str:
-    created_at = poll.created_at
-    timezone = pytz.timezone(user_tz)
-    created_at_tz = timezone.localize(created_at)
+    created_at = (
+        datetime
+        .utcfromtimestamp(poll.created_at.timestamp())
+        .replace(tzinfo=pytz.timezone('UTC'))
+        .astimezone(pytz.timezone(user_tz))
+        .strftime('%B %d, %Y')
+    )
 
-    header = '*Created by* <@{}> *at {}*'.format(
+    header = '*{}: started by* <@{}>'.format(
+        created_at,
         poll.created_by_user_id,
-        created_at_tz.strftime("%Y-%m-%d %H:%M:%S")
     )
 
     groups: List[Group] = groups_dao.read('callback_id', poll.callback_id)

@@ -27,7 +27,7 @@ def test_get_summary_for_poll(mocker):
     actual = module._get_summary_for_poll(
         Poll(
             team_id='123',
-            created_at=datetime.fromtimestamp(float('1516117984.234873')),
+            created_at=datetime.fromtimestamp(float('1549513085.234873')),
             channel_id='test_channel_id',
             created_by_user_id='456',
             callback_id=uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
@@ -36,10 +36,10 @@ def test_get_summary_for_poll(mocker):
             group_size=5,
         ),
         groups_dao,
-        'America/Los_Angeles',
+        'America/New_York',
     )
 
-    assert actual == '''*Created by* <@456> *at 2018-01-16 07:53:04*\nYes (12:00): <@abc> <@def>'''
+    assert actual == '''*February 06, 2019: started by* <@456>\nYes (12:00): <@abc> <@def>'''
 
 
 @pytest.mark.parametrize(
