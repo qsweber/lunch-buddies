@@ -1,0 +1,36 @@
+{
+    "token": "NtnSJU1CXGsKtIeHREudwfhp",
+    "team_id": "T0NPTQTA5",
+    "api_app_id": "A8PL43L2C",
+    "event": {
+        "type": "message",
+        "message": {
+            "type": "message",
+            "user": "U0NPTQTAM",
+            "text": "test a",
+            "client_msg_id": "0a3c8b7d-fd6a-495b-a621-d6515a90c802",
+            "edited": {
+                "user": "U0NPTQTAM",
+                "ts": "1549258304.000000"
+            },
+            "ts": "1549258117.001500"
+        },
+        "subtype": "message_changed",
+        "hidden": true,
+        "channel": "D8QFP6U8J",
+        "previous_message": {
+            "type": "message",
+            "user": "U0NPTQTAM",
+            "text": "test",
+            "client_msg_id": "0a3c8b7d-fd6a-495b-a621-d6515a90c802",
+            "ts": "1549258117.001500"
+        },
+        "event_ts": "1549258304.001600",
+        "ts": "1549258304.001600",
+        "channel_type": "im"
+    },
+    "type": "event_callback",
+    "event_id": "EvFWAHG4HE",
+    "event_time": 1549258304,
+    "authed_users": ["U8PRM6XHN"]
+}

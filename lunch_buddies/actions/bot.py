@@ -4,10 +4,13 @@ from typing import Optional, Tuple
 
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
+from lunch_buddies.actions.get_summary import get_summary
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.polls import PollsDao
+from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, ClosePoll, CreatePoll
 
@@ -20,10 +23,12 @@ def bot(
     sqs_client: SqsClient,
     slack_client: SlackClient,
     teams_dao: TeamsDao,
+    polls_dao: PollsDao,
+    groups_dao: GroupsDao,
 ) -> None:
     logger.info('Input: {}'.format(message.text))
 
-    parsed_text = _parse_text(message.text)
+    parsed_text = _parse_message(message)
 
     if not parsed_text:
         return
@@ -56,6 +61,15 @@ def bot(
             ),
             sqs_client,
         )
+    elif first_word == 'summary':
+        response_text = get_summary(
+            message=message,
+            rest_of_command=rest_of_command,
+            team=team,
+            polls_dao=polls_dao,
+            groups_dao=groups_dao,
+            slack_client=slack_client,
+        )
     elif first_word == 'help':
         response_text = APP_EXPLANATION
     else:
@@ -71,14 +85,17 @@ def bot(
     return
 
 
-def _parse_text(text: str) -> Optional[Tuple[str, str]]:
-    search = re.search(r'.*\<\@.+\> (.*)', text)
+def _parse_message(message: BotMention) -> Optional[Tuple[str, str]]:
+    # Look for the text after the mention of the bot
+    search = re.search(r'.*\<\@.+\> (.*)', message.text)
 
-    if search:
-        cleaned_text = search.groups('0')[0].lower().strip().strip('.')
-        return _split_text(cleaned_text)
-    else:
+    if not search and message.message_type == 'app_mention':
         return None
+
+    text = search.groups('0')[0] if search else message.text
+    cleaned_text = text.lower().strip().strip('.')
+
+    return _split_text(cleaned_text)
 
 
 def _split_text(text: str) -> Tuple[str, str]:
@@ -87,3 +104,22 @@ def _split_text(text: str) -> Tuple[str, str]:
     first_word = words.pop(0)
 
     return first_word, ' '.join(words).strip()
+
+
+def parse_raw_request(raw_request_form: dict) -> BotMention:
+    if raw_request_form['event'].get('subtype') == 'message_changed':
+        return BotMention(
+            team_id=raw_request_form['team_id'],
+            channel_id=raw_request_form['event']['channel'],
+            user_id=raw_request_form['event']['message']['user'],
+            text=raw_request_form['event']['message']['text'],
+            message_type=raw_request_form['event']['message']['type'],
+        )
+    else:
+        return BotMention(
+            team_id=raw_request_form['team_id'],
+            channel_id=raw_request_form['event']['channel'],
+            user_id=raw_request_form['event']['user'],
+            text=raw_request_form['event']['text'],
+            message_type=raw_request_form['event']['type'],
+        )

@@ -55,3 +55,8 @@ class SlackClient(object):
             team,
             channel=channel_id
         )['members']
+
+    def get_user_tz(self, team: Team, user_id: str) -> str:
+        user_info = self._users_info_internal(team, user=user_id)
+
+        return user_info['user']['tz']

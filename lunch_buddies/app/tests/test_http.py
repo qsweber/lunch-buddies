@@ -1,4 +1,5 @@
 from datetime import datetime
+# import json
 import os
 
 import pytest
@@ -114,62 +115,24 @@ def test_create_poll_http(mocker, client):
     )
 
 
-# listen_to_poll_payload = {
-#     'type': 'interactive_message',
-#     'actions': [{
-#         'name': 'answer',
-#         'type': 'button',
-#         'value': 'yes_1200'
-#     }],
-#     'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-#     'team': {
-#         'id': 'fake_team_id',
-#     },
-#     'channel': {
-#         'id': 'fake_channel_id',
-#         'name': 'directmessage'
-#     },
-#     'user': {
-#         'id': 'fake_user_id',
-#         'name': 'quinnsweber'
-#     },
-#     'action_ts': '1516117984.234873',
-#     'message_ts': '1516117976.000223',
-#     'attachment_id': '1',
-#     'token': 'fake_verification_token',
-#     'is_app_unfurl': False,
-#     'original_message': {
-#         'text': 'Are you able to participate in Lunch Buddies today?',
-#         'username': 'Lunch Buddies',
-#         'bot_id': 'fake_bot_id',
-#         'attachments': [{
-#             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-#             'fallback': 'Something has gone wrong.',
-#             'id': 1,
-#             'color': '3AA3E3',
-#             'actions': [{
-#                 'id': '1',
-#                 'name': 'answer',
-#                 'text': 'Yes (12:00)',
-#                 'type': 'button',
-#                 'value': 'yes_1200',
-#                 'style': '',
-#             }, {
-#                 'id': '2',
-#                 'name': 'answer',
-#                 'text': 'No',
-#                 'type': 'button',
-#                 'value': 'no',
-#                 'style': '',
-#             }]
-#         }],
-#         'type': 'message',
-#         'subtype': 'bot_message',
-#         'ts': '1516117976.000223',
-#     },
-#     'response_url': 'fake_response_url',
-#     'trigger_id': 'fake_trigger_id',
-# }
+# def test_bot_requests(mocker, client):
+#     with open('./lunch_buddies/app/tests/requests/app_mention.json') as f:
+#         data = json.load(f)
+
+#     mocked_bot_action = mocker.patch.object(
+#         module,
+#         'bot_action',
+#         return_value=None,
+#         auto_spec=True,
+#     )
+
+#     print(data)
+
+#     client.post('/api/v0/bot', data=data)
+
+#     mocked_bot_action.assert_called_with(
+#         'a'
+#     )
 
 # OAUTH_RESPONSE = {
 #     "access_token": "xoxp-XXXXXXXX-XXXXXXXX-XXXXX",
