@@ -7,6 +7,7 @@ import lunch_buddies.actions.auth as module
 from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import Auth
 
@@ -33,11 +34,12 @@ def test_auth(mocker):
         auto_spec=True,
         return_value=True,
     )
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
+    team_settings_dao = TeamSettingsDao()
+    mocked_team_settings_dao_create_internal = mocker.patch.object(
+        team_settings_dao,
+        '_create_internal',
         auto_spec=True,
-        return_value=[]
+        return_value=True,
     )
     http_client = HttpClient()
     mocked_http_get = mocker.patch.object(
@@ -75,6 +77,7 @@ def test_auth(mocker):
     module.auth(
         Auth(code='test_code'),
         teams_dao,
+        team_settings_dao,
         slack_client,
         http_client,
     )
@@ -86,6 +89,12 @@ def test_auth(mocker):
             'name': 'Fake Team Name',
             'bot_access_token': 'xxxx-5678',
             'created_at': Decimal(created_at.timestamp()),
+        },
+    )
+    mocked_team_settings_dao_create_internal.assert_called_with(
+        {
+            'team_id': 'fake_team_id',
+            'feature_notify_in_channel': 1,
         },
     )
     mocked_slack_client_post_message.assert_called_with(

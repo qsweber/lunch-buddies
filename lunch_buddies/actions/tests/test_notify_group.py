@@ -6,6 +6,7 @@ from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.teams import Team
 import lunch_buddies.actions.notify_group as module
@@ -27,6 +28,13 @@ def test_notify_group(mocker):
             'bot_access_token': 'fake-bot-token',
             'created_at': created_at.timestamp(),
         }]
+    )
+    team_settings_dao = TeamSettingsDao()
+    mocker.patch.object(
+        team_settings_dao,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[]
     )
     polls_dao = PollsDao()
     mocker.patch.object(
@@ -79,6 +87,7 @@ def test_notify_group(mocker):
         slack_client,
         polls_dao,
         teams_dao,
+        team_settings_dao,
         groups_dao,
     )
 
@@ -104,5 +113,5 @@ def test_notify_group(mocker):
         ),
         channel='new_group_message_channel',
         as_user=True,
-        text='Hello! This is your lunch group for today. You all should meet somewhere at `11:45`. I am selecting <@user_id_two> to be in charge of picking the location.',
+        text='Hello! This is your group for today. You all should meet somewhere at `11:45`. I am selecting <@user_id_two> to be in charge of picking the location.',
     )
