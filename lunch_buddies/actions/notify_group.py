@@ -84,10 +84,17 @@ def _notify_in_channel(
         ' This is your group for today.' +
         ' You all should meet somewhere at `{}`.'.format(choice.time)
     )
-    slack_client.post_message(
+    result = slack_client.post_message(
         team=team,
         channel=poll.channel_id,
         as_user=True,
         text=text,
     )
-    # TODO: how do I now start the thread?
+    text = '<@{}> should pick the location.'.format(random.choice(message.user_ids))
+    slack_client.post_message(
+        team=team,
+        channel=poll.channel_id,
+        as_user=True,
+        text=text,
+        thread_ts=result['ts']
+    )

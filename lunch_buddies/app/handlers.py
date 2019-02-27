@@ -14,6 +14,7 @@ from lunch_buddies.constants.queues import (
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
@@ -35,6 +36,7 @@ teams_dao = TeamsDao()
 polls_dao = PollsDao()
 poll_responses_dao = PollResponsesDao()
 groups_dao = GroupsDao()
+team_settings_dao = TeamSettingsDao()
 
 
 def captureErrors(func):
@@ -106,7 +108,7 @@ def notify_groups_from_queue(event: dict, context: dict) -> None:
         GROUPS_TO_NOTIFY,
         None,
         notify_group_action,
-        [slack_client, polls_dao, teams_dao, groups_dao]
+        [slack_client, polls_dao, teams_dao, team_settings_dao, groups_dao]
     )
     groups_to_notify_queue_handler.run()
 
