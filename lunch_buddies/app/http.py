@@ -13,6 +13,7 @@ from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
@@ -40,6 +41,7 @@ sqs_client = SqsClient()
 sns_client = SnsClient()
 http_client = HttpClient()
 teams_dao = TeamsDao()
+team_settings_dao = TeamSettingsDao()
 polls_dao = PollsDao()
 poll_responses_dao = PollResponsesDao()
 groups_dao = GroupsDao()
@@ -166,7 +168,7 @@ def auth_http() -> str:
         code=request.args['code'],
     )
 
-    auth_action(request_form, teams_dao, slack_client, http_client)
+    auth_action(request_form, teams_dao, team_settings_dao, slack_client, http_client)
 
     return redirect('http://lunchbuddies.quinnweber.com/registration/')
 

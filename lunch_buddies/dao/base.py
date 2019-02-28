@@ -20,6 +20,7 @@ class Dao(object):
             str: str,
             int: int,
             List[str]: json.dumps,
+            bool: int,
         }
 
         self.from_dynamo = {
@@ -30,6 +31,7 @@ class Dao(object):
             str: str,
             int: int,
             List[str]: json.loads,
+            bool: bool,
         }
 
     def _get_dynamo_table_name(self):
