@@ -1,6 +1,6 @@
 from typing import List
 
-from slackclient import SlackClient as BaseSlackClient
+from slack import WebClient as BaseSlackClient
 
 from lunch_buddies.models.teams import Team
 

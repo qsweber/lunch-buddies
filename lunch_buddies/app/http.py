@@ -4,10 +4,11 @@ import os
 from typing import Tuple
 from uuid import UUID
 
-from flask import Flask, jsonify, request, redirect
+from flask import Flask, jsonify, request, redirect, Response
 from raven import Client
 from raven.contrib.flask import Sentry
 from raven.transport.requests import RequestsHTTPTransport
+from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.dao.polls import PollsDao
@@ -62,7 +63,7 @@ def _validate_team(team_id: str, teams_dao: TeamsDao) -> bool:
 
 
 @app.route('/api/v0/poll/create', methods=['POST'])
-def create_poll_http() -> str:
+def create_poll_http() -> Response:
     '''
     Create a poll
     This is connected to an incoming slash command from Slack
@@ -88,7 +89,7 @@ def create_poll_http() -> str:
 
 
 @app.route('/api/v0/poll', methods=['POST'])
-def listen_to_poll_http() -> str:
+def listen_to_poll_http() -> Response:
     '''
     Listens for responses to the poll.
     '''
@@ -113,7 +114,7 @@ def listen_to_poll_http() -> str:
 
 
 @app.route('/api/v0/poll/close', methods=['POST'])
-def close_poll_http() -> str:
+def close_poll_http() -> Response:
     '''
     Close a poll
     '''
@@ -138,7 +139,7 @@ def close_poll_http() -> str:
 
 
 @app.route('/api/v0/help', methods=['POST'])
-def help_http() -> str:
+def help_http() -> Response:
     '''
     Explains the app.
     '''
@@ -152,7 +153,7 @@ def help_http() -> str:
 
 
 @app.route('/api/v0/install', methods=['GET'])
-def install_http() -> str:
+def install_http() -> WResponse:
     '''
     Install a new workspace
     '''
@@ -160,7 +161,7 @@ def install_http() -> str:
 
 
 @app.route('/api/v0/auth', methods=['GET'])
-def auth_http() -> str:
+def auth_http() -> WResponse:
     '''
     Authorize a new workspace
     '''
