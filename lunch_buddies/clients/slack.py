@@ -1,6 +1,6 @@
 from typing import List
 
-from slack import WebClient as BaseSlackClient
+from slackclient import SlackClient as BaseSlackClient
 
 from lunch_buddies.models.teams import Team
 
@@ -14,21 +14,21 @@ class SlackClient(object):
         return BaseSlackClient(token)
 
     def open_conversation(self, team: Team, **kwargs):
-        return self._get_base_client_for_team(team.bot_access_token).api_call(api_method='conversations.open', json=kwargs)
+        return self._get_base_client_for_team(team.bot_access_token).api_call('conversations.open', **kwargs)
 
     def post_message(self, team: Team, **kwargs):
-        return self._get_base_client_for_team(team.bot_access_token).api_call(api_method='chat.postMessage', json=kwargs)
+        return self._get_base_client_for_team(team.bot_access_token).api_call('chat.postMessage', **kwargs)
 
     def _channels_list_internal(self, team: Team) -> List[dict]:
         base_client = self._get_base_client_for_team(team.bot_access_token)
-        return base_client.api_call(api_method='groups.list')['groups'] + base_client.api_call(api_method='channels.list')['channels']
+        return base_client.api_call('groups.list')['groups'] + base_client.api_call('channels.list')['channels']
 
     def _channels_info_internal(self, team: Team, **kwargs) -> dict:
-        channel_info = self._get_base_client_for_team(team.bot_access_token).api_call(api_method='channels.info', json=kwargs)
+        channel_info = self._get_base_client_for_team(team.bot_access_token).api_call('channels.info', **kwargs)
         if channel_info['ok']:
             return channel_info['channel']
         else:
-            group_info = self._get_base_client_for_team(team.bot_access_token).api_call(api_method='groups.info', json=kwargs)
+            group_info = self._get_base_client_for_team(team.bot_access_token).api_call('groups.info', **kwargs)
 
             if group_info['ok']:
                 return group_info['group']
@@ -36,7 +36,7 @@ class SlackClient(object):
         raise ChannelDoesNotExist()
 
     def _users_info_internal(self, team: Team, **kwargs) -> dict:
-        return self._get_base_client_for_team(team.bot_access_token).api_call(api_method='users.info', json=kwargs)
+        return self._get_base_client_for_team(team.bot_access_token).api_call('users.info', **kwargs)
 
     def get_channel(self, team: Team, name: str) -> dict:
         channels = [
