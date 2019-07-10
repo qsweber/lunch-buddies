@@ -16,7 +16,7 @@ That's it!
 
 Run the command `@lunch_buddies create 1130, 1230 size=6` to start the poll. The Lunch Buddies bot will individually message each member of the channel asking if they want to participate.
 
-insert image
+![Poll](img/poll.png?raw=true "Poll")
 
 #### Advanced usage
 
