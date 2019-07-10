@@ -171,7 +171,7 @@ def auth_http() -> WResponse:
 
     auth_action(request_form, teams_dao, team_settings_dao, slack_client, http_client)
 
-    return redirect('http://lunchbuddies.quinnweber.com/registration/')
+    return redirect('https://www.lunchbuddiesapp.com/registration/')
 
 
 @app.route('/api/v0/bot', methods=['POST'])
