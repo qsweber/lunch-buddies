@@ -91,13 +91,21 @@ def test_close_poll(mocker):
         }]
     )
 
+    slack_client = SlackClient()
+    mocker.patch.object(
+        slack_client,
+        '_channels_info_internal',
+        auto_spec=True,
+        return_value={'members': ['user_id_one', 'user_id_two']}
+    )
+
     result = module.close_poll(
         PollsToCloseMessage(
             team_id='123',
             channel_id='test_channel_id',
             user_id='abc',
         ),
-        None,
+        slack_client,
         polls_dao,
         poll_responses_dao,
         teams_dao,
@@ -210,6 +218,12 @@ def test_close_poll_null_channel(mocker):
             {'name': 'lunch_buddies', 'id': 'test_channel_id'},
             {'name': 'foo', 'id': 'foo'},
         ]
+    )
+    mocker.patch.object(
+        slack_client,
+        '_channels_info_internal',
+        auto_spec=True,
+        return_value={'members': ['user_id_one', 'user_id_two']}
     )
 
     result = module.close_poll(
@@ -331,6 +345,12 @@ def test_close_poll_null_channel_no_default_channel(mocker):
             {'name': 'not_lunch_buddies', 'id': 'test_channel_id'},
             {'name': 'foo', 'id': 'foo'},
         ]
+    )
+    mocker.patch.object(
+        slack_client,
+        '_channels_info_internal',
+        auto_spec=True,
+        return_value={'members': ['user_id_one', 'user_id_two']}
     )
 
     result = module.close_poll(

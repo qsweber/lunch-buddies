@@ -39,3 +39,12 @@ sorted(agg.items(), key=lambda v: v[1]['latest'])
     v['name']: v['error']
     for k, v in agg.items()
 }
+
+error_counts: dict = {}
+for k, v in agg.items():
+    if v['error'] not in error_counts:
+        error_counts[v['error']] = [v['name']]
+    else:
+        error_counts[v['error']].append(v['name'])
+
+print(error_counts)

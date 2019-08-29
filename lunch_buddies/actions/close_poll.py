@@ -45,7 +45,13 @@ def close_poll(
         )
         return []
 
-    poll_responses: List[PollResponse] = poll_responses_dao.read('callback_id', str(poll.callback_id))
+    users_still_in_channel = slack_client.list_users(team, message.channel_id)
+
+    poll_responses: List[PollResponse] = [
+        poll_response
+        for poll_response in poll_responses_dao.read('callback_id', str(poll.callback_id))
+        if poll_response.user_id in users_still_in_channel
+    ]
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
