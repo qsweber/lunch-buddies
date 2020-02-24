@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import logging
 import re
 from typing import List, Tuple
 import uuid
@@ -10,6 +11,8 @@ from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
+
+logger = logging.getLogger(__name__)
 
 DEFAULT_CHANNEL_NOT_FOUND = (
     'Error creating poll. When creating a poll via the slash command "/lunch_buddies_create", there must be a channel named "#lunch_buddies", '
@@ -29,6 +32,7 @@ def create_poll(
     polls_dao: PollsDao,
     teams_dao: TeamsDao,
 ) -> List[UsersToPollMessage]:
+    logger.info('Create poll: {} {} {}'.format(message.team_id, message.channel_id))
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id or _get_default_channel_id(message, slack_client, team)
     if not channel_id:
