@@ -1,3 +1,4 @@
+import json
 import logging
 import re
 from typing import Optional, Tuple
@@ -107,6 +108,7 @@ def _split_text(text: str) -> Tuple[str, str]:
 
 
 def parse_raw_request(raw_request_form: dict) -> BotMention:
+    logger.info('Parsing raw request: {}'.format(json.dumps(raw_request_form)))
     if raw_request_form['event'].get('subtype') == 'message_changed':
         return BotMention(
             team_id=raw_request_form['team_id'],
