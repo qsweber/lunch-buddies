@@ -32,7 +32,7 @@ def create_poll(
     polls_dao: PollsDao,
     teams_dao: TeamsDao,
 ) -> List[UsersToPollMessage]:
-    logger.info('Create poll: {} {} {}'.format(message.team_id, message.channel_id))
+    logger.info('Create poll: {} {}'.format(message.team_id, message.channel_id))
     team = teams_dao.read('team_id', message.team_id)[0]
     channel_id = message.channel_id or _get_default_channel_id(message, slack_client, team)
     if not channel_id:
