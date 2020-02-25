@@ -1,3 +1,4 @@
+import json
 import logging
 from typing import Any, List, Optional
 
@@ -119,3 +120,10 @@ def check_sqs_and_ping_sns(*args) -> None:
     Runs every minute
     '''
     check_sqs_and_ping_sns_action(sqs_client, sns_client)
+
+
+def sqs_test(event: dict, context: dict) -> None:
+    logger.info(json.dumps(event, deafult=str))
+    logger.info(json.dumps(context, deafult=str))
+
+    logger.info('Done!')
