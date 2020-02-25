@@ -21,19 +21,15 @@ class SlackClient(object):
 
     def _channels_list_internal(self, team: Team) -> List[dict]:
         base_client = self._get_base_client_for_team(team.bot_access_token)
-        return base_client.api_call('groups.list')['groups'] + base_client.api_call('channels.list')['channels']
+        return base_client.api_call('conversations.list')['channels']
 
-    def _channels_info_internal(self, team: Team, **kwargs) -> dict:
-        channel_info = self._get_base_client_for_team(team.bot_access_token).api_call('channels.info', **kwargs)
-        if channel_info['ok']:
-            return channel_info['channel']
-        else:
-            group_info = self._get_base_client_for_team(team.bot_access_token).api_call('groups.info', **kwargs)
+    def _channel_members(self, team: Team, channel_id: str) -> List[str]:
+        base_client = self._get_base_client_for_team(team.bot_access_token)
+        result = base_client.api_call('conversations.members', channel=channel_id)
+        if not result['ok']:
+            raise ChannelDoesNotExist()
 
-            if group_info['ok']:
-                return group_info['group']
-
-        raise ChannelDoesNotExist()
+        return result['members']
 
     def _users_info_internal(self, team: Team, **kwargs) -> dict:
         return self._get_base_client_for_team(team.bot_access_token).api_call('users.info', **kwargs)
@@ -51,10 +47,10 @@ class SlackClient(object):
             raise ChannelDoesNotExist()
 
     def list_users(self, team: Team, channel_id: str) -> List[str]:
-        return self._channels_info_internal(
+        return self._channel_members(
             team,
-            channel=channel_id
-        )['members']
+            channel_id=channel_id
+        )
 
     def get_user_tz(self, team: Team, user_id: str) -> str:
         user_info = self._users_info_internal(team, user=user_id)

@@ -123,7 +123,7 @@ def check_sqs_and_ping_sns(*args) -> None:
 
 
 def sqs_test(event: dict, context: dict) -> None:
-    logger.info(json.dumps(event, deafult=str))
-    logger.info(json.dumps(context, deafult=str))
+    logger.info(json.dumps(event, default=str))
+    logger.info(json.dumps(context, default=str))
 
     logger.info('Done!')
