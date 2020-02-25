@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+import json
 import logging
 import re
 from typing import List, Tuple
@@ -41,6 +42,7 @@ def create_poll(
     poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll and poll.state != polls.CLOSED and poll.created_at > (datetime.now() - timedelta(days=1)):
+        logger.info('Found the following poll: {}'.format(json.dumps(poll._asdict(), default=str)))
         slack_client.post_message(
             team=team,
             channel=message.user_id,
