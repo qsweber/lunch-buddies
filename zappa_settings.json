@@ -98,6 +98,14 @@
                         "sns:Publish"
                     ]
                 }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.sqs_test",
+                "event_source": {
+                     "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_test",
+                     "batch_size": 1,
+                     "enabled": true
+                }
             }
         ]
     }

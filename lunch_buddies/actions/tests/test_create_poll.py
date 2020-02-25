@@ -74,9 +74,9 @@ def test_create_poll(mocker):
 
     mocker.patch.object(
         slack_client,
-        '_channels_info_internal',
+        '_channel_members',
         auto_spec=True,
-        return_value={'members': ['user_id_one', 'user_id_two']}
+        return_value=['user_id_one', 'user_id_two']
     )
 
     teams_dao = TeamsDao()
@@ -182,9 +182,9 @@ def test_create_poll_custom_times(mocker):
 
     mocker.patch.object(
         slack_client,
-        '_channels_info_internal',
+        '_channel_members',
         auto_spec=True,
-        return_value={'members': ['user_id_one', 'user_id_two']}
+        return_value=['user_id_one', 'user_id_two']
     )
 
     teams_dao = TeamsDao()
@@ -372,9 +372,9 @@ def test_create_poll_works_if_existing_is_old(mocker):
 
     mocker.patch.object(
         slack_client,
-        '_channels_info_internal',
+        '_channel_members',
         auto_spec=True,
-        return_value={'members': ['user_id_one', 'user_id_two']}
+        return_value=['user_id_one', 'user_id_two']
     )
 
     teams_dao = TeamsDao()
@@ -528,9 +528,9 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
     )
     mocker.patch.object(
         slack_client,
-        '_channels_info_internal',
+        '_channel_members',
         auto_spec=True,
-        return_value={'members': ['user_id_one', 'user_id_two']}
+        return_value=['user_id_one', 'user_id_two']
     )
 
     teams_dao = TeamsDao()
