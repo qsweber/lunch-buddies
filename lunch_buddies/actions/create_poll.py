@@ -57,6 +57,8 @@ def create_poll(
 
     choices, group_size = parse_message_text(message.text)
 
+    users = slack_client.list_users(team, channel_id)
+
     poll = Poll(
         team_id=message.team_id,
         created_at=created_at,
@@ -72,7 +74,7 @@ def create_poll(
 
     return [
         UsersToPollMessage(team_id=message.team_id, user_id=user_id, callback_id=callback_id)
-        for user_id in slack_client.list_users(team, channel_id)
+        for user_id in users
     ]
 
 
