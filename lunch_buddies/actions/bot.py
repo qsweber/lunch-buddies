@@ -6,14 +6,10 @@ from typing import Optional, Tuple
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
 from lunch_buddies.actions.get_summary import get_summary
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, ClosePoll, CreatePoll
+from lunch_buddies.lib.service_context import ServiceContext
 
 
 logger = logging.getLogger(__name__)
@@ -21,11 +17,7 @@ logger = logging.getLogger(__name__)
 
 def bot(
     message: BotMention,
-    sqs_client: SqsClient,
-    slack_client: SlackClient,
-    teams_dao: TeamsDao,
-    polls_dao: PollsDao,
-    groups_dao: GroupsDao,
+    service_context: ServiceContext,
 ) -> None:
     logger.info('Input: {}'.format(message.text))
 
@@ -34,7 +26,7 @@ def bot(
     if not parsed_text:
         return
 
-    team: Team = teams_dao.read('team_id', message.team_id)[0]
+    team: Team = service_context.daos.teams.read('team_id', message.team_id)[0]
 
     first_word, rest_of_command = parsed_text
     logger.info('First word: {}, Rest of command: {}'.format(
@@ -50,7 +42,7 @@ def bot(
                 channel_id=message.channel_id,
                 user_id=message.user_id,
             ),
-            sqs_client,
+            service_context.clients.sqs,
         )
     elif first_word == 'close':
         response_text = queue_close_poll(
@@ -60,23 +52,21 @@ def bot(
                 user_id=message.user_id,
                 text=rest_of_command,
             ),
-            sqs_client,
+            service_context.clients.sqs,
         )
     elif first_word == 'summary':
         response_text = get_summary(
             message=message,
             rest_of_command=rest_of_command,
             team=team,
-            polls_dao=polls_dao,
-            groups_dao=groups_dao,
-            slack_client=slack_client,
+            service_context=service_context,
         )
     elif first_word == 'help':
         response_text = APP_EXPLANATION
     else:
         response_text = ''
 
-    slack_client.post_message(
+    service_context.clients.slack.post_message(
         team=team,
         channel=message.channel_id,
         as_user=True,

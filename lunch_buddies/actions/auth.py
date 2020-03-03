@@ -3,12 +3,9 @@ import json
 import logging
 import os
 
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.http import HttpClient
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.models.team_settings import TeamSettings
+from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.types import Auth
 
 
@@ -17,12 +14,9 @@ logger = logging.getLogger(__name__)
 
 def auth(
     request_form: Auth,
-    teams_dao: TeamsDao,
-    team_settings_dao: TeamSettingsDao,
-    slack_client: SlackClient,
-    http_client: HttpClient,
+    service_context: ServiceContext,
 ) -> None:
-    response = json.loads(http_client.get(
+    response = json.loads(service_context.clients.http.get(
         url='https://slack.com/api/oauth.access',
         params={
             'client_id': os.environ['CLIENT_ID'],
@@ -39,14 +33,14 @@ def auth(
         created_at=_get_created_at(),
     )
 
-    teams_dao.create(team)
+    service_context.daos.teams.create(team)
 
-    team_settings_dao.create(TeamSettings(
+    service_context.daos.team_settings.create(TeamSettings(
         team_id=team.team_id,
         feature_notify_in_channel=True,
     ))
 
-    slack_client.post_message(
+    service_context.clients.slack.post_message(
         team=team,
         channel=response['user_id'],
         as_user=True,

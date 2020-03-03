@@ -12,32 +12,16 @@ from lunch_buddies.constants.queues import (
     GROUPS_TO_NOTIFY,
     Queue,
 )
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.poll_responses import PollResponsesDao
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
-from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
 from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.poll_user import poll_user as poll_user_action
 from lunch_buddies.actions.notify_group import notify_group as notify_group_action
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.sns import SnsClient
-from lunch_buddies.clients.sqs import SqsClient
+from lunch_buddies.lib.service_context import service_context
 
 
 sentry = Client(transport=RequestsHTTPTransport)
 logger = logging.getLogger(__name__)
-
-slack_client = SlackClient()
-sqs_client = SqsClient()
-sns_client = SnsClient()
-teams_dao = TeamsDao()
-polls_dao = PollsDao()
-poll_responses_dao = PollResponsesDao()
-groups_dao = GroupsDao()
-team_settings_dao = TeamSettingsDao()
 
 
 def captureErrors(func):
@@ -59,15 +43,15 @@ class QueueHandler:
         self.extras = extras
 
     def run(self) -> None:
-        for raw_message, receipt_handle in sqs_client.receive_messages(self.input_queue.queue_name, 15):
+        for raw_message, receipt_handle in service_context.clients.sqs.receive_messages(self.input_queue.queue_name, 15):
             message = self.input_queue.message_type(**raw_message)
             sink_messages = self.handler(message, *self.extras)
             if self.output_queue:
                 for sink_message in sink_messages:
-                    sqs_client.send_message(self.output_queue.queue_name, sink_message._asdict())
-            sqs_client.delete_message(self.input_queue.queue_name, receipt_handle)
+                    service_context.clients.sqs.send_message(self.output_queue.queue_name, sink_message._asdict())
+            service_context.clients.sqs.delete_message(self.input_queue.queue_name, receipt_handle)
 
-        check_sqs_and_ping_sns_action(sqs_client, sns_client)
+        check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
 
 @captureErrors
@@ -76,7 +60,7 @@ def create_poll_from_queue(event: dict, context: dict) -> None:
         POLLS_TO_START,
         USERS_TO_POLL,
         create_poll_action,
-        [slack_client, polls_dao, teams_dao],
+        [service_context.clients.slack, service_context.daos.polls, service_context.daos.teams],
     )
     polls_to_start_queue_handler.run()
 
@@ -87,7 +71,7 @@ def poll_users_from_queue(event: dict, context: dict) -> None:
         USERS_TO_POLL,
         None,
         poll_user_action,
-        [slack_client, polls_dao, teams_dao]
+        [service_context.clients.slack, service_context.daos.polls, service_context.daos.teams]
     )
     users_to_poll_queue_handler.run()
 
@@ -98,7 +82,7 @@ def close_poll_from_queue(event: dict, context: dict) -> None:
         POLLS_TO_CLOSE,
         GROUPS_TO_NOTIFY,
         close_poll_action,
-        [slack_client, polls_dao, poll_responses_dao, teams_dao]
+        [service_context.clients.slack, service_context.daos.polls, service_context.daos.poll_responses, service_context.daos.teams]
     )
     polls_to_close_queue_handler.run()
 
@@ -109,7 +93,7 @@ def notify_groups_from_queue(event: dict, context: dict) -> None:
         GROUPS_TO_NOTIFY,
         None,
         notify_group_action,
-        [slack_client, polls_dao, teams_dao, team_settings_dao, groups_dao]
+        [service_context.clients.slack, service_context.daos.polls, service_context.daos.teams, service_context.daos.team_settings, service_context.daos.groups]
     )
     groups_to_notify_queue_handler.run()
 
@@ -119,7 +103,7 @@ def check_sqs_and_ping_sns(*args) -> None:
     '''
     Runs every minute
     '''
-    check_sqs_and_ping_sns_action(sqs_client, sns_client)
+    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
 
 def sqs_test(event: dict, context: dict) -> None:

@@ -4,12 +4,9 @@ import json
 import os
 
 import lunch_buddies.actions.auth as module
-from lunch_buddies.clients.http import HttpClient
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import Auth
+from lunch_buddies.lib.service_context import service_context
 
 
 OATH_RESPONSE = {
@@ -27,30 +24,26 @@ OATH_RESPONSE = {
 
 
 def test_auth(mocker):
-    teams_dao = TeamsDao()
     mocked_teams_dao_create_internal = mocker.patch.object(
-        teams_dao,
+        service_context.daos.teams,
         '_create_internal',
         auto_spec=True,
         return_value=True,
     )
-    team_settings_dao = TeamSettingsDao()
     mocked_team_settings_dao_create_internal = mocker.patch.object(
-        team_settings_dao,
+        service_context.daos.team_settings,
         '_create_internal',
         auto_spec=True,
         return_value=True,
     )
-    http_client = HttpClient()
     mocked_http_get = mocker.patch.object(
-        http_client,
+        service_context.clients.http,
         'get',
         auto_spec=True,
         return_value=mocker.Mock(text=json.dumps(OATH_RESPONSE)),
     )
-    slack_client = SlackClient()
     mocked_slack_client_post_message = mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         'post_message',
         auto_spec=True,
         return_value=True,
@@ -76,10 +69,7 @@ def test_auth(mocker):
 
     module.auth(
         Auth(code='test_code'),
-        teams_dao,
-        team_settings_dao,
-        slack_client,
-        http_client,
+        service_context,
     )
 
     mocked_teams_dao_create_internal.assert_called_with(

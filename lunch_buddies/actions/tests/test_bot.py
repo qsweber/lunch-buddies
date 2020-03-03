@@ -2,19 +2,17 @@ from datetime import datetime
 
 import pytest
 
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.sqs import SqsClient
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, CreatePoll, ClosePoll
 import lunch_buddies.actions.bot as module
+from lunch_buddies.lib.service_context import service_context
 
 
 @pytest.mark.parametrize(
     'text, message_type, expected',
     [
-        # message_type=message
+        # message_type=app_mention
         ('<@123> hello there', 'app_mention', ('hello', 'there')),
         ('<@123> hello there today', 'app_mention', ('hello', 'there today')),
         ('<@123> create 1130, 1230', 'app_mention', ('create', '1130, 1230')),
@@ -57,10 +55,9 @@ def test_split_text(text, expected):
 
 
 def test_bot_help(mocker):
-    teams_dao = TeamsDao()
     created_at = datetime.now()
     mocker.patch.object(
-        teams_dao,
+        service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
         return_value=[{
@@ -71,9 +68,8 @@ def test_bot_help(mocker):
             'created_at': created_at.timestamp(),
         }]
     )
-    slack_client = SlackClient()
     mocked_post_message = mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         'post_message',
         auto_spec=True,
         return_value=True,
@@ -87,11 +83,7 @@ def test_bot_help(mocker):
             text='<@BOT> help',
             message_type='app_mention',
         ),
-        None,
-        slack_client,
-        teams_dao,
-        None,
-        None,
+        service_context,
     )
 
     mocked_post_message.assert_called_with(
@@ -109,10 +101,9 @@ def test_bot_help(mocker):
 
 
 def test_bot_create(mocker):
-    teams_dao = TeamsDao()
     created_at = datetime.now()
     mocker.patch.object(
-        teams_dao,
+        service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
         return_value=[{
@@ -124,15 +115,13 @@ def test_bot_create(mocker):
         }]
     )
 
-    slack_client = SlackClient()
     mocked_post_message = mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         'post_message',
         auto_spec=True,
         return_value=True,
     )
 
-    sqs_client = SqsClient()
     mocked_queue_create_poll = mocker.patch.object(
         module,
         'queue_create_poll',
@@ -148,11 +137,7 @@ def test_bot_create(mocker):
             text='<@BOT> create 1130',
             message_type='app_mention',
         ),
-        sqs_client,
-        slack_client,
-        teams_dao,
-        None,
-        None,
+        service_context,
     )
 
     mocked_queue_create_poll.assert_called_with(
@@ -162,7 +147,7 @@ def test_bot_create(mocker):
             channel_id='test_channel_id',
             user_id='test_user_id',
         ),
-        sqs_client,
+        service_context.clients.sqs,
     )
 
     mocked_post_message.assert_called_with(
@@ -180,10 +165,9 @@ def test_bot_create(mocker):
 
 
 def test_bot_close(mocker):
-    teams_dao = TeamsDao()
     created_at = datetime.now()
     mocker.patch.object(
-        teams_dao,
+        service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
         return_value=[{
@@ -195,15 +179,12 @@ def test_bot_close(mocker):
         }]
     )
 
-    slack_client = SlackClient()
     mocked_post_message = mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         'post_message',
         auto_spec=True,
         return_value=True,
     )
-
-    sqs_client = SqsClient()
 
     mocked = mocker.patch.object(
         module,
@@ -220,11 +201,7 @@ def test_bot_close(mocker):
             text='<@BOT> close',
             message_type='app_mention',
         ),
-        sqs_client,
-        slack_client,
-        teams_dao,
-        None,
-        None,
+        service_context,
     )
 
     mocked.assert_called_with(
@@ -234,7 +211,7 @@ def test_bot_close(mocker):
             channel_id='test_channel_id',
             user_id='test_user_id',
         ),
-        sqs_client,
+        service_context.clients.sqs,
     )
 
     mocked_post_message.assert_called_with(
