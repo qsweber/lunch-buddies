@@ -11,22 +11,16 @@ from raven.transport.requests import RequestsHTTPTransport
 from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.poll_responses import PollResponsesDao
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
-from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
 from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.sns import SnsClient
-from lunch_buddies.clients.sqs import SqsClient
-from lunch_buddies.clients.http import HttpClient
+from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.types import Auth, ClosePoll, CreatePoll, ListenToPoll
+from lunch_buddies.lib.service_context import service_context
+
 
 app = Flask(__name__)
 sentry = Sentry(
@@ -36,16 +30,6 @@ sentry = Sentry(
     ),
 )
 logger = logging.getLogger(__name__)
-
-slack_client = SlackClient()
-sqs_client = SqsClient()
-sns_client = SnsClient()
-http_client = HttpClient()
-teams_dao = TeamsDao()
-team_settings_dao = TeamSettingsDao()
-polls_dao = PollsDao()
-poll_responses_dao = PollResponsesDao()
-groups_dao = GroupsDao()
 
 
 def _validate_request_token(token: str) -> bool:
@@ -69,7 +53,7 @@ def create_poll_http() -> Response:
     This is connected to an incoming slash command from Slack
     '''
     _validate_request_token(request.form['token'])
-    _validate_team(request.form['team_id'], teams_dao)
+    _validate_team(request.form['team_id'], service_context.daos.teams)
 
     request_form = CreatePoll(
         text=request.form['text'],
@@ -78,9 +62,9 @@ def create_poll_http() -> Response:
         channel_id='',  # This will be filled in later with the default
     )
 
-    outgoing_text = queue_create_poll(request_form, sqs_client)
+    outgoing_text = queue_create_poll(request_form, service_context.clients.sqs)
 
-    check_sqs_and_ping_sns_action(sqs_client, sns_client)
+    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
     response = jsonify({'text': outgoing_text})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -105,7 +89,7 @@ def listen_to_poll_http() -> Response:
         callback_id=UUID(payload['callback_id']),
     )
 
-    outgoing_message = listen_to_poll_action(request_form, polls_dao, poll_responses_dao)
+    outgoing_message = listen_to_poll_action(request_form, service_context.daos.polls, service_context.daos.poll_responses)
 
     response = jsonify(outgoing_message)
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -119,7 +103,7 @@ def close_poll_http() -> Response:
     Close a poll
     '''
     _validate_request_token(request.form['token'])
-    _validate_team(request.form['team_id'], teams_dao)
+    _validate_team(request.form['team_id'], service_context.daos.teams)
 
     request_form = ClosePoll(
         team_id=request.form['team_id'],
@@ -128,9 +112,9 @@ def close_poll_http() -> Response:
         text=request.form['text'],
     )
 
-    outgoing_message = queue_close_poll(request_form, sqs_client)
+    outgoing_message = queue_close_poll(request_form, service_context.clients.sqs)
 
-    check_sqs_and_ping_sns_action(sqs_client, sns_client)
+    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
     response = jsonify({'text': outgoing_message})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -144,7 +128,7 @@ def help_http() -> Response:
     Explains the app.
     '''
     _validate_request_token(request.form['token'])
-    _validate_team(request.form['team_id'], teams_dao)
+    _validate_team(request.form['team_id'], service_context.daos.teams)
 
     response = jsonify({'text': APP_EXPLANATION})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -169,7 +153,7 @@ def auth_http() -> WResponse:
         code=request.args['code'],
     )
 
-    auth_action(request_form, teams_dao, team_settings_dao, slack_client, http_client)
+    auth_action(request_form, service_context)
 
     return redirect('https://www.lunchbuddiesapp.com/registration/')
 
@@ -182,20 +166,16 @@ def bot_http() -> Tuple[str, int]:
     raw_request_form = request.form or json.loads(request.data)
 
     _validate_request_token(raw_request_form['token'])
-    _validate_team(raw_request_form['team_id'], teams_dao)
+    _validate_team(raw_request_form['team_id'], service_context.daos.teams)
 
     request_form = parse_raw_request(raw_request_form)
 
     bot_action(
         request_form,
-        sqs_client,
-        slack_client,
-        teams_dao,
-        polls_dao,
-        groups_dao,
+        service_context,
     )
 
-    check_sqs_and_ping_sns_action(sqs_client, sns_client)
+    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
     return 'ok', 200
 

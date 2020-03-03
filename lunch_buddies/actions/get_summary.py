@@ -4,13 +4,12 @@ import re
 from typing import List
 import pytz
 
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.groups import Group
 from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention
+from lunch_buddies.lib.service_context import ServiceContext
 
 
 logger = logging.getLogger(__name__)
@@ -20,11 +19,9 @@ def get_summary(
     message: BotMention,
     rest_of_command: str,
     team: Team,
-    polls_dao: PollsDao,
-    groups_dao: GroupsDao,
-    slack_client: SlackClient
+    service_context: ServiceContext,
 ) -> str:
-    polls: List[Poll] = polls_dao.read('team_id', team.team_id)
+    polls: List[Poll] = service_context.daos.polls.read('team_id', team.team_id)
 
     lookback_days = _get_lookback_days(rest_of_command)
 
@@ -34,10 +31,10 @@ def get_summary(
         if poll.created_at > (datetime.now() - timedelta(days=lookback_days))
     ]
 
-    user_tz = slack_client.get_user_tz(team, message.user_id)
+    user_tz = service_context.clients.slack.get_user_tz(team, message.user_id)
 
     return '\n\n'.join([
-        _get_summary_for_poll(poll, groups_dao, user_tz)
+        _get_summary_for_poll(poll, service_context.daos.groups, user_tz)
         for poll in polls_filtered
     ])
 

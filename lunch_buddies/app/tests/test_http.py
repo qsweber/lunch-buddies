@@ -1,5 +1,4 @@
 from datetime import datetime
-# import json
 import os
 
 import pytest
@@ -7,6 +6,7 @@ import pytest
 from lunch_buddies.dao.teams import TeamsDao
 import lunch_buddies.app.http as module
 from lunch_buddies.types import CreatePoll
+from lunch_buddies.lib.service_context import service_context
 
 
 def test_validate_request_token():
@@ -111,7 +111,7 @@ def test_create_poll_http(mocker, client):
 
     mocked_queue_create_poll.assert_called_with(
         CreatePoll(text='94070', team_id='T0001', channel_id='', user_id='U2147483697'),
-        module.sqs_client,
+        service_context.clients.sqs,
     )
 
 
