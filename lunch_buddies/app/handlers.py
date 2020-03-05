@@ -31,7 +31,7 @@ def sqsHandler(func):
                 func(message)
                 sqs_client_v2.delete_message(message)
             except Exception:
-                # set the backoff
+                sqs_client_v2.set_visibility_timeout_with_backoff(message)
                 sentry.captureException()
                 raise
 

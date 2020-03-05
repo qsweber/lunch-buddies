@@ -134,3 +134,11 @@ class SqsClient:
             QueueUrl=sqs_message.event_source_url,
             ReceiptHandle=sqs_message.receipt_handle,
         )
+
+    def set_visibility_timeout_with_backoff(self, sqs_message: SqsMessage) -> None:
+        backoff = min(sqs_message.attributes.approximate_receive_count * 10, 600)
+        return self.sqs.change_message_visibility(
+            QueueUrl=sqs_message.event_source_url,
+            ReceiptHandle=sqs_message.receipt_handle,
+            VisibilityTimeout=backoff,
+        )
