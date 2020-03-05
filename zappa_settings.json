@@ -9,44 +9,36 @@
         "timeout_seconds": 55,
         "events": [
             {
-                "function": "lunch_buddies.app.handlers.check_sqs_and_ping_sns",
-                "expression": "cron(* * ? * * *)"
-            },
-            {
                 "function": "lunch_buddies.app.handlers.create_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sns:us-west-2:120356305272:polls_to_start_messages_visible",
-                    "events": [
-                        "sns:Publish"
-                    ]
-                }
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:polls_to_start",
+                    "batch_size": 1,
+                    "enabled": true
+               }
             },
             {
                 "function": "lunch_buddies.app.handlers.poll_users_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sns:us-west-2:120356305272:users_to_poll_messages_visible",
-                    "events": [
-                        "sns:Publish"
-                    ]
-                }
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:users_to_poll",
+                    "batch_size": 1,
+                    "enabled": true
+               }
             },
             {
                 "function": "lunch_buddies.app.handlers.close_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sns:us-west-2:120356305272:polls_to_close_messages_visible",
-                    "events": [
-                        "sns:Publish"
-                    ]
-                }
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:polls_to_close",
+                    "batch_size": 1,
+                    "enabled": true
+               }
             },
             {
                 "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sns:us-west-2:120356305272:groups_to_notify_messages_visible",
-                    "events": [
-                        "sns:Publish"
-                    ]
-                }
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:groups_to_notify",
+                    "batch_size": 1,
+                    "enabled": true
+               }
             }
         ]
     },

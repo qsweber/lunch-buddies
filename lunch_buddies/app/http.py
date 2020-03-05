@@ -13,7 +13,6 @@ from werkzeug import Response as WResponse
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
-from lunch_buddies.actions.check_sqs_ping_sns import check_sqs_and_ping_sns as check_sqs_and_ping_sns_action
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
@@ -64,8 +63,6 @@ def create_poll_http() -> Response:
 
     outgoing_text = queue_create_poll(request_form, service_context.clients.sqs)
 
-    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
-
     response = jsonify({'text': outgoing_text})
     response.headers.add('Access-Control-Allow-Origin', '*')
 
@@ -113,8 +110,6 @@ def close_poll_http() -> Response:
     )
 
     outgoing_message = queue_close_poll(request_form, service_context.clients.sqs)
-
-    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
     response = jsonify({'text': outgoing_message})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -174,8 +169,6 @@ def bot_http() -> Tuple[str, int]:
         request_form,
         service_context,
     )
-
-    check_sqs_and_ping_sns_action(service_context.clients.sqs, service_context.clients.sns)
 
     return 'ok', 200
 
