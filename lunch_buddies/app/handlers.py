@@ -1,12 +1,13 @@
 import json
 import logging
-from typing import Any, List, Optional
+from typing import cast, Any, List, Optional, NamedTuple
 
 from raven import Client
 from raven.transport.requests import RequestsHTTPTransport
 
+from lunch_buddies.clients.sqs_v2 import SqsClient
 from lunch_buddies.constants.queues import (
-    POLLS_TO_START,
+    # POLLS_TO_START,
     USERS_TO_POLL,
     POLLS_TO_CLOSE,
     GROUPS_TO_NOTIFY,
@@ -18,10 +19,17 @@ from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.poll_user import poll_user as poll_user_action
 from lunch_buddies.actions.notify_group import notify_group as notify_group_action
 from lunch_buddies.lib.service_context import service_context
+from lunch_buddies.types import (
+    # PollsToCloseMessage,
+    PollsToStartMessage,
+    # UsersToPollMessage,
+    # GroupsToNotifyMessage,
+)
 
 
 sentry = Client(transport=RequestsHTTPTransport)
 logger = logging.getLogger(__name__)
+sqs_client_v2 = SqsClient()
 
 
 def captureErrors(func):
@@ -56,13 +64,21 @@ class QueueHandler:
 
 @captureErrors
 def create_poll_from_queue(event: dict, context: dict) -> None:
-    polls_to_start_queue_handler = QueueHandler(
-        POLLS_TO_START,
-        USERS_TO_POLL,
-        create_poll_action,
-        [service_context.clients.slack, service_context.daos.polls, service_context.daos.teams],
-    )
-    polls_to_start_queue_handler.run()
+    messages = sqs_client_v2.parse_sqs_messages(event)
+
+    for message in messages:
+        output_messages = create_poll_action(
+            PollsToStartMessage(**message.body),
+            service_context.clients.slack,
+            service_context.daos.polls,
+            service_context.daos.teams,
+        )
+
+        # Read this for why we have to do the cast
+        # https://github.com/python/mypy/issues/2984
+        sqs_client_v2.send_messages('users_to_poll', cast(List[NamedTuple], output_messages))
+
+        sqs_client_v2.delete_message(message)
 
 
 @captureErrors

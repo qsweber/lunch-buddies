@@ -66,11 +66,10 @@
             {
                 "function": "lunch_buddies.app.handlers.create_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sns:us-west-2:120356305272:dev_polls_to_start_messages_visible",
-                    "events": [
-                        "sns:Publish"
-                    ]
-                }
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_polls_to_start",
+                    "batch_size": 1,
+                    "enabled": true
+               }
             },
             {
                 "function": "lunch_buddies.app.handlers.poll_users_from_queue",
