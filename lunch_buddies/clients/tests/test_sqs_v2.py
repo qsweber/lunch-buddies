@@ -39,7 +39,7 @@ def test_parse_sqs_message():
         }]
     }
 
-    sqs_client = module.SqsClient()
+    sqs_client = module.SqsClient(True)
     result = sqs_client.parse_sqs_messages(raw)
 
     assert result == [
