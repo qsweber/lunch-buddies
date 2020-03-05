@@ -4,7 +4,7 @@ from typing import cast, List, NamedTuple
 from raven import Client
 from raven.transport.requests import RequestsHTTPTransport
 
-from lunch_buddies.clients.sqs_v2 import SqsClient
+from lunch_buddies.clients.sqs_v2 import SqsClient, SqsMessage
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
 from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.poll_user import poll_user as poll_user_action
@@ -23,83 +23,67 @@ logger = logging.getLogger(__name__)
 sqs_client_v2 = SqsClient()
 
 
-def captureErrors(func):
-    def wrapper(*args, **kwargs):
-        try:
-            func(*args, **kwargs)
-        except Exception:
-            sentry.captureException()
-            raise
+def sqsHandler(func):
+    def wrapper(event: dict, context: dict):
+        messages = sqs_client_v2.parse_sqs_messages(event)
+        for message in messages:
+            try:
+                func(message)
+                sqs_client_v2.delete_message(message)
+            except Exception:
+                # set the backoff
+                sentry.captureException()
+                raise
 
     return wrapper
 
 
-@captureErrors
-def create_poll_from_queue(event: dict, context: dict) -> None:
-    messages = sqs_client_v2.parse_sqs_messages(event)
+@sqsHandler
+def create_poll_from_queue(message: SqsMessage) -> None:
+    output_messages = create_poll_action(
+        PollsToStartMessage(**message.body),
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
+    )
 
-    for message in messages:
-        output_messages = create_poll_action(
-            PollsToStartMessage(**message.body),
-            service_context.clients.slack,
-            service_context.daos.polls,
-            service_context.daos.teams,
-        )
-
-        # Read this for why we have to do the cast
-        # https://github.com/python/mypy/issues/2984
-        sqs_client_v2.send_messages('users_to_poll', cast(List[NamedTuple], output_messages))
-
-        sqs_client_v2.delete_message(message)
+    # Read this for why we have to do the cast
+    # https://github.com/python/mypy/issues/2984
+    sqs_client_v2.send_messages('users_to_poll', cast(List[NamedTuple], output_messages))
 
 
-@captureErrors
-def poll_users_from_queue(event: dict, context: dict) -> None:
-    messages = sqs_client_v2.parse_sqs_messages(event)
-
-    for message in messages:
-        poll_user_action(
-            UsersToPollMessage(**message.body),
-            service_context.clients.slack,
-            service_context.daos.polls,
-            service_context.daos.teams,
-        )
-
-        sqs_client_v2.delete_message(message)
+@sqsHandler
+def poll_users_from_queue(message: SqsMessage) -> None:
+    poll_user_action(
+        UsersToPollMessage(**message.body),
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
+    )
 
 
-@captureErrors
-def close_poll_from_queue(event: dict, context: dict) -> None:
-    messages = sqs_client_v2.parse_sqs_messages(event)
+@sqsHandler
+def close_poll_from_queue(message: SqsMessage) -> None:
+    output_messages = close_poll_action(
+        PollsToCloseMessage(**message.body),
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
+        service_context.daos.teams,
+    )
 
-    for message in messages:
-        output_messages = close_poll_action(
-            PollsToCloseMessage(**message.body),
-            service_context.clients.slack,
-            service_context.daos.polls,
-            service_context.daos.poll_responses,
-            service_context.daos.teams,
-        )
-
-        # Read this for why we have to do the cast
-        # https://github.com/python/mypy/issues/2984
-        sqs_client_v2.send_messages('groups_to_notify', cast(List[NamedTuple], output_messages))
-
-        sqs_client_v2.delete_message(message)
+    # Read this for why we have to do the cast
+    # https://github.com/python/mypy/issues/2984
+    sqs_client_v2.send_messages('groups_to_notify', cast(List[NamedTuple], output_messages))
 
 
-@captureErrors
-def notify_groups_from_queue(event: dict, context: dict) -> None:
-    messages = sqs_client_v2.parse_sqs_messages(event)
-
-    for message in messages:
-        notify_group_action(
-            GroupsToNotifyMessage(**message.body),
-            service_context.clients.slack,
-            service_context.daos.polls,
-            service_context.daos.teams,
-            service_context.daos.team_settings,
-            service_context.daos.groups,
-        )
-
-        sqs_client_v2.delete_message(message)
+@sqsHandler
+def notify_groups_from_queue(message: SqsMessage) -> None:
+    notify_group_action(
+        GroupsToNotifyMessage(**message.body),
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
+        service_context.daos.team_settings,
+        service_context.daos.groups,
+    )
