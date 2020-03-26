@@ -1,10 +1,12 @@
-from lunch_buddies.clients.sqs import SqsClient
+from typing import cast, List, NamedTuple
+
+from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.constants.help import CLOSE_POLL
-from lunch_buddies.constants.queues import POLLS_TO_CLOSE, PollsToCloseMessage
+from lunch_buddies.constants.queues import PollsToCloseMessage
 from lunch_buddies.types import ClosePoll
 
 
-def queue_close_poll(request_form: ClosePoll, sqs_client: SqsClient) -> str:
+def queue_close_poll(request_form: ClosePoll, service_contect: ServiceContext) -> str:
     if _is_help(request_form):
         return CLOSE_POLL
 
@@ -14,9 +16,9 @@ def queue_close_poll(request_form: ClosePoll, sqs_client: SqsClient) -> str:
         user_id=request_form.user_id,
     )
 
-    sqs_client.send_message(
-        POLLS_TO_CLOSE.queue_name,
-        message._asdict(),
+    service_contect.clients.sqs_v2.send_messages(
+        'polls_to_close',
+        cast(List[NamedTuple], [message]),
     )
 
     return 'ok!'

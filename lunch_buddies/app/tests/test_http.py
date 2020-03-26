@@ -111,7 +111,7 @@ def test_create_poll_http(mocker, client):
 
     mocked_queue_create_poll.assert_called_with(
         CreatePoll(text='94070', team_id='T0001', channel_id='', user_id='U2147483697'),
-        service_context.clients.sqs,
+        service_context,
     )
 
 

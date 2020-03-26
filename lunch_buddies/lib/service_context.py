@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.clients.sqs import SqsClient
+from lunch_buddies.clients.sqs_v2 import SqsClient
 
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
@@ -21,7 +21,7 @@ class Daos(NamedTuple):
 
 class Clients(NamedTuple):
     slack: SlackClient
-    sqs: SqsClient
+    sqs_v2: SqsClient
     http: HttpClient
 
 
@@ -40,7 +40,7 @@ service_context = ServiceContext(
     ),
     clients=Clients(
         slack=SlackClient(),
-        sqs=SqsClient(),
+        sqs_v2=SqsClient(),
         http=HttpClient(),
     ),
 )

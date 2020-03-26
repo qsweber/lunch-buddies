@@ -54,8 +54,8 @@ def test_split_text(text, expected):
     assert actual == expected
 
 
-def test_bot_help(mocker):
-    created_at = datetime.now()
+@pytest.fixture
+def mocked_team(mocker):
     mocker.patch.object(
         service_context.daos.teams,
         '_read_internal',
@@ -65,16 +65,12 @@ def test_bot_help(mocker):
             'access_token': 'fake-token',
             'name': 'fake-team-name',
             'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
+            'created_at': 1585153363.983078,
         }]
     )
-    mocked_post_message = mocker.patch.object(
-        service_context.clients.slack,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
 
+
+def test_bot_help(mocker, mocked_slack, mocked_team):
     module.bot(
         BotMention(
             team_id='test_team_id',
@@ -86,13 +82,13 @@ def test_bot_help(mocker):
         service_context,
     )
 
-    mocked_post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(
         team=Team(
             team_id='123',
             access_token='fake-token',
             name='fake-team-name',
             bot_access_token='fake-bot-token',
-            created_at=created_at,
+            created_at=datetime.fromtimestamp(1585153363.983078),
         ),
         channel='foo',
         as_user=True,
@@ -100,29 +96,8 @@ def test_bot_help(mocker):
     )
 
 
-def test_bot_create(mocker):
-    created_at = datetime.now()
+def test_bot_create(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        service_context.daos.teams,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    mocked_post_message = mocker.patch.object(
-        service_context.clients.slack,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    mocked_queue_create_poll = mocker.patch.object(
         module,
         'queue_create_poll',
         return_value='mocked_return_value',
@@ -140,23 +115,23 @@ def test_bot_create(mocker):
         service_context,
     )
 
-    mocked_queue_create_poll.assert_called_with(
+    module.queue_create_poll.assert_called_with(
         CreatePoll(
             text='1130',
             team_id='test_team_id',
             channel_id='test_channel_id',
             user_id='test_user_id',
         ),
-        service_context.clients.sqs,
+        service_context,
     )
 
-    mocked_post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(
         team=Team(
             team_id='123',
             access_token='fake-token',
             name='fake-team-name',
             bot_access_token='fake-bot-token',
-            created_at=created_at,
+            created_at=datetime.fromtimestamp(1585153363.983078),
         ),
         channel='test_channel_id',
         as_user=True,
@@ -164,29 +139,8 @@ def test_bot_create(mocker):
     )
 
 
-def test_bot_close(mocker):
-    created_at = datetime.now()
+def test_bot_close(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        service_context.daos.teams,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    mocked_post_message = mocker.patch.object(
-        service_context.clients.slack,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    mocked = mocker.patch.object(
         module,
         'queue_close_poll',
         return_value='mocked_return_value',
@@ -204,23 +158,23 @@ def test_bot_close(mocker):
         service_context,
     )
 
-    mocked.assert_called_with(
+    module.queue_close_poll.assert_called_with(
         ClosePoll(
             text='',
             team_id='test_team_id',
             channel_id='test_channel_id',
             user_id='test_user_id',
         ),
-        service_context.clients.sqs,
+        service_context,
     )
 
-    mocked_post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(
         team=Team(
             team_id='123',
             access_token='fake-token',
             name='fake-team-name',
             bot_access_token='fake-bot-token',
-            created_at=created_at,
+            created_at=datetime.fromtimestamp(1585153363.983078),
         ),
         channel='test_channel_id',
         as_user=True,

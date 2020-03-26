@@ -39,6 +39,14 @@
                     "batch_size": 1,
                     "enabled": true
                }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.error_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:error",
+                    "batch_size": 1,
+                    "enabled": false
+               }
             }
         ]
     },
@@ -79,6 +87,14 @@
                 "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
                 "event_source": {
                     "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_groups_to_notify",
+                    "batch_size": 1,
+                    "enabled": true
+               }
+            },
+            {
+                "function": "lunch_buddies.app.handlers.error_queue",
+                "event_source": {
+                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_error",
                     "batch_size": 1,
                     "enabled": true
                }

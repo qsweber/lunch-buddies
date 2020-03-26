@@ -1,7 +1,7 @@
 import logging
 import json
 import os
-from typing import Tuple
+from typing import Tuple, cast, List, NamedTuple
 from uuid import UUID
 
 from flask import Flask, jsonify, request, redirect, Response
@@ -61,7 +61,7 @@ def create_poll_http() -> Response:
         channel_id='',  # This will be filled in later with the default
     )
 
-    outgoing_text = queue_create_poll(request_form, service_context.clients.sqs)
+    outgoing_text = queue_create_poll(request_form, service_context)
 
     response = jsonify({'text': outgoing_text})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -109,7 +109,7 @@ def close_poll_http() -> Response:
         text=request.form['text'],
     )
 
-    outgoing_message = queue_close_poll(request_form, service_context.clients.sqs)
+    outgoing_message = queue_close_poll(request_form, service_context)
 
     response = jsonify({'text': outgoing_message})
     response.headers.add('Access-Control-Allow-Origin', '*')
@@ -178,4 +178,5 @@ def error_http() -> str:
     '''
     Test error handler
     '''
+    service_context.clients.sqs_v2.send_messages('error', cast(List[NamedTuple], [Auth(code='1234')]))
     raise Exception('test error')

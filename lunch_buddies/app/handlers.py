@@ -29,7 +29,6 @@ def sqsHandler(func):
         for message in messages:
             try:
                 func(message)
-                sqs_client_v2.delete_message(message)
             except Exception:
                 sqs_client_v2.set_visibility_timeout_with_backoff(message)
                 sentry.captureException()
@@ -87,3 +86,8 @@ def notify_groups_from_queue(message: SqsMessage) -> None:
         service_context.daos.team_settings,
         service_context.daos.groups,
     )
+
+
+@sqsHandler
+def error_queue(message: SqsMessage) -> None:
+    raise Exception('Test of error handling')

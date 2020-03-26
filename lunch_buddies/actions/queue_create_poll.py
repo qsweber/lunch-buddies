@@ -1,11 +1,13 @@
+from typing import cast, List, NamedTuple
+
 from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOption, InvalidPollSize
-from lunch_buddies.clients.sqs import SqsClient
+from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.constants.help import CREATE_POLL
-from lunch_buddies.constants.queues import POLLS_TO_START, PollsToStartMessage
+from lunch_buddies.constants.queues import PollsToStartMessage
 from lunch_buddies.types import CreatePoll
 
 
-def queue_create_poll(request_form: CreatePoll, sqs_client: SqsClient) -> str:
+def queue_create_poll(request_form: CreatePoll, service_context: ServiceContext) -> str:
     if _is_help(request_form):
         return CREATE_POLL
 
@@ -21,9 +23,9 @@ def queue_create_poll(request_form: CreatePoll, sqs_client: SqsClient) -> str:
         text=request_form.text,
     )
 
-    sqs_client.send_message(
-        POLLS_TO_START.queue_name,
-        message._asdict(),
+    service_context.clients.sqs_v2.send_messages(
+        'polls_to_start',
+        cast(List[NamedTuple], [message]),
     )
 
     return 'ok!'
