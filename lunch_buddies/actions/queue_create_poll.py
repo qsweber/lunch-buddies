@@ -3,8 +3,7 @@ from typing import cast, List, NamedTuple
 from lunch_buddies.actions.create_poll import parse_message_text, InvalidPollOption, InvalidPollSize
 from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.constants.help import CREATE_POLL
-from lunch_buddies.constants.queues import PollsToStartMessage
-from lunch_buddies.types import CreatePoll
+from lunch_buddies.types import CreatePoll, PollsToStartMessage
 
 
 def queue_create_poll(request_form: CreatePoll, service_context: ServiceContext) -> str:

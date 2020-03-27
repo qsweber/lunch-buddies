@@ -1,7 +1,6 @@
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.constants.help import CREATE_POLL
-from lunch_buddies.constants.queues import PollsToStartMessage
-from lunch_buddies.types import CreatePoll
+from lunch_buddies.types import CreatePoll, PollsToStartMessage
 import lunch_buddies.actions.queue_create_poll as module
 
 

@@ -2,8 +2,7 @@ from typing import cast, List, NamedTuple
 
 from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.constants.help import CLOSE_POLL
-from lunch_buddies.constants.queues import PollsToCloseMessage
-from lunch_buddies.types import ClosePoll
+from lunch_buddies.types import ClosePoll, PollsToCloseMessage
 
 
 def queue_close_poll(request_form: ClosePoll, service_contect: ServiceContext) -> str:

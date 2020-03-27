@@ -1,7 +1,6 @@
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.constants.queues import PollsToCloseMessage
 from lunch_buddies.constants.help import CLOSE_POLL
-from lunch_buddies.types import ClosePoll
+from lunch_buddies.types import ClosePoll, PollsToCloseMessage
 import lunch_buddies.actions.queue_close_poll as module
 
 
