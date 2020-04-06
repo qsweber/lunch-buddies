@@ -68,10 +68,11 @@ class RoundTripDecoder(json.JSONDecoder):
 
 class SqsClient:
     def __init__(self) -> None:
-        if not os.environ.get('is_test'):
-            self.sqs = boto3.client('sqs')
-        else:
+        if os.environ.get('IS_TEST'):
             self.sqs = None
+            return
+
+        self.sqs = boto3.client('sqs')
 
     def _name_for_queue_stage(self, queue_name: str, stage: Stage) -> str:
         if stage == Stage.PROD:
