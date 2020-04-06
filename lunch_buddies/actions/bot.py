@@ -42,7 +42,7 @@ def bot(
                 channel_id=message.channel_id,
                 user_id=message.user_id,
             ),
-            service_context.clients.sqs,
+            service_context,
         )
     elif first_word == 'close':
         response_text = queue_close_poll(
@@ -52,7 +52,7 @@ def bot(
                 user_id=message.user_id,
                 text=rest_of_command,
             ),
-            service_context.clients.sqs,
+            service_context,
         )
     elif first_word == 'summary':
         response_text = get_summary(

@@ -23,30 +23,24 @@ OATH_RESPONSE = {
 }
 
 
-def test_auth(mocker):
-    mocked_teams_dao_create_internal = mocker.patch.object(
+def test_auth(mocker, mocked_slack):
+    mocker.patch.object(
         service_context.daos.teams,
         '_create_internal',
         auto_spec=True,
         return_value=True,
     )
-    mocked_team_settings_dao_create_internal = mocker.patch.object(
+    mocker.patch.object(
         service_context.daos.team_settings,
         '_create_internal',
         auto_spec=True,
         return_value=True,
     )
-    mocked_http_get = mocker.patch.object(
+    mocker.patch.object(
         service_context.clients.http,
         'get',
         auto_spec=True,
         return_value=mocker.Mock(text=json.dumps(OATH_RESPONSE)),
-    )
-    mocked_slack_client_post_message = mocker.patch.object(
-        service_context.clients.slack,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
     )
 
     created_at = datetime.now()
@@ -72,7 +66,7 @@ def test_auth(mocker):
         service_context,
     )
 
-    mocked_teams_dao_create_internal.assert_called_with(
+    service_context.daos.teams._create_internal.assert_called_with(
         {
             'team_id': 'fake_team_id',
             'access_token': 'xxxx-1234',
@@ -81,19 +75,19 @@ def test_auth(mocker):
             'created_at': Decimal(created_at.timestamp()),
         },
     )
-    mocked_team_settings_dao_create_internal.assert_called_with(
+    service_context.daos.team_settings._create_internal.assert_called_with(
         {
             'team_id': 'fake_team_id',
             'feature_notify_in_channel': 1,
         },
     )
-    mocked_slack_client_post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(
         team=expected_team,
         channel='fake_user_id',
         as_user=True,
         text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
     )
-    mocked_http_get.assert_called_with(
+    service_context.clients.http.get.assert_called_with(
         url='https://slack.com/api/oauth.access',
         params={'client_id': 'test_client_id', 'client_secret': 'test_client_secret', 'code': 'test_code'},
     )
