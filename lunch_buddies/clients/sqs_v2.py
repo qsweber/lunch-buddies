@@ -68,7 +68,7 @@ class RoundTripDecoder(json.JSONDecoder):
 
 class SqsClient:
     def __init__(self) -> None:
-        if os.environ.get('is_test'):
+        if not os.environ.get('is_test'):
             self.sqs = boto3.client('sqs')
         else:
             self.sqs = None
