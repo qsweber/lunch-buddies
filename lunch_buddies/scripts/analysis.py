@@ -37,14 +37,3 @@ def run():
         v['name']: v['error']
         for k, v in agg.items()
     }
-
-    # close all polls for a team
-
-    team = [val for key, val in agg.items() if val['name'] == 'foo'][0]['team']
-
-    polls = polls_by_team[team.team_id]
-
-    for poll in polls:
-        if (poll.state == 'CREATED'):
-            print('closing {}'.format(poll))
-            polls_dao.mark_poll_closed(poll)
