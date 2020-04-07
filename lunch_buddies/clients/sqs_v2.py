@@ -121,6 +121,9 @@ class SqsClient:
         ]
 
     def _send_message_internal(self, queue_name: str, message: NamedTuple) -> None:
+        if not self.sqs:
+            return
+
         self.sqs.send_message(
             QueueUrl=self._url_for_queue(queue_name),
             MessageBody=json.dumps(message._asdict(), cls=RoundTripEncoder),
@@ -131,7 +134,11 @@ class SqsClient:
             self._send_message_internal(queue_name, message)
 
     def set_visibility_timeout_with_backoff(self, sqs_message: SqsMessage) -> None:
+        if not self.sqs:
+            return None
+
         backoff = min(sqs_message.attributes.approximate_receive_count * 10, 600)
+
         return self.sqs.change_message_visibility(
             QueueUrl=sqs_message.event_source_url,
             ReceiptHandle=sqs_message.receipt_handle,
