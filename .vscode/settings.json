@@ -1,7 +1,7 @@
 {
   "editor.tabSize": 4,
-  "python.envFile": "${workspaceRoot}/.env",
-  "python.pythonPath": "${workspaceRoot}/.env/bin/python",
+  "python.envFile": "${workspaceRoot}/.tox/py36",
+  "python.pythonPath": "${workspaceRoot}/.tox/py36/bin/python",
   "python.linting.flake8Enabled": true,
   "python.linting.pylintEnabled": false,
   "python.linting.mypyEnabled": true,

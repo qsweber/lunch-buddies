@@ -2,10 +2,11 @@ from datetime import datetime
 import json
 import logging
 import os
-from typing import NamedTuple, List
+from typing import NamedTuple, List, Optional
 from uuid import UUID
 
 import boto3
+import mypy_boto3_sqs as SqsTypes
 
 from lunch_buddies.constants.stages import Stage
 
@@ -68,11 +69,7 @@ class RoundTripDecoder(json.JSONDecoder):
 
 class SqsClient:
     def __init__(self) -> None:
-        if os.environ.get('IS_TEST'):
-            self.sqs = None
-            return
-
-        self.sqs = boto3.client('sqs')
+        self.sqs: Optional[SqsTypes.Client] = None if os.environ.get('IS_TEST') else boto3.client('sqs')  # type: ignore
 
     def _name_for_queue_stage(self, queue_name: str, stage: Stage) -> str:
         if stage == Stage.PROD:
