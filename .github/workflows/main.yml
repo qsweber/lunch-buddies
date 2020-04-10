@@ -32,7 +32,11 @@ jobs:
         pip install -r requirements.txt
         pip install zappa
     - name: deploy dev
-      run: zappa update dev
+      run: |
+        source .tox/py36/bin/activate
+        zappa update dev
     - name: deploy production
       if: github.event_name == 'push'
-      run: zappa update production
+      run: |
+        source .tox/py36/bin/activate
+        zappa update production
