@@ -1,3 +1,0 @@
-# Lunch Buddies
-
-foo bar
