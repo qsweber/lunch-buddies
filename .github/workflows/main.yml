@@ -29,14 +29,16 @@ jobs:
       with:
         python-version: 3.6
     - run: |
+        python3.6 -m venv deploy-env
+        source deploy-env/bin/activate
         pip install -r requirements.txt
         pip install zappa
     - name: deploy dev
       run: |
-        source .tox/py36/bin/activate
+        source deploy-env/bin/activate
         zappa update dev
     - name: deploy production
       if: github.event_name == 'push'
       run: |
-        source .tox/py36/bin/activate
+        source deploy-env/bin/activate
         zappa update production
