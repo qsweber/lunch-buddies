@@ -1,4 +1,4 @@
-from typing import NamedTuple
+from typing import Any, Dict, List, NamedTuple
 
 from uuid import UUID
 
@@ -32,7 +32,7 @@ class CreatePoll(NamedTuple):
 
 
 class ListenToPoll(NamedTuple):
-    original_message: dict
+    original_message: Dict[str, Any]
     team_id: str
     user_id: str
     choice_key: str
@@ -66,4 +66,4 @@ class GroupsToNotifyMessage(NamedTuple):
     team_id: str
     callback_id: UUID
     response: str
-    user_ids: list
+    user_ids: List[str]

@@ -9,7 +9,7 @@ from boto3.dynamodb.conditions import Key
 
 
 class Dao(object):
-    def __init__(self, model_class):
+    def __init__(self, model_class) -> None:
         self.model_class = model_class
 
         self.to_dynamo = {
@@ -34,7 +34,7 @@ class Dao(object):
             bool: bool,
         }
 
-    def _get_dynamo_table_name(self):
+    def _get_dynamo_table_name(self) -> str:
         return 'lunch_buddies_{}'.format(self.model_class.__name__)
 
     def _get_dynamo_table(self):
