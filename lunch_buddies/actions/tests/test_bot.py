@@ -1,9 +1,7 @@
-from datetime import datetime
-
 import pytest
 
+from lunch_buddies.actions.tests.fixtures import team as test_team
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, CreatePoll, ClosePoll
 import lunch_buddies.actions.bot as module
 from lunch_buddies.lib.service_context import service_context
@@ -54,22 +52,6 @@ def test_split_text(text, expected):
     assert actual == expected
 
 
-@pytest.fixture
-def mocked_team(mocker):
-    mocker.patch.object(
-        service_context.daos.teams,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': 1585153363.983078,
-        }]
-    )
-
-
 def test_bot_help(mocker, mocked_slack, mocked_team):
     module.bot(
         BotMention(
@@ -83,13 +65,7 @@ def test_bot_help(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=datetime.fromtimestamp(1585153363.983078),
-        ),
+        team=test_team,
         channel='foo',
         as_user=True,
         text=APP_EXPLANATION,
@@ -126,13 +102,7 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=datetime.fromtimestamp(1585153363.983078),
-        ),
+        team=test_team,
         channel='test_channel_id',
         as_user=True,
         text='mocked_return_value',
@@ -169,13 +139,7 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=datetime.fromtimestamp(1585153363.983078),
-        ),
+        team=test_team,
         channel='test_channel_id',
         as_user=True,
         text='mocked_return_value',

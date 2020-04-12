@@ -5,30 +5,24 @@ from uuid import UUID
 import pytest
 
 from lunch_buddies.constants import polls as polls_constants
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.poll_responses import PollResponsesDao
-from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice, Poll
 from lunch_buddies.models.poll_responses import PollResponse
-from lunch_buddies.models.teams import Team
 import lunch_buddies.actions.close_poll as module
 from lunch_buddies.types import PollsToCloseMessage, GroupsToNotifyMessage
+from lunch_buddies.actions.tests.fixtures import team
 
 
-def test_close_poll(mocker):
-    created_at_one = datetime.now()
-    created_at_two = datetime.now()
-
-    polls_dao = PollsDao()
+@pytest.fixture
+def mocked_polls(mocker):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
             {
                 'team_id': '123',
-                'created_at': created_at_one.timestamp(),
+                'created_at': float(1586645982.850783),
                 'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
@@ -38,7 +32,7 @@ def test_close_poll(mocker):
             },
             {
                 'team_id': '123',
-                'created_at': created_at_two.timestamp(),
+                'created_at': float(1586645992.227006),
                 'channel_id': 'test_channel_id',
                 'created_by_user_id': 'foo',
                 'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
@@ -48,16 +42,18 @@ def test_close_poll(mocker):
             },
         ]
     )
-    mocked_polls_dao_mark_poll_closed = mocker.patch.object(
-        polls_dao,
+    mocker.patch.object(
+        service_context.daos.polls,
         'mark_poll_closed',
         auto_spec=True,
         return_value=True,
     )
 
-    poll_responses_dao = PollResponsesDao()
+
+@pytest.fixture
+def mocked_poll_responses(mocker):
     mocker.patch.object(
-        poll_responses_dao,
+        service_context.daos.poll_responses,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -76,21 +72,8 @@ def test_close_poll(mocker):
         ]
     )
 
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
 
+def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
     result = module.close_poll(
         PollsToCloseMessage(
             team_id='123',
@@ -98,15 +81,15 @@ def test_close_poll(mocker):
             user_id='abc',
         ),
         None,
-        polls_dao,
-        poll_responses_dao,
-        teams_dao,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
+        service_context.daos.teams,
     )
 
-    mocked_polls_dao_mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
         poll=Poll(
             team_id='123',
-            created_at=created_at_two,
+            created_at=datetime.fromtimestamp(1586645992.227006),
             channel_id='test_channel_id',
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
@@ -126,84 +109,9 @@ def test_close_poll(mocker):
     ]
 
 
-def test_close_poll_null_channel(mocker):
-    created_at_one = datetime.now()
-    created_at_two = datetime.now()
-
-    polls_dao = PollsDao()
+def test_close_poll_null_channel(mocker, mocked_team, mocked_polls, mocked_poll_responses):
     mocker.patch.object(
-        polls_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'team_id': '123',
-                'created_at': created_at_one.timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-            {
-                'team_id': '123',
-                'created_at': created_at_two.timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-        ]
-    )
-    mocked_polls_dao_mark_poll_closed = mocker.patch.object(
-        polls_dao,
-        'mark_poll_closed',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    poll_responses_dao = PollResponsesDao()
-    mocker.patch.object(
-        poll_responses_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'user_id': 'user_id_one',
-                'created_at': float('1516117983.234873'),
-                'response': 'yes_1200',
-            },
-            {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'user_id': 'user_id_two',
-                'created_at': float('1516117984.234873'),
-                'response': 'yes_1200',
-            }
-        ]
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    slack_client = SlackClient()
-    mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         '_channels_list_internal',
         auto_spec=True,
         return_value=[
@@ -218,16 +126,16 @@ def test_close_poll_null_channel(mocker):
             channel_id='',
             user_id='abc',
         ),
-        slack_client,
-        polls_dao,
-        poll_responses_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
+        service_context.daos.teams,
     )
 
-    mocked_polls_dao_mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
         poll=Poll(
             team_id='123',
-            created_at=created_at_two,
+            created_at=datetime.fromtimestamp(1586645992.227006),
             channel_id='test_channel_id',
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
@@ -247,84 +155,9 @@ def test_close_poll_null_channel(mocker):
     ]
 
 
-def test_close_poll_null_channel_no_default_channel(mocker):
-    created_at_one = datetime.now()
-    created_at_two = datetime.now()
-
-    polls_dao = PollsDao()
+def test_close_poll_null_channel_no_default_channel(mocker, mocked_team, mocked_polls, mocked_poll_responses):
     mocker.patch.object(
-        polls_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'team_id': '123',
-                'created_at': created_at_one.timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-            {
-                'team_id': '123',
-                'created_at': created_at_two.timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-        ]
-    )
-    mocked_polls_dao_mark_poll_closed = mocker.patch.object(
-        polls_dao,
-        'mark_poll_closed',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    poll_responses_dao = PollResponsesDao()
-    mocker.patch.object(
-        poll_responses_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'user_id': 'user_id_one',
-                'created_at': float('1516117983.234873'),
-                'response': 'yes_1200',
-            },
-            {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'user_id': 'user_id_two',
-                'created_at': float('1516117984.234873'),
-                'response': 'yes_1200',
-            }
-        ]
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    slack_client = SlackClient()
-    mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         '_channels_list_internal',
         auto_spec=True,
         return_value=[
@@ -339,16 +172,16 @@ def test_close_poll_null_channel_no_default_channel(mocker):
             channel_id='',
             user_id='abc',
         ),
-        slack_client,
-        polls_dao,
-        poll_responses_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
+        service_context.daos.teams,
     )
 
-    mocked_polls_dao_mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
         poll=Poll(
             team_id='123',
-            created_at=created_at_two,
+            created_at=datetime.fromtimestamp(1586645992.227006),
             channel_id='test_channel_id',
             created_by_user_id='foo',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
@@ -368,10 +201,9 @@ def test_close_poll_null_channel_no_default_channel(mocker):
     ]
 
 
-def test_close_poll_messages_creating_user_if_already_closed(mocker):
-    polls_dao = PollsDao()
+def test_close_poll_messages_creating_user_if_already_closed(mocker, mocked_team, mocked_slack):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -398,49 +230,20 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
         ]
     )
 
-    slack_client = SlackClient()
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
     result = module.close_poll(
         PollsToCloseMessage(
             team_id='123',
             channel_id='test_channel_id',
             user_id='closing_user_id',
         ),
-        slack_client,
-        polls_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
         None,
-        teams_dao,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         channel='closing_user_id',
         as_user=True,
         text='The poll you tried to close has already been closed',
@@ -449,79 +252,21 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker):
     assert result == []
 
 
-def test_close_poll_messages_creating_user_if_does_not_exist(mocker):
-    polls_dao = PollsDao()
-    mocker.patch.object(
-        polls_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'wrong_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'wrong_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': polls_constants.CLOSED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-        ]
-    )
-
-    slack_client = SlackClient()
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
+def test_close_poll_messages_creating_user_if_does_not_exist(mocker, mocked_team, mocked_polls, mocked_slack):
     result = module.close_poll(
         PollsToCloseMessage(
             team_id='123',
-            channel_id='test_channel_id',
+            channel_id='wrong_channel_id',
             user_id='closing_user_id',
         ),
-        slack_client,
-        polls_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
         None,
-        teams_dao,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         channel='closing_user_id',
         as_user=True,
         text='No poll found',

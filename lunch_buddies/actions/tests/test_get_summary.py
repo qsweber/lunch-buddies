@@ -4,15 +4,14 @@ import uuid
 import pytest
 
 from lunch_buddies.constants.polls import CHOICES, CLOSED
-from lunch_buddies.dao.groups import GroupsDao
+from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Poll
 import lunch_buddies.actions.get_summary as module
 
 
 def test_get_summary_for_poll(mocker):
-    groups_dao = GroupsDao()
     mocker.patch.object(
-        groups_dao,
+        service_context.daos.groups,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -35,7 +34,7 @@ def test_get_summary_for_poll(mocker):
             choices=CHOICES,
             group_size=5,
         ),
-        groups_dao,
+        service_context.daos.groups,
         'America/New_York',
     )
 

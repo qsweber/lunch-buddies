@@ -1,77 +1,25 @@
-from datetime import datetime
 from uuid import UUID
 
-from lunch_buddies.constants import polls as polls_constants
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.models.teams import Team
 import lunch_buddies.actions.poll_user as module
 from lunch_buddies.types import UsersToPollMessage
+from lunch_buddies.lib.service_context import service_context
+from lunch_buddies.actions.tests.fixtures import team
 
 
-def test_poll_user(mocker):
-    slack_client = SlackClient()
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    polls_dao = PollsDao()
-
-    mocker.patch.object(
-        polls_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'created_at': datetime.now().timestamp(),
-            'channel_id': 'test_channel_id',
-            'created_by_user_id': 'foo',
-            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-            'state': polls_constants.CREATED,
-            'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-            'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-        }]
-    )
-
+def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
     module.poll_user(
         UsersToPollMessage(
             team_id='123',
             user_id='test_user_id',
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         attachments=[{
             'fallback': 'Something has gone wrong.',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',

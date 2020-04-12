@@ -6,19 +6,40 @@ import pytest
 
 from lunch_buddies.actions import create_poll as create_poll_module
 from lunch_buddies.constants import polls as polls_constants
-from lunch_buddies.clients.slack import SlackClient
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.models.teams import Team
+from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
 import lunch_buddies.actions.create_poll as module
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
+from lunch_buddies.actions.tests.fixtures import team
 
 
-def test_create_poll(mocker):
-    polls_dao = PollsDao()
+EXPECTED_UUID = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
+
+
+@pytest.fixture
+def mocked_module(mocker):
     mocker.patch.object(
-        polls_dao,
+        create_poll_module,
+        '_get_uuid',
+        auto_spec=True,
+        return_value=EXPECTED_UUID,
+    )
+
+    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
+    timezone = pytz.timezone("America/Los_Angeles")
+    d_aware = timezone.localize(d_naive)
+
+    mocker.patch.object(
+        create_poll_module,
+        '_get_created_at',
+        auto_spec=True,
+        return_value=d_aware,
+    )
+
+
+def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
+    mocker.patch.object(
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -34,64 +55,6 @@ def test_create_poll(mocker):
             },
         ]
     )
-    mocked_polls_dao_create_internal = mocker.patch.object(
-        polls_dao,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    expected_uuid = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
-    mocker.patch.object(
-        create_poll_module,
-        '_get_uuid',
-        auto_spec=True,
-        return_value=expected_uuid,
-    )
-
-    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
-    timezone = pytz.timezone("America/Los_Angeles")
-    d_aware = timezone.localize(d_naive)
-
-    mocker.patch.object(
-        create_poll_module,
-        '_get_created_at',
-        auto_spec=True,
-        return_value=d_aware,
-    )
-
-    slack_client = SlackClient()
-
-    mocker.patch.object(
-        slack_client,
-        '_channels_list_internal',
-        auto_spec=True,
-        return_value=[
-            {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
-            {'name': 'foo', 'id': 'foo'},
-        ]
-    )
-
-    mocker.patch.object(
-        slack_client,
-        '_channel_members',
-        auto_spec=True,
-        return_value=['user_id_one', 'user_id_two']
-    )
-
-    teams_dao = TeamsDao()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': datetime.now().timestamp(),
-        }]
-    )
 
     result = module.create_poll(
         PollsToStartMessage(
@@ -100,12 +63,12 @@ def test_create_poll(mocker):
             user_id='abc',
             text='',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    expected_poll = {
+    service_context.daos.polls._create_internal.assert_called_with({
         'team_id': '123',
         'created_at': 1516117984.234873,
         'channel_id': 'test_channel_id',
@@ -114,91 +77,28 @@ def test_create_poll(mocker):
         'state': polls_constants.CREATED,
         'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
         'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    }
-
-    mocked_polls_dao_create_internal.assert_called_with(
-        expected_poll,
-    )
+    })
 
     assert result == [
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_one',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_two',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         )
     ]
 
 
-def test_create_poll_custom_times(mocker):
-    polls_dao = PollsDao()
+def test_create_poll_custom_times(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[]
-    )
-    mocked_polls_dao_create_internal = mocker.patch.object(
-        polls_dao,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    expected_uuid = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
-    mocker.patch.object(
-        create_poll_module,
-        '_get_uuid',
-        auto_spec=True,
-        return_value=expected_uuid,
-    )
-
-    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
-    timezone = pytz.timezone("America/Los_Angeles")
-    d_aware = timezone.localize(d_naive)
-
-    mocker.patch.object(
-        create_poll_module,
-        '_get_created_at',
-        auto_spec=True,
-        return_value=d_aware,
-    )
-
-    slack_client = SlackClient()
-
-    mocker.patch.object(
-        slack_client,
-        '_channels_list_internal',
-        auto_spec=True,
-        return_value=[
-            {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
-            {'name': 'foo', 'id': 'foo'},
-        ]
-    )
-
-    mocker.patch.object(
-        slack_client,
-        '_channel_members',
-        auto_spec=True,
-        return_value=['user_id_one', 'user_id_two']
-    )
-
-    teams_dao = TeamsDao()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': datetime.now().timestamp(),
-        }]
     )
 
     result = module.create_poll(
@@ -208,12 +108,12 @@ def test_create_poll_custom_times(mocker):
             user_id='abc',
             text='1213',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    expected_poll = {
+    service_context.daos.polls._create_internal.assert_called_with({
         'team_id': '123',
         'created_at': 1516117984.234873,
         'channel_id': 'test_channel_id',
@@ -222,30 +122,25 @@ def test_create_poll_custom_times(mocker):
         'state': polls_constants.CREATED,
         'choices': '[{"key": "yes_1213", "is_yes": true, "time": "12:13", "display_text": "Yes (12:13)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
         'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    }
-
-    mocked_polls_dao_create_internal.assert_called_with(
-        expected_poll,
-    )
+    })
 
     assert result == [
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_one',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_two',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         )
     ]
 
 
-def test_create_poll_messages_creating_user_if_already_created(mocker):
-    polls_dao = PollsDao()
+def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_team, mocked_slack, mocked_polls):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -262,29 +157,6 @@ def test_create_poll_messages_creating_user_if_already_created(mocker):
         ]
     )
 
-    slack_client = SlackClient()
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
     result = module.create_poll(
         PollsToStartMessage(
             team_id='123',
@@ -292,19 +164,13 @@ def test_create_poll_messages_creating_user_if_already_created(mocker):
             user_id='abc',
             text='',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         channel='abc',
         as_user=True,
         text='There is already an active poll',
@@ -313,10 +179,9 @@ def test_create_poll_messages_creating_user_if_already_created(mocker):
     assert result == []
 
 
-def test_create_poll_works_if_existing_is_old(mocker):
-    polls_dao = PollsDao()
+def test_create_poll_works_if_existing_is_old(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
@@ -332,64 +197,6 @@ def test_create_poll_works_if_existing_is_old(mocker):
             },
         ]
     )
-    mocked_polls_dao_create_internal = mocker.patch.object(
-        polls_dao,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-
-    expected_uuid = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
-    mocker.patch.object(
-        create_poll_module,
-        '_get_uuid',
-        auto_spec=True,
-        return_value=expected_uuid,
-    )
-
-    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
-    timezone = pytz.timezone("America/Los_Angeles")
-    d_aware = timezone.localize(d_naive)
-
-    mocker.patch.object(
-        create_poll_module,
-        '_get_created_at',
-        auto_spec=True,
-        return_value=d_aware,
-    )
-
-    slack_client = SlackClient()
-
-    mocker.patch.object(
-        slack_client,
-        '_channels_list_internal',
-        auto_spec=True,
-        return_value=[
-            {'name': 'lunch_buddies', 'id': 'slack_channel_id'},
-            {'name': 'foo', 'id': 'foo'},
-        ]
-    )
-
-    mocker.patch.object(
-        slack_client,
-        '_channel_members',
-        auto_spec=True,
-        return_value=['user_id_one', 'user_id_two']
-    )
-
-    teams_dao = TeamsDao()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': datetime.now().timestamp(),
-        }]
-    )
 
     result = module.create_poll(
         PollsToStartMessage(
@@ -398,12 +205,12 @@ def test_create_poll_works_if_existing_is_old(mocker):
             user_id='abc',
             text='',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    expected_poll = {
+    service_context.daos.polls._create_internal.assert_called_with({
         'team_id': '123',
         'created_at': 1516117984.234873,
         'channel_id': 'test_channel_id',
@@ -412,44 +219,32 @@ def test_create_poll_works_if_existing_is_old(mocker):
         'state': polls_constants.CREATED,
         'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
         'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    }
-
-    mocked_polls_dao_create_internal.assert_called_with(
-        expected_poll,
-    )
+    })
 
     assert result == [
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_one',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
             team_id='123',
             user_id='user_id_two',
-            callback_id=expected_uuid,
+            callback_id=EXPECTED_UUID,
         )
     ]
 
 
-def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker):
-    polls_dao = PollsDao()
+def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[]
     )
 
-    slack_client = SlackClient()
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
     mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         '_channels_list_internal',
         auto_spec=True,
         return_value=[
@@ -458,21 +253,6 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
         ]
     )
 
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
     result = module.create_poll(
         PollsToStartMessage(
             team_id='123',
@@ -480,19 +260,13 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
             user_id='abc',
             text='',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         channel='abc',
         as_user=True,
         text=module.DEFAULT_CHANNEL_NOT_FOUND,
@@ -501,24 +275,16 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker)
     assert result == []
 
 
-def test_create_poll_messages_creating_user_if_not_member_of_default_channel(mocker):
-    polls_dao = PollsDao()
+def test_create_poll_messages_creating_user_if_not_member_of_default_channel(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        polls_dao,
+        service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[]
     )
 
-    slack_client = SlackClient()
-    mocked_slack_post_message = mocker.patch.object(
-        slack_client,
-        'post_message',
-        auto_spec=True,
-        return_value=True,
-    )
     mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         '_channels_list_internal',
         auto_spec=True,
         return_value=[
@@ -527,25 +293,10 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
         ]
     )
     mocker.patch.object(
-        slack_client,
+        service_context.clients.slack,
         '_channel_members',
         auto_spec=True,
         return_value=['user_id_one', 'user_id_two']
-    )
-
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
     )
 
     result = module.create_poll(
@@ -555,19 +306,13 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
             user_id='abc',
             text='',
         ),
-        slack_client,
-        polls_dao,
-        teams_dao,
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.teams,
     )
 
-    mocked_slack_post_message.assert_called_with(
-        team=Team(
-            team_id='123',
-            access_token='fake-token',
-            name='fake-team-name',
-            bot_access_token='fake-bot-token',
-            created_at=created_at,
-        ),
+    service_context.clients.slack.post_message.assert_called_with(
+        team=team,
         channel='abc',
         as_user=True,
         text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#slack_channel_id|lunch_buddies>. You can join that channel and try again.',
