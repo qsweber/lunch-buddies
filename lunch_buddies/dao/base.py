@@ -1,7 +1,7 @@
 from datetime import datetime
 from decimal import Decimal
 import json
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 
 import boto3
@@ -21,6 +21,7 @@ class Dao(object):
             int: int,
             List[str]: json.dumps,
             bool: int,
+            Optional[str]: lambda v: '0' if not v else str(v)
         }
 
         self.from_dynamo = {
@@ -32,6 +33,7 @@ class Dao(object):
             int: int,
             List[str]: json.loads,
             bool: bool,
+            Optional[str]: lambda v: None if v == '0' else str(v)
         }
 
     def _get_dynamo_table_name(self) -> str:

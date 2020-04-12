@@ -25,11 +25,14 @@ def auth(
         }
     ).text)
 
+    stripe_customer = service_context.clients.stripe.create_customer()
+
     team = Team(
         team_id=response['team_id'],
         access_token=response['access_token'],
         bot_access_token=response['bot']['bot_access_token'],
         name=response['team_name'],
+        stripe_customer_id=stripe_customer.id,
         created_at=_get_created_at(),
     )
 

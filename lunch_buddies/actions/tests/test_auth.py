@@ -1,29 +1,13 @@
-from datetime import datetime
-from decimal import Decimal
 import json
 import os
 
 import lunch_buddies.actions.auth as module
-from lunch_buddies.models.teams import Team
 from lunch_buddies.types import Auth
 from lunch_buddies.lib.service_context import service_context
+from lunch_buddies.actions.tests.fixtures import oath_response, team, dynamo_team
 
 
-OATH_RESPONSE = {
-    'ok': True,
-    'access_token': 'xxxx-1234',
-    'scope': 'identify,bot,commands,channels:write,chat:write:bot',
-    'user_id': 'fake_user_id',
-    'team_name': 'Fake Team Name',
-    'team_id': 'fake_team_id',
-    'bot': {
-        'bot_user_id': 'U8PRM6XHN',
-        'bot_access_token': 'xxxx-5678'
-    }
-}
-
-
-def test_auth(mocker, mocked_slack):
+def test_auth(mocker, mocked_slack, mocked_stripe):
     mocker.patch.object(
         service_context.daos.teams,
         '_create_internal',
@@ -40,22 +24,14 @@ def test_auth(mocker, mocked_slack):
         service_context.clients.http,
         'get',
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(OATH_RESPONSE)),
+        return_value=mocker.Mock(text=json.dumps(oath_response)),
     )
 
-    created_at = datetime.now()
     mocker.patch.object(
         module,
         '_get_created_at',
         auto_spec=True,
-        return_value=created_at,
-    )
-    expected_team = Team(
-        team_id='fake_team_id',
-        access_token='xxxx-1234',
-        bot_access_token='xxxx-5678',
-        name='Fake Team Name',
-        created_at=created_at
+        return_value=team.created_at,
     )
 
     os.environ['CLIENT_ID'] = 'test_client_id'
@@ -66,24 +42,16 @@ def test_auth(mocker, mocked_slack):
         service_context,
     )
 
-    service_context.daos.teams._create_internal.assert_called_with(
-        {
-            'team_id': 'fake_team_id',
-            'access_token': 'xxxx-1234',
-            'name': 'Fake Team Name',
-            'bot_access_token': 'xxxx-5678',
-            'created_at': Decimal(created_at.timestamp()),
-        },
-    )
+    service_context.daos.teams._create_internal.assert_called_with(dynamo_team)
     service_context.daos.team_settings._create_internal.assert_called_with(
         {
-            'team_id': 'fake_team_id',
+            'team_id': team.team_id,
             'feature_notify_in_channel': 1,
         },
     )
     service_context.clients.slack.post_message.assert_called_with(
-        team=expected_team,
-        channel='fake_user_id',
+        team=team,
+        channel='fake-user-id',
         as_user=True,
         text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
     )

@@ -1,15 +1,11 @@
-import datetime
 from uuid import UUID
 
-from lunch_buddies.constants import polls as polls_constants
-from lunch_buddies.dao.polls import PollsDao
-from lunch_buddies.dao.poll_responses import PollResponsesDao
-from lunch_buddies.dao.teams import TeamsDao
+from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.types import ListenToPoll
 import lunch_buddies.actions.listen_to_poll as module
 
 
-def test_listen_to_poll(mocker):
+def test_listen_to_poll(mocker, mocked_polls):
     original_message = {
         'text': 'Are you able to participate in Lunch Buddies today?',
         'username': 'Lunch Buddies',
@@ -40,43 +36,11 @@ def test_listen_to_poll(mocker):
         'ts': '1516117976.000223',
     }
 
-    polls_dao = PollsDao()
     mocker.patch.object(
-        polls_dao,
-        '_read_internal',
-        autospec=True,
-        return_value=[{
-            'team_id': '123',
-            'created_at': datetime.datetime.now().timestamp(),
-            'channel_id': 'test_channel_id',
-            'created_by_user_id': 'foo',
-            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-            'state': polls_constants.CREATED,
-            'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-            'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-        }],
-    )
-
-    poll_responses_dao = PollResponsesDao()
-    mocked_poll_responses_dao_create = mocker.patch.object(
-        poll_responses_dao,
+        service_context.daos.poll_responses,
         '_create_internal',
         autospec=True,
         return_value=True,
-    )
-
-    teams_dao = TeamsDao()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': 'fake_team_id',
-            'access_token': 'fake-token',
-            'name': 'fake-team-name',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': datetime.datetime.now().timestamp(),
-        }]
     )
 
     outgoing_message = module.listen_to_poll(
@@ -88,8 +52,8 @@ def test_listen_to_poll(mocker):
             action_ts=float('1516117984.234873'),
             callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
         ),
-        polls_dao,
-        poll_responses_dao,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
     )
 
     expected_poll_response = {
@@ -99,7 +63,7 @@ def test_listen_to_poll(mocker):
         'response': 'yes_1200',
     }
 
-    mocked_poll_responses_dao_create.assert_called_with(expected_poll_response)
+    service_context.daos.poll_responses._create_internal.assert_called_with(expected_poll_response)
 
     expected_outgoing_message = {
         'text': 'Are you able to participate in Lunch Buddies today?',
