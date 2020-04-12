@@ -8,7 +8,6 @@ dynamo_team = {
     'team_id': '123',
     'access_token': 'fake-token',
     'name': 'fake-team-name',
-    'stripe_customer_id': 'fake-stripe-customer-id',
     'bot_access_token': 'fake-bot-token',
     'created_at': 1585153363.983078,
 }
@@ -17,7 +16,6 @@ team = Team(
     team_id='123',
     access_token='fake-token',
     name='fake-team-name',
-    stripe_customer_id='fake-stripe-customer-id',
     bot_access_token='fake-bot-token',
     created_at=datetime.fromtimestamp(1585153363.983078),
 )

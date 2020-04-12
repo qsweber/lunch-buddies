@@ -23,7 +23,7 @@ class StripeClient:
             return
 
         self.stripe = stripe
-        self.stripe.api_key = 'sk_test_Xuyzdpm0WayqYWBD7nzqRR5m00XETaGhaE'
+        self.stripe.api_key = 'TODO'  # get this from env
 
     def create_customer(self) -> Customer:
         response = self.stripe.Customer.create(

@@ -7,7 +7,7 @@ from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.actions.tests.fixtures import oath_response, team, dynamo_team
 
 
-def test_auth(mocker, mocked_slack, mocked_stripe):
+def test_auth(mocker, mocked_slack):
     mocker.patch.object(
         service_context.daos.teams,
         '_create_internal',
