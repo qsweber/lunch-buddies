@@ -14,7 +14,7 @@ def poll_user(
     teams_dao: TeamsDao,
 ) -> None:
     team_id = message.team_id
-    team = teams_dao.read('team_id', team_id)[0]
+    team = teams_dao.read_one_or_die('team_id', team_id)
 
     callback_id = message.callback_id
     user_id = message.user_id

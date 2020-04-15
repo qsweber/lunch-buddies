@@ -1,7 +1,6 @@
 from decimal import Decimal
 import json
 from uuid import UUID
-from datetime import datetime
 from typing import List, Optional
 
 from lunch_buddies.constants.polls import CLOSED
@@ -72,13 +71,13 @@ class PollsDao(Dao[Poll]):
     def convert_from_dynamo(self, q: DynamoObject) -> Poll:
         return Poll(
             team_id=str(q['team_id']),
-            created_at=datetime.fromtimestamp(float(q['created_at'])),
+            created_at=self._convert_datetime_from_dynamo(q['created_at']),
             channel_id=str(q['channel_id']) if 'channel_id' in q and q['channel_id'] is not None else None,
             created_by_user_id=str(q['created_by_user_id']),
             callback_id=UUID(str(q['callback_id'])),
             state=str(q['state']),
             choices=choices_from_dynamo(str(q['choices'])),
-            group_size=int(q['group_size']),
+            group_size=int(str(q['group_size'])),
         )
 
 

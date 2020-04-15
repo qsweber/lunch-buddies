@@ -17,7 +17,7 @@ def run():
         polls_by_team[poll.team_id].append(poll)
 
     def team_summary(team_id, polls):
-        team = teams_dao.read('team_id', team_id)[0]
+        team = teams_dao.read_one_or_die('team_id', team_id)
 
         return {
             'name': team.name,

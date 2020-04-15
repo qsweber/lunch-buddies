@@ -19,8 +19,10 @@ def notify_group(
     team_settings_dao: TeamSettingsDao,
     groups_dao: GroupsDao,
 ) -> None:
-    team = teams_dao.read('team_id', message.team_id)[0]
-    poll: Poll = polls_dao.find_by_callback_id(message.team_id, message.callback_id)
+    team = teams_dao.read_one_or_die('team_id', message.team_id)
+    poll = polls_dao.find_by_callback_id(message.team_id, message.callback_id)
+    if not poll:
+        raise Exception('no poll found')
     choice = [
         choice
         for choice in poll.choices

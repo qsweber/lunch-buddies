@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import List, Optional, TypeVar, Generic
 
 from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject, DynamoValue
@@ -36,6 +37,17 @@ class Dao(Generic[T]):
             self.convert_from_dynamo(r)
             for r in raw
         ]
+
+    def read_one_or_die(self, key: Optional[str], value: Optional[DynamoValue]) -> T:
+        result = self.read(key, value)
+
+        if not result or len(result) == 0:
+            raise Exception('not found')
+
+        return result[0]
+
+    def _convert_datetime_from_dynamo(self, input: DynamoValue) -> datetime:
+        return datetime.fromtimestamp(float(input))
 
     def convert_to_dynamo(self, input: T) -> DynamoObject:
         raise Exception('abstract')

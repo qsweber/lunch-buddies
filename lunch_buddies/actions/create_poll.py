@@ -34,12 +34,12 @@ def create_poll(
     teams_dao: TeamsDao,
 ) -> List[UsersToPollMessage]:
     logger.info('Create poll: {} {}'.format(message.team_id, message.channel_id))
-    team = teams_dao.read('team_id', message.team_id)[0]
+    team = teams_dao.read_one_or_die('team_id', message.team_id)
     channel_id = message.channel_id or _get_default_channel_id(message, slack_client, team)
     if not channel_id:
         return []
 
-    poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
+    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if poll and poll.state != polls.CLOSED and poll.created_at > (datetime.now() - timedelta(days=1)):
         logger.info('Found the following poll: {}'.format(json.dumps(poll._asdict(), default=str)))
