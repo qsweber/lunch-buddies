@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, NamedTuple
+from typing import Any, Dict, List, NamedTuple, Optional
 
 from uuid import UUID
 
@@ -27,7 +27,7 @@ class ClosePoll(NamedTuple):
 class CreatePoll(NamedTuple):
     text: str
     team_id: str
-    channel_id: str
+    channel_id: Optional[str]
     user_id: str
 
 
@@ -45,7 +45,7 @@ class ListenToPoll(NamedTuple):
 
 class PollsToStartMessage(NamedTuple):
     team_id: str
-    channel_id: str
+    channel_id: Optional[str]
     user_id: str
     text: str
 

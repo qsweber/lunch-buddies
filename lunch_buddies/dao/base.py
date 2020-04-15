@@ -1,84 +1,44 @@
-from datetime import datetime
-from decimal import Decimal
-import json
-from typing import List, Optional
-from uuid import UUID
+from typing import List, Optional, TypeVar, Generic
 
-import boto3
-from boto3.dynamodb.conditions import Key
+from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject, DynamoValue
 
 
-class Dao(object):
-    def __init__(self, model_class) -> None:
-        self.model_class = model_class
+T = TypeVar('T')
 
-        self.to_dynamo = {
-            dict: json.dumps,
-            list: json.dumps,
-            datetime: lambda v: Decimal(v.timestamp()),
-            UUID: str,
-            str: str,
-            int: int,
-            List[str]: json.dumps,
-            bool: int,
-            Optional[str]: lambda v: '0' if not v else str(v)
-        }
 
-        self.from_dynamo = {
-            dict: json.loads,
-            list: json.loads,
-            datetime: lambda v: datetime.fromtimestamp(float(v)),
-            UUID: UUID,
-            str: str,
-            int: int,
-            List[str]: json.loads,
-            bool: bool,
-            Optional[str]: lambda v: None if v == '0' else str(v)
-        }
+class Dao(Generic[T]):
+    def __init__(
+        self,
+        dynamo: DynamoClient,
+        table_name: str,
+    ) -> None:
+        self.dynamo = dynamo
+        self.table_name = table_name
 
-    def _get_dynamo_table_name(self) -> str:
-        return 'lunch_buddies_{}'.format(self.model_class.__name__)
+    def _create_internal(self, dynamo_object: DynamoObject) -> None:
+        return self.dynamo.create(self.table_name, dynamo_object)
 
-    def _get_dynamo_table(self):
-        dynamodb = boto3.resource('dynamodb')
-        return dynamodb.Table(self._get_dynamo_table_name())
+    def create(self, item: T) -> None:
+        ready = self.convert_to_dynamo(item)
 
-    def _create_internal(self, object_for_dynamo):
-        dynamo_table = self._get_dynamo_table()
-        return dynamo_table.put_item(Item=object_for_dynamo)
+        return self._create_internal(ready)
 
-    def _to_dynamo_object(self, model_instance):
-        return {
-            field: self.to_dynamo[field_type](getattr(model_instance, field))
-            for field, field_type in model_instance._field_types.items()
-        }
+    def _read_internal(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[List[DynamoObject]]:
+        return self.dynamo.read(self.table_name, key, value)
 
-    def _from_dynamo_object(self, dynamo_object):
-        return self.model_class(**{
-            field: self.from_dynamo[field_type](dynamo_object.get(field)) if dynamo_object.get(field) else None
-            for field, field_type in self.model_class._field_types.items()
-        })
+    def read(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[List[T]]:
+        raw = self._read_internal(key, value)
 
-    def create(self, model_instance):
-        object_for_dynamo = self._to_dynamo_object(model_instance)
-
-        self._create_internal(object_for_dynamo)
-
-        return True
-
-    def _read_internal(self, key, value):
-        dynamo_table = self._get_dynamo_table()
-        if not key:
-            return dynamo_table.scan().get('Items')
-        else:
-            field_type = self.model_class._field_types[key]
-            value_dynamo = self.to_dynamo[field_type](value)
-            return dynamo_table.query(KeyConditionExpression=Key(key).eq(value_dynamo)).get('Items')
-
-    def read(self, key=None, value=None):
-        result = self._read_internal(key, value)
+        if not raw:
+            return None
 
         return [
-            self._from_dynamo_object(item)
-            for item in result
+            self.convert_from_dynamo(r)
+            for r in raw
         ]
+
+    def convert_to_dynamo(self, input: T) -> DynamoObject:
+        raise Exception('abstract')
+
+    def convert_from_dynamo(self, input: DynamoObject) -> T:
+        raise Exception('abstract')
