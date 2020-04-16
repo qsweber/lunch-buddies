@@ -1,6 +1,6 @@
 # Lunch Buddies
 
-![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/qsweber/lunch-buddies/badge.svg?branch=master)](https://coveralls.io/github/qsweber/lunch-buddies?branch=master) [![Type Coverage](https://img.shields.io/badge/mypy-66-red)]
+![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) [![Coverage Status](https://coveralls.io/repos/github/qsweber/lunch-buddies/badge.svg?branch=master)](https://coveralls.io/github/qsweber/lunch-buddies?branch=master) ![Type Coverage](https://img.shields.io/badge/mypy-66-red)
 
 Slack APP for creating lunch buddy groups.
 
