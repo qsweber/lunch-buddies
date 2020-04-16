@@ -1,5 +1,4 @@
 from decimal import Decimal
-from datetime import datetime
 
 from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.teams import Team
@@ -25,5 +24,5 @@ class TeamsDao(Dao[Team]):
             access_token=str(input['access_token']),
             bot_access_token=str(input['bot_access_token']),
             name=str(input['name']),
-            created_at=datetime.fromtimestamp(float(input['created_at'])),
+            created_at=self._convert_datetime_from_dynamo(input['created_at']),
         )

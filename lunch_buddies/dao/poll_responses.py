@@ -1,6 +1,5 @@
 from decimal import Decimal
 from uuid import UUID
-from datetime import datetime
 
 from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.poll_responses import PollResponse
@@ -23,6 +22,6 @@ class PollResponsesDao(Dao[PollResponse]):
         return PollResponse(
             callback_id=UUID(str(q['callback_id'])),
             user_id=str(q['user_id']),
-            created_at=datetime.fromtimestamp(float(q['created_at'])),
+            created_at=self._convert_datetime_from_dynamo(q['created_at']),
             response=str(q['response']),
         )

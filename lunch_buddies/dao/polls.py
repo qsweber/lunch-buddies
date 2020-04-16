@@ -13,11 +13,11 @@ class PollsDao(Dao[Poll]):
     def __init__(self, dynamo: DynamoClient):
         super(PollsDao, self).__init__(dynamo, 'lunch_buddies_Poll')
 
-    def find_by_callback_id(self, team_id: str, callback_id: UUID) -> Optional[Poll]:
+    def find_by_callback_id_or_die(self, team_id: str, callback_id: UUID) -> Poll:
         polls_for_team = self.read('team_id', team_id)
 
         if not polls_for_team:
-            return None
+            raise Exception('poll not found')
 
         polls = [
             poll
@@ -26,13 +26,13 @@ class PollsDao(Dao[Poll]):
         ]
 
         if len(polls) == 0:
-            return None
+            raise Exception('poll not found')
         elif len(polls) > 1:
             raise Exception('more than one poll found')
 
         return polls[0]
 
-    def find_latest_by_team_channel(self, team_id: str, channel_id: str) -> Optional[Poll]:
+    def find_latest_by_team_channel(self, team_id: str, channel_id: Optional[str]) -> Optional[Poll]:
         polls = self.read('team_id', team_id)
 
         if not polls:

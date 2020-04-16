@@ -47,6 +47,9 @@ class Dao(Generic[T]):
         return result[0]
 
     def _convert_datetime_from_dynamo(self, input: DynamoValue) -> datetime:
+        if not input:
+            raise Exception('not found')
+
         return datetime.fromtimestamp(float(input))
 
     def convert_to_dynamo(self, input: T) -> DynamoObject:

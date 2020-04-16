@@ -11,12 +11,10 @@ from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
 from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
-from lunch_buddies.dao.base import Dao
-from lunch_buddies.models.groups import Group
 
 
 class Daos(NamedTuple):
-    groups: Dao[Group]
+    groups: GroupsDao
     polls: PollsDao
     poll_responses: PollResponsesDao
     teams: TeamsDao

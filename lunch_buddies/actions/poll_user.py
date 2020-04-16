@@ -19,10 +19,7 @@ def poll_user(
     callback_id = message.callback_id
     user_id = message.user_id
 
-    poll = polls_dao.find_by_callback_id(team_id, callback_id)
-
-    if not poll:
-        raise Exception('poll not found')
+    poll = polls_dao.find_by_callback_id_or_die(team_id, callback_id)
 
     if poll.state != CREATED:
         return

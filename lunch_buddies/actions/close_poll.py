@@ -45,7 +45,10 @@ def close_poll(
         )
         return []
 
-    poll_responses: List[PollResponse] = poll_responses_dao.read('callback_id', str(poll.callback_id))
+    poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
+
+    if not poll_responses:
+        raise Exception('no responses found for poll')
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
