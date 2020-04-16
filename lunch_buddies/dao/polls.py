@@ -90,7 +90,7 @@ def choices_from_dynamo(value: str) -> List[Choice]:
             Choice(
                 key=key,
                 is_yes=('yes' in key),
-                time='{}:{}'.format(key[-4:-2], key[-2:]),
+                time='{}:{}'.format(key[-4:-2], key[-2:]) if 'yes' in key else '',
                 display_text=display_text,
             )
             for key, display_text in choices.items()

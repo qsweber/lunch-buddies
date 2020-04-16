@@ -162,6 +162,46 @@ def test_roundtrip(model, dynamo):
                 ],
                 group_size=6,
             ),
+        ),
+        (
+            {
+                'team_id': '123',
+                'created_at': 1522117983.551714,
+                'created_by_user_id': '456',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': 'CREATED',
+                'choices': '{"yes_1145": "Yes (11:45)", "yes_1230": "Yes (12:30)", "no": "No"}',
+                'group_size': 6,
+            },
+            Poll(
+                team_id='123',
+                created_at=datetime.fromtimestamp(1522117983.551714),
+                channel_id=None,
+                created_by_user_id='456',
+                callback_id=uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
+                state='CREATED',
+                choices=[
+                    Choice(
+                        key='yes_1145',
+                        is_yes=True,
+                        time='11:45',
+                        display_text='Yes (11:45)',
+                    ),
+                    Choice(
+                        key='yes_1230',
+                        is_yes=True,
+                        time='12:30',
+                        display_text='Yes (12:30)',
+                    ),
+                    Choice(
+                        key='no',
+                        is_yes=False,
+                        time='',
+                        display_text='No',
+                    ),
+                ],
+                group_size=6,
+            ),
         )
     ]
 )
