@@ -1,14 +1,17 @@
 from datetime import datetime
+from decimal import Decimal
 import uuid
 import pytest
 
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Poll, Choice
+from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
 
 
 @pytest.mark.parametrize(
     'model, dynamo',
     [
+        (poll, dynamo_poll),
         (
             Poll(
                 team_id='123',
@@ -81,7 +84,7 @@ from lunch_buddies.models.polls import Poll, Choice
         )
     ]
 )
-def test_roundtrip(model, dynamo):
+def test_roundtrip_convert(model, dynamo):
     to_dynamo = service_context.daos.polls.convert_to_dynamo(model)
 
     assert to_dynamo == dynamo
@@ -202,13 +205,53 @@ def test_roundtrip(model, dynamo):
                 ],
                 group_size=6,
             ),
-        )
-    ]
+        ),
+        (
+            {
+                'team_id': '123',
+                'created_at': 1522117983.551714,
+                'created_by_user_id': '456',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': 'CREATED',
+                'choices': '[["yes_1130", "Yes (11:30)"], ["yes_1230", "Yes (12:30)"], ["no", "No"]]',
+                'group_size': 6,
+            },
+            Poll(
+                team_id='123',
+                created_at=datetime.fromtimestamp(1522117983.551714),
+                channel_id=None,
+                created_by_user_id='456',
+                callback_id=uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
+                state='CREATED',
+                choices=[
+                    Choice(
+                        key='yes_1130',
+                        is_yes=True,
+                        time='11:30',
+                        display_text='Yes (11:30)',
+                    ),
+                    Choice(
+                        key='yes_1230',
+                        is_yes=True,
+                        time='12:30',
+                        display_text='Yes (12:30)',
+                    ),
+                    Choice(
+                        key='no',
+                        is_yes=False,
+                        time='',
+                        display_text='No',
+                    ),
+                ],
+                group_size=6,
+            ),
+        ),
+    ],
 )
 def test_find_by_callback_id_or_die(mocker, dynamo, expected):
     mocker.patch.object(
-        service_context.daos.polls,
-        '_read_internal',
+        service_context.daos.polls.dynamo,
+        'read',
         auto_spec=True,
         return_value=[
             dynamo,
@@ -232,8 +275,8 @@ def test_find_by_callback_id_or_die(mocker, dynamo, expected):
 
 def test_find_by_callback_id_or_die_no_polls(mocker):
     mocker.patch.object(
-        service_context.daos.polls,
-        '_read_internal',
+        service_context.daos.polls.dynamo,
+        'read',
         auto_spec=True,
         return_value=[]
     )
@@ -246,8 +289,8 @@ def test_find_by_callback_id_or_die_no_polls(mocker):
 
 def test_find_by_callback_id_or_die_no_matching_poll(mocker):
     mocker.patch.object(
-        service_context.daos.polls,
-        '_read_internal',
+        service_context.daos.polls.dynamo,
+        'read',
         auto_spec=True,
         return_value=[{
             'team_id': '123',
@@ -269,8 +312,8 @@ def test_find_by_callback_id_or_die_no_matching_poll(mocker):
 
 def test_find_by_callback_id_or_die_multiple_matching(mocker):
     mocker.patch.object(
-        service_context.daos.polls,
-        '_read_internal',
+        service_context.daos.polls.dynamo,
+        'read',
         auto_spec=True,
         return_value=[
             {
@@ -299,4 +342,38 @@ def test_find_by_callback_id_or_die_multiple_matching(mocker):
     with pytest.raises(Exception) as excinfo:
         service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
 
-    assert 'more than one poll found with callback_id aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)
+    assert 'more than one poll found with callback_id f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)
+
+
+def test_mark_poll_closed(mocker):
+    mocker.patch.object(
+        service_context.daos.polls.dynamo,
+        'update',
+        auto_spec=True,
+        return_value=None,
+    )
+
+    service_context.daos.polls.mark_poll_closed(poll)
+
+    service_context.daos.polls.dynamo.update.assert_called_with(
+        'lunch_buddies_Poll',
+        {'team_id': '123', 'created_at': Decimal(float('1522117983.551714'))},
+        'state',
+        'CLOSED',
+    )
+
+
+def test_create(mocker):
+    mocker.patch.object(
+        service_context.daos.polls.dynamo,
+        'create',
+        auto_spec=True,
+        return_value=None,
+    )
+
+    service_context.daos.polls.create(poll)
+
+    service_context.daos.polls.dynamo.create.assert_called_with(
+        'lunch_buddies_Poll',
+        dynamo_poll,
+    )
