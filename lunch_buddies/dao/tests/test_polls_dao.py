@@ -297,6 +297,6 @@ def test_find_by_callback_id_or_die_multiple_matching(mocker):
     )
 
     with pytest.raises(Exception) as excinfo:
-        service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
+        service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
 
-    assert 'poll not found with callback_id aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)
+    assert 'more than one poll found with callback_id aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)
