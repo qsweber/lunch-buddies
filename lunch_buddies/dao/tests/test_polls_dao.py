@@ -205,14 +205,98 @@ def test_roundtrip(model, dynamo):
         )
     ]
 )
-def test_from_dynamo(mocker, dynamo, expected):
+def test_find_by_callback_id_or_die(mocker, dynamo, expected):
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
-        return_value=[dynamo]
+        return_value=[
+            dynamo,
+            # throw in a random one for this team
+            {
+                'team_id': '123',
+                'created_at': 1522117983.551714,
+                'channel_id': 'test_channel_id',
+                'created_by_user_id': '456',
+                'callback_id': 'aaaaaaaa-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': 'CREATED',
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': 6,
+            }]
     )
 
     poll = service_context.daos.polls.find_by_callback_id_or_die('123', expected.callback_id)
 
     assert poll == expected
+
+
+def test_find_by_callback_id_or_die_no_polls(mocker):
+    mocker.patch.object(
+        service_context.daos.polls,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[]
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
+
+    assert 'no polls found for team 123' == str(excinfo.value)
+
+
+def test_find_by_callback_id_or_die_no_matching_poll(mocker):
+    mocker.patch.object(
+        service_context.daos.polls,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[{
+            'team_id': '123',
+            'created_at': 1522117983.551714,
+            'channel_id': 'test_channel_id',
+            'created_by_user_id': '456',
+            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+            'state': 'CREATED',
+            'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+            'group_size': 6,
+        }]
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
+
+    assert 'poll not found with callback_id aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)
+
+
+def test_find_by_callback_id_or_die_multiple_matching(mocker):
+    mocker.patch.object(
+        service_context.daos.polls,
+        '_read_internal',
+        auto_spec=True,
+        return_value=[
+            {
+                'team_id': '123',
+                'created_at': 1522117983.551714,
+                'channel_id': 'test_channel_id',
+                'created_by_user_id': '456',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': 'CREATED',
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': 6,
+            },
+            {
+                'team_id': '123',
+                'created_at': 1622117983.551714,
+                'channel_id': 'test_channel_id',
+                'created_by_user_id': '456',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
+                'state': 'CREATED',
+                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                'group_size': 6,
+            },
+        ]
+    )
+
+    with pytest.raises(Exception) as excinfo:
+        service_context.daos.polls.find_by_callback_id_or_die('123', uuid.UUID('aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa'))
+
+    assert 'poll not found with callback_id aaa101f9-9aaa-4899-85c8-aa0a2dbb0aaa' == str(excinfo.value)

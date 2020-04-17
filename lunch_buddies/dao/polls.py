@@ -17,7 +17,7 @@ class PollsDao(Dao[Poll]):
         polls_for_team = self.read('team_id', team_id)
 
         if not polls_for_team:
-            raise Exception('poll not found')
+            raise Exception('no polls found for team {}'.format(team_id))
 
         polls = [
             poll
@@ -26,9 +26,9 @@ class PollsDao(Dao[Poll]):
         ]
 
         if len(polls) == 0:
-            raise Exception('poll not found')
+            raise Exception('poll not found with callback_id {}'.format(str(callback_id)))
         elif len(polls) > 1:
-            raise Exception('more than one poll found')
+            raise Exception('more than one poll found with callback_id {}'.format(str(callback_id)))
 
         return polls[0]
 
