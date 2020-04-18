@@ -91,7 +91,7 @@ def test_roundtrip_convert(model, dynamo):
 
     from_dynamo = service_context.daos.polls.convert_from_dynamo(to_dynamo)
 
-    assert from_dynamo.channel_id == model.channel_id
+    assert from_dynamo == model
 
 
 @pytest.mark.parametrize(
