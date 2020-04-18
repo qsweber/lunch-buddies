@@ -1,5 +1,6 @@
 from typing import NamedTuple
 
+from lunch_buddies.clients.dynamo import DynamoClient
 from lunch_buddies.clients.http import HttpClient
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.clients.stripe import StripeClient
@@ -32,13 +33,16 @@ class ServiceContext(NamedTuple):
     clients: Clients
 
 
+dynamo = DynamoClient()
+
+
 service_context = ServiceContext(
     daos=Daos(
-        groups=GroupsDao(),
-        polls=PollsDao(),
-        poll_responses=PollResponsesDao(),
-        teams=TeamsDao(),
-        team_settings=TeamSettingsDao(),
+        groups=GroupsDao(dynamo),
+        polls=PollsDao(dynamo),
+        poll_responses=PollResponsesDao(dynamo),
+        teams=TeamsDao(dynamo),
+        team_settings=TeamSettingsDao(dynamo),
     ),
     clients=Clients(
         slack=SlackClient(),

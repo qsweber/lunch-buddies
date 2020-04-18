@@ -14,15 +14,12 @@ def poll_user(
     teams_dao: TeamsDao,
 ) -> None:
     team_id = message.team_id
-    team = teams_dao.read('team_id', team_id)[0]
+    team = teams_dao.read_one_or_die('team_id', team_id)
 
     callback_id = message.callback_id
     user_id = message.user_id
 
-    poll = polls_dao.find_by_callback_id(team_id, callback_id)
-
-    if not poll:
-        raise Exception('poll not found')
+    poll = polls_dao.find_by_callback_id_or_die(team_id, callback_id)
 
     if poll.state != CREATED:
         return

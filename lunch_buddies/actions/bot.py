@@ -7,7 +7,6 @@ from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
 from lunch_buddies.actions.get_summary import get_summary
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention, ClosePoll, CreatePoll
 from lunch_buddies.lib.service_context import ServiceContext
 
@@ -26,7 +25,7 @@ def bot(
     if not parsed_text:
         return
 
-    team: Team = service_context.daos.teams.read('team_id', message.team_id)[0]
+    team = service_context.daos.teams.read_one_or_die('team_id', message.team_id)
 
     first_word, rest_of_command = parsed_text
     logger.info('First word: {}, Rest of command: {}'.format(

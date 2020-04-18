@@ -58,7 +58,7 @@ def create_poll_http() -> Response:
         text=request.form['text'],
         team_id=request.form['team_id'],
         user_id=request.form['user_id'],
-        channel_id='',  # This will be filled in later with the default
+        channel_id=None,  # This will be filled in later with the default
     )
 
     outgoing_text = queue_create_poll(request_form, service_context)

@@ -1,4 +1,5 @@
 flake8
+lxml
 mypy
 pytest
 pytest-mock

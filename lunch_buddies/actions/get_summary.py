@@ -5,7 +5,6 @@ from typing import List
 import pytz
 
 from lunch_buddies.dao.groups import GroupsDao
-from lunch_buddies.models.groups import Group
 from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.models.teams import Team
 from lunch_buddies.types import BotMention
@@ -21,7 +20,10 @@ def get_summary(
     team: Team,
     service_context: ServiceContext,
 ) -> str:
-    polls: List[Poll] = service_context.daos.polls.read('team_id', team.team_id)
+    polls = service_context.daos.polls.read('team_id', team.team_id)
+
+    if not polls:
+        return ''
 
     lookback_days = _get_lookback_days(rest_of_command)
 
@@ -59,7 +61,10 @@ def _get_summary_for_poll(poll: Poll, groups_dao: GroupsDao, user_tz: str) -> st
         poll.created_by_user_id,
     )
 
-    groups: List[Group] = groups_dao.read('callback_id', poll.callback_id)
+    groups = groups_dao.read('callback_id', str(poll.callback_id))
+
+    if not groups:
+        raise Exception('groups not found')
 
     # TODO: order the groups
 

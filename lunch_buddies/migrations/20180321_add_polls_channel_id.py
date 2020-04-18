@@ -20,7 +20,7 @@ def migrate():
             continue
 
         team_id = raw_poll['team_id']
-        team = teams_dao.read('team_id', team_id)[0]
+        team = teams_dao.read_one_or_die('team_id', team_id)
 
         test = slack_client._channels_list_internal(team)
         if isinstance(test, dict) and 'error' in test:

@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 
 def listen_to_poll(request_form: ListenToPoll, polls_dao: PollsDao, poll_responses_dao: PollResponsesDao) -> dict:
-    poll = polls_dao.find_by_callback_id(request_form.team_id, request_form.callback_id)
+    poll = polls_dao.find_by_callback_id_or_die(request_form.team_id, request_form.callback_id)
 
     choice = [choice for choice in poll.choices if choice.key == request_form.choice_key][0]
 

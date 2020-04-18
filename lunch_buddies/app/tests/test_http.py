@@ -1,9 +1,7 @@
-from datetime import datetime
 import os
 
 import pytest
 
-from lunch_buddies.dao.teams import TeamsDao
 import lunch_buddies.app.http as module
 from lunch_buddies.types import CreatePoll
 from lunch_buddies.lib.service_context import service_context
@@ -36,37 +34,22 @@ def test_validate_request_token_errors_if_does_not_match_either():
     assert 'you are not authorized to call this URL' == str(excinfo.value)
 
 
-def test_validate_team(mocker):
-    teams_dao = TeamsDao()
-    created_at = datetime.now()
-    mocker.patch.object(
-        teams_dao,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'access_token': 'fake-token',
-            'bot_access_token': 'fake-bot-token',
-            'created_at': created_at.timestamp(),
-        }]
-    )
-
-    result = module._validate_team('123', teams_dao)
+def test_validate_team(mocker, mocked_team):
+    result = module._validate_team('123', service_context.daos.teams)
 
     assert result is True
 
 
 def test_validate_team_fails_if_invalid_team(mocker):
-    teams_dao = TeamsDao()
     mocker.patch.object(
-        teams_dao,
+        service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
         return_value=[]
     )
 
     with pytest.raises(Exception) as excinfo:
-        module._validate_team('foo', teams_dao)
+        module._validate_team('foo', service_context.daos.teams)
 
     assert 'your team is not authorized for this app' == str(excinfo.value)
 
@@ -110,7 +93,7 @@ def test_create_poll_http(mocker, client):
     })
 
     mocked_queue_create_poll.assert_called_with(
-        CreatePoll(text='94070', team_id='T0001', channel_id='', user_id='U2147483697'),
+        CreatePoll(text='94070', team_id='T0001', channel_id=None, user_id='U2147483697'),
         service_context,
     )
 

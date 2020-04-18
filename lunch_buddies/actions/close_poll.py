@@ -21,10 +21,10 @@ def close_poll(
     poll_responses_dao: PollResponsesDao,
     teams_dao: TeamsDao,
 ) -> List[GroupsToNotifyMessage]:
-    team: Team = teams_dao.read('team_id', message.team_id)[0]
+    team = teams_dao.read_one_or_die('team_id', message.team_id)
     channel_id = message.channel_id or _guess_channel_id(slack_client, team)
 
-    poll: Poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
+    poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if not poll:
         # TODO: give the use some more information since they probably just need to find the right poll to close
@@ -45,7 +45,10 @@ def close_poll(
         )
         return []
 
-    poll_responses: List[PollResponse] = poll_responses_dao.read('callback_id', str(poll.callback_id))
+    poll_responses = poll_responses_dao.read('callback_id', str(poll.callback_id))
+
+    if not poll_responses:
+        raise Exception('no responses found for poll')
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 
