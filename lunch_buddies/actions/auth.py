@@ -25,6 +25,8 @@ def auth(
         }
     ).text)
 
+    logger.info('Auth response: {}'.format(json.dumps(response)))
+
     team = Team(
         team_id=response['team_id'],
         access_token=response['access_token'],
