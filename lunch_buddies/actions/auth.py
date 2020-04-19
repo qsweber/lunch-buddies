@@ -42,6 +42,10 @@ def auth(
         feature_notify_in_channel=True,
     ))
 
+    name, email = service_context.clients.slack.get_user_name_email(team=team, user_id=response['user_id'])
+
+    logger.info('Installed by {} {}'.format(name, email))
+
     service_context.clients.slack.post_message(
         team=team,
         channel=response['user_id'],
