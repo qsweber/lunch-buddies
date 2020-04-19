@@ -25,14 +25,17 @@ class StripeClient:
         self.stripe = stripe
         self.stripe.api_key = 'TODO'  # get this from env
 
-    def create_customer(self) -> Customer:
+    def create_customer(self, name: str, email: str, team_name: str) -> Customer:
         response = self.stripe.Customer.create(
-            name='quinn',
-            email='test@quinnweber.com',
-            description='slack org name',
+            name=name,
+            email=email,
+            description=team_name,
         )
 
         return Customer(id=response['id'])
+
+    def update_customer(self, customer_id: str, name: str, email: str, team_name: str) -> None:
+        self.stripe.Customer.modify(customer_id, name=name, email=email, description=team_name)
 
     def create_invoice(self, line_items: List[LineItem]) -> None:
         for line_item in line_items:

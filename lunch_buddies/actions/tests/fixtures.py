@@ -15,6 +15,8 @@ dynamo_team = {
     'name': 'fake-team-name',
     'bot_access_token': 'fake-bot-token',
     'created_at': 1585153363.983078,
+    'feature_notify_in_channel': 1,
+    'stripe_customer_id': 'fake-stripe-customer-id',
 }
 
 team = Team(
@@ -23,6 +25,8 @@ team = Team(
     name='fake-team-name',
     bot_access_token='fake-bot-token',
     created_at=datetime.fromtimestamp(1585153363.983078),
+    feature_notify_in_channel=True,
+    stripe_customer_id='fake-stripe-customer-id',
 )
 
 oath_response = {

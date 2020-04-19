@@ -5,7 +5,7 @@ from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 class TeamSettingsDao(Dao[TeamSettings]):
     def __init__(self, dynamo: DynamoClient):
-        super(TeamSettingsDao, self).__init__(dynamo, 'lunch_buddies_TeamSettings')
+        super(TeamSettingsDao, self).__init__(dynamo, 'lunch_buddies_TeamSettings', ['team_id'])
 
     def convert_to_dynamo(self, input: TeamSettings) -> DynamoObject:
         return {

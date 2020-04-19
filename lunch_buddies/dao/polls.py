@@ -11,7 +11,7 @@ from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 class PollsDao(Dao[Poll]):
     def __init__(self, dynamo: DynamoClient):
-        super(PollsDao, self).__init__(dynamo, 'lunch_buddies_Poll')
+        super(PollsDao, self).__init__(dynamo, 'lunch_buddies_Poll', ['team_id', 'created_at'])
 
     def find_by_callback_id_or_die(self, team_id: str, callback_id: UUID) -> Poll:
         polls_for_team = self.read('team_id', team_id)

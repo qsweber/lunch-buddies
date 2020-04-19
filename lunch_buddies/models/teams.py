@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import NamedTuple
+from typing import NamedTuple, Optional
 
 
 class Team(NamedTuple):
@@ -8,3 +8,5 @@ class Team(NamedTuple):
     bot_access_token: str
     name: str
     created_at: datetime
+    feature_notify_in_channel: bool
+    stripe_customer_id: Optional[str]

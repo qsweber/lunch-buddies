@@ -8,7 +8,7 @@ from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 class PollResponsesDao(Dao[PollResponse]):
     def __init__(self, dynamo: DynamoClient):
-        super(PollResponsesDao, self).__init__(dynamo, 'lunch_buddies_PollResponse')
+        super(PollResponsesDao, self).__init__(dynamo, 'lunch_buddies_PollResponse', ['callback_id', 'user_id'])
 
     def convert_to_dynamo(self, q: PollResponse) -> DynamoObject:
         return {

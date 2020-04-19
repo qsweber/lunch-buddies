@@ -8,7 +8,7 @@ from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 class GroupsDao(Dao[Group]):
     def __init__(self, dynamo: DynamoClient):
-        super(GroupsDao, self).__init__(dynamo, 'lunch_buddies_Group')
+        super(GroupsDao, self).__init__(dynamo, 'lunch_buddies_Group', ['callback_id', 'user_ids'])
 
     def convert_to_dynamo(self, q: Group) -> DynamoObject:
         return {
