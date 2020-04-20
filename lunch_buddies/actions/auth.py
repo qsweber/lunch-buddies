@@ -25,6 +25,8 @@ def auth(
         }
     ).text)
 
+    logger.info('Auth response: {}'.format(json.dumps(response)))
+
     team = Team(
         team_id=response['team_id'],
         access_token=response['access_token'],
@@ -39,6 +41,10 @@ def auth(
         team_id=team.team_id,
         feature_notify_in_channel=True,
     ))
+
+    name, email = service_context.clients.slack.get_user_name_email(team=team, user_id=response['user_id'])
+
+    logger.info('Installed by {} {}'.format(name, email))
 
     service_context.clients.slack.post_message(
         team=team,

@@ -34,6 +34,13 @@ def test_auth(mocker, mocked_slack):
         return_value=team.created_at,
     )
 
+    mocker.patch.object(
+        service_context.clients.slack,
+        'get_user_name_email',
+        auto_spec=True,
+        return_value=('Test Name', 'test@example.com'),
+    )
+
     os.environ['CLIENT_ID'] = 'test_client_id'
     os.environ['CLIENT_SECRET'] = 'test_client_secret'
 
@@ -58,4 +65,8 @@ def test_auth(mocker, mocked_slack):
     service_context.clients.http.get.assert_called_with(
         url='https://slack.com/api/oauth.access',
         params={'client_id': 'test_client_id', 'client_secret': 'test_client_secret', 'code': 'test_code'},
+    )
+    service_context.clients.slack.get_user_name_email.assert_called_with(
+        team=team,
+        user_id='fake-user-id',
     )

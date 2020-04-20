@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 
 from slackclient import SlackClient as BaseSlackClient
 
@@ -56,3 +56,8 @@ class SlackClient(object):
         user_info = self._users_info_internal(team, user=user_id)
 
         return user_info['user']['tz']
+
+    def get_user_name_email(self, team: Team, user_id: str) -> Tuple[str, str]:
+        user_info = self._users_info_internal(team, user=user_id)
+
+        return user_info['user']['profile']['real_name'], user_info['user']['profile']['email']
