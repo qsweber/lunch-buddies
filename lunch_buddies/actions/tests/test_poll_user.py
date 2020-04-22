@@ -19,7 +19,7 @@ def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         attachments=[{
             'fallback': 'Something has gone wrong.',
             'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',

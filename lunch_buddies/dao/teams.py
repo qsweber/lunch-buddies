@@ -17,7 +17,7 @@ class TeamsDao(Dao[Team]):
             'name': input.name,
             'created_at': Decimal(input.created_at.timestamp()),
             'feature_notify_in_channel': 1 if input.feature_notify_in_channel else 0,
-            'stripe_customer_id': input.stripe_customer_id if input.stripe_customer_id else '',
+            'stripe_customer_id': input.stripe_customer_id if input.stripe_customer_id else None,
         }
 
     def convert_from_dynamo(self, input: DynamoObject) -> Team:

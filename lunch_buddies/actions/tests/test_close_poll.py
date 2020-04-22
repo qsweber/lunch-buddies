@@ -243,7 +243,7 @@ def test_close_poll_messages_creating_user_if_already_closed(mocker, mocked_team
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel='closing_user_id',
         as_user=True,
         text='The poll you tried to close has already been closed',
@@ -266,7 +266,7 @@ def test_close_poll_messages_creating_user_if_does_not_exist(mocker, mocked_team
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel='closing_user_id',
         as_user=True,
         text='No poll found',

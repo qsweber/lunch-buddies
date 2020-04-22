@@ -170,7 +170,7 @@ def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_te
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel='abc',
         as_user=True,
         text='There is already an active poll',
@@ -266,7 +266,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker,
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel='abc',
         as_user=True,
         text=module.DEFAULT_CHANNEL_NOT_FOUND,
@@ -312,7 +312,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel='abc',
         as_user=True,
         text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#slack_channel_id|lunch_buddies>. You can join that channel and try again.',

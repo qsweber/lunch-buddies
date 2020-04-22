@@ -44,7 +44,7 @@ def create_poll(
     if poll and poll.state != polls.CLOSED and poll.created_at > (datetime.now() - timedelta(days=1)):
         logger.info('Found the following poll: {}'.format(json.dumps(poll._asdict(), default=str)))
         slack_client.post_message(
-            team=team,
+            bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
             text='There is already an active poll',
@@ -57,7 +57,7 @@ def create_poll(
 
     choices, group_size = parse_message_text(message.text)
 
-    users = slack_client.list_users(team, channel_id)
+    users = slack_client.list_users(team.bot_access_token, channel_id)
 
     poll = Poll(
         team_id=message.team_id,
@@ -84,10 +84,10 @@ def _get_default_channel_id(
     team: Team,
 ):
     try:
-        default_channel = slack_client.get_channel(team, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        default_channel = slack_client.get_channel(team.bot_access_token, slack.LUNCH_BUDDIES_CHANNEL_NAME)
     except ChannelDoesNotExist:
         slack_client.post_message(
-            team=team,
+            bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
             text=DEFAULT_CHANNEL_NOT_FOUND,
@@ -97,9 +97,9 @@ def _get_default_channel_id(
 
     channel_id = default_channel['id']
 
-    if message.user_id not in slack_client.list_users(team, channel_id):
+    if message.user_id not in slack_client.list_users(team.bot_access_token, channel_id):
         slack_client.post_message(
-            team=team,
+            bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
             text=USER_NOT_IN_DEFAULT_CHANNEL.format(channel_id, default_channel['name'])

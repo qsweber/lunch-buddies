@@ -27,7 +27,7 @@ def poll_user(
     time.sleep(1)
 
     slack_client.post_message(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel=user_id,
         as_user=True,
         text='Are you able to participate in Lunch Buddies today?',

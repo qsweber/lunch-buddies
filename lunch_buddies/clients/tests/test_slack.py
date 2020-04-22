@@ -59,7 +59,7 @@ def test_get_user_name_email(mocker):
         return_value=users_info,
     )
 
-    user, email = service_context.clients.slack.get_user_name_email(team, 'fake-user-id')
+    user, email = service_context.clients.slack.get_user_name_email(team.bot_access_token, 'fake-user-id')
 
     assert user == 'Real Name'
     assert email == 'foo@example.com'

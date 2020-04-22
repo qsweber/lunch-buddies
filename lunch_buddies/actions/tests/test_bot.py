@@ -65,7 +65,7 @@ def test_bot_help(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=test_team,
+        bot_access_token=test_team.bot_access_token,
         channel='foo',
         as_user=True,
         text=APP_EXPLANATION,
@@ -102,7 +102,7 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=test_team,
+        bot_access_token=test_team.bot_access_token,
         channel='test_channel_id',
         as_user=True,
         text='mocked_return_value',
@@ -139,7 +139,7 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
     )
 
     service_context.clients.slack.post_message.assert_called_with(
-        team=test_team,
+        bot_access_token=test_team.bot_access_token,
         channel='test_channel_id',
         as_user=True,
         text='mocked_return_value',

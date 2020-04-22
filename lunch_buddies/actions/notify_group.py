@@ -58,11 +58,11 @@ def _notify_private_group(
         'I am selecting <@{}> to be in charge of picking the location.'.format(user_in_charge)
     )
     conversation = slack_client.open_conversation(
-        team=team,
+        bot_access_token=team.bot_access_token,
         users=','.join(message.user_ids),
     )
     slack_client.post_message(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel=conversation['channel']['id'],
         as_user=True,
         text=text,
@@ -86,14 +86,14 @@ def _notify_in_channel(
         ' You all should meet somewhere at `{}`.'.format(choice.time)
     )
     result = slack_client.post_message(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel=poll.channel_id,
         as_user=True,
         text=text,
     )
     text = '<@{}> should pick the location.'.format(random.choice(message.user_ids))
     slack_client.post_message(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel=poll.channel_id,
         as_user=True,
         text=text,
