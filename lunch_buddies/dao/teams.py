@@ -28,5 +28,5 @@ class TeamsDao(Dao[Team]):
             name=str(input['name']),
             created_at=self._convert_datetime_from_dynamo(input['created_at']),
             feature_notify_in_channel=bool(input['feature_notify_in_channel']) if 'feature_notify_in_channel' in input else False,
-            stripe_customer_id=str(input['stripe_customer_id']) if 'stripe_customer_id' in input and input['stripe_customer_id'] != '' else None,
+            stripe_customer_id=str(input['stripe_customer_id']) if 'stripe_customer_id' in input and input['stripe_customer_id'] is not None else None,
         )

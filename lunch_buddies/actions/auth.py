@@ -36,9 +36,15 @@ def auth(
     stripe_customer_id = None
     if not existing_team or not existing_team.stripe_customer_id:
         customer = service_context.clients.stripe.create_customer(name=user_name, email=user_email, team_name=response['team_name'])
-        stripe_customer_id = customer.id
+        if customer:
+            stripe_customer_id = customer.id
     else:
-        service_context.clients.stripe.update_customer(existing_team.stripe_customer_id, name=user_name, email=user_email, team_name=response['team_name'])
+        service_context.clients.stripe.update_customer(
+            customer_id=existing_team.stripe_customer_id,
+            name=user_name,
+            email=user_email,
+            team_name=response['team_name'],
+        )
         stripe_customer_id = existing_team.stripe_customer_id
 
     if existing_team:
