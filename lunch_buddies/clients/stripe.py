@@ -18,7 +18,7 @@ class LineItem(NamedTuple):
 
 class StripeClient:
     def __init__(self):
-        if os.environ.get('IS_TEST') or not os.environ['STRIPE_API_KEY']:
+        if os.environ.get('IS_TEST') or 'STRIPE_API_KEY' not in os.environ:
             self.stripe = None
             return
 
