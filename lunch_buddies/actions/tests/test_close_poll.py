@@ -214,6 +214,7 @@ def test_close_poll_messages_creating_user_if_does_not_exist(mocker, mocked_team
             [68, 50, 58, 51, 62, 65],
         ]),
         (list(range(7)), 5, 4, 7, [[4, 2, 1, 0, 5, 6, 3]]),
+        (list(range(5)), 3, 3, 7, [[2, 1, 0, 3, 4]]),
     ]
 )
 def test_get_groups(elements, group_size, min_group_size, max_group_size, expected):
