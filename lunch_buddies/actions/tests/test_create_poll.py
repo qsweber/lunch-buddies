@@ -10,7 +10,7 @@ from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
 import lunch_buddies.actions.create_poll as module
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
-from lunch_buddies.actions.tests.fixtures import team
+from lunch_buddies.actions.tests.fixtures import team, dynamo_poll
 
 
 EXPECTED_UUID = UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb')
@@ -38,21 +38,15 @@ def mocked_module(mocker):
 
 
 def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
+    first_poll = dynamo_poll.copy()
+    first_poll['state'] = 'CLOSED'
+
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CLOSED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
+            first_poll,
         ]
     )
 
@@ -60,7 +54,7 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
         PollsToStartMessage(
             team_id='123',
             channel_id='test_channel_id',
-            user_id='abc',
+            user_id='456',
             text='',
         ),
         service_context.clients.slack,
@@ -68,16 +62,11 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
         service_context.daos.teams,
     )
 
-    service_context.daos.polls._create_internal.assert_called_with({
-        'team_id': '123',
-        'created_at': 1516117984.234873,
-        'channel_id': 'test_channel_id',
-        'created_by_user_id': 'abc',
-        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-        'state': polls_constants.CREATED,
-        'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-        'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    })
+    expcted_poll = dynamo_poll.copy()
+    expcted_poll['choices'] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
+    expcted_poll['callback_id'] = str(EXPECTED_UUID)
+    expcted_poll['created_at'] = 1516117984.234873
+    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(
@@ -94,18 +83,23 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
 
 
 def test_create_poll_custom_times(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
+    first_poll = dynamo_poll.copy()
+    first_poll['state'] = 'CLOSED'
+
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
-        return_value=[]
+        return_value=[
+            first_poll,
+        ]
     )
 
     result = module.create_poll(
         PollsToStartMessage(
             team_id='123',
             channel_id='test_channel_id',
-            user_id='abc',
+            user_id='456',
             text='1213',
         ),
         service_context.clients.slack,
@@ -113,16 +107,11 @@ def test_create_poll_custom_times(mocker, mocked_team, mocked_module, mocked_sla
         service_context.daos.teams,
     )
 
-    service_context.daos.polls._create_internal.assert_called_with({
-        'team_id': '123',
-        'created_at': 1516117984.234873,
-        'channel_id': 'test_channel_id',
-        'created_by_user_id': 'abc',
-        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-        'state': polls_constants.CREATED,
-        'choices': '[{"key": "yes_1213", "is_yes": true, "time": "12:13", "display_text": "Yes (12:13)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-        'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    })
+    expcted_poll = dynamo_poll.copy()
+    expcted_poll['callback_id'] = str(EXPECTED_UUID)
+    expcted_poll['created_at'] = 1516117984.234873
+    expcted_poll['choices'] = '[{"key": "yes_1213", "is_yes": true, "time": "12:13", "display_text": "Yes (12:13)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
+    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(
@@ -139,21 +128,15 @@ def test_create_poll_custom_times(mocker, mocked_team, mocked_module, mocked_sla
 
 
 def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_team, mocked_slack, mocked_polls):
+    first_poll = dynamo_poll.copy()
+    first_poll['created_at'] = datetime.now().timestamp()
+
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
+            first_poll,
         ]
     )
 
@@ -161,7 +144,7 @@ def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_te
         PollsToStartMessage(
             team_id='123',
             channel_id='test_channel_id',
-            user_id='abc',
+            user_id='456',
             text='',
         ),
         service_context.clients.slack,
@@ -171,7 +154,7 @@ def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_te
 
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
-        channel='abc',
+        channel='456',
         as_user=True,
         text='There is already an active poll',
     )
@@ -180,21 +163,15 @@ def test_create_poll_messages_creating_user_if_already_created(mocker, mocked_te
 
 
 def test_create_poll_works_if_existing_is_old(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
+    first_poll = dynamo_poll.copy()
+    first_poll['created_at'] = (datetime.now() - timedelta(days=2)).timestamp()
+
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
-            {
-                'team_id': '123',
-                'created_at': (datetime.now() - timedelta(days=2)).timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
+            first_poll,
         ]
     )
 
@@ -202,7 +179,7 @@ def test_create_poll_works_if_existing_is_old(mocker, mocked_team, mocked_module
         PollsToStartMessage(
             team_id='123',
             channel_id='test_channel_id',
-            user_id='abc',
+            user_id='456',
             text='',
         ),
         service_context.clients.slack,
@@ -210,16 +187,11 @@ def test_create_poll_works_if_existing_is_old(mocker, mocked_team, mocked_module
         service_context.daos.teams,
     )
 
-    service_context.daos.polls._create_internal.assert_called_with({
-        'team_id': '123',
-        'created_at': 1516117984.234873,
-        'channel_id': 'test_channel_id',
-        'created_by_user_id': 'abc',
-        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-        'state': polls_constants.CREATED,
-        'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-        'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-    })
+    expcted_poll = dynamo_poll.copy()
+    expcted_poll['choices'] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
+    expcted_poll['callback_id'] = str(EXPECTED_UUID)
+    expcted_poll['created_at'] = 1516117984.234873
+    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(
@@ -257,7 +229,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker,
         PollsToStartMessage(
             team_id='123',
             channel_id='',
-            user_id='abc',
+            user_id='456',
             text='',
         ),
         service_context.clients.slack,
@@ -267,7 +239,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(mocker,
 
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
-        channel='abc',
+        channel='456',
         as_user=True,
         text=module.DEFAULT_CHANNEL_NOT_FOUND,
     )
@@ -303,7 +275,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
         PollsToStartMessage(
             team_id='123',
             channel_id='',
-            user_id='abc',
+            user_id='456',
             text='',
         ),
         service_context.clients.slack,
@@ -313,7 +285,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(moc
 
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
-        channel='abc',
+        channel='456',
         as_user=True,
         text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#slack_channel_id|lunch_buddies>. You can join that channel and try again.',
     )

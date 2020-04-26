@@ -55,7 +55,8 @@ def auth(
             name=response['team_name'],
             created_at=existing_team.created_at,
             feature_notify_in_channel=existing_team.feature_notify_in_channel,
-            stripe_customer_id=existing_team.stripe_customer_id,
+            stripe_customer_id=stripe_customer_id,
+            invoicing_enabled=existing_team.invoicing_enabled,
         )
         service_context.daos.teams.update(existing_team, team)
     else:
@@ -67,6 +68,7 @@ def auth(
             created_at=_get_created_at(),
             feature_notify_in_channel=True,
             stripe_customer_id=stripe_customer_id,
+            invoicing_enabled=True,
         )
         service_context.daos.teams.create(team)
 

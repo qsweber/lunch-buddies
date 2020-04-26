@@ -17,6 +17,7 @@ dynamo_team = {
     'created_at': 1585153363.983078,
     'feature_notify_in_channel': 1,
     'stripe_customer_id': 'fake-stripe-customer-id',
+    'invoicing_enabled': 1,
 }
 
 team = Team(
@@ -27,6 +28,7 @@ team = Team(
     created_at=datetime.fromtimestamp(1585153363.983078),
     feature_notify_in_channel=True,
     stripe_customer_id='fake-stripe-customer-id',
+    invoicing_enabled=True,
 )
 
 oath_response = {
@@ -74,6 +76,7 @@ poll = Poll(
         ),
     ],
     group_size=6,
+    stripe_invoice_id=None,
 )
 
 dynamo_poll = {
@@ -85,6 +88,7 @@ dynamo_poll = {
     'state': 'CREATED',
     'choices': '[{"key": "yes_1130", "is_yes": true, "time": "11:30", "display_text": "Yes (11:30)"}, {"key": "yes_1230", "is_yes": true, "time": "12:30", "display_text": "Yes (12:30)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
     'group_size': 6,
+    'stripe_invoice_id': None,
 }
 
 group = Group(

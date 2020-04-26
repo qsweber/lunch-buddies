@@ -29,11 +29,11 @@ class Dao(Generic[T]):
     def _read_internal(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[List[DynamoObject]]:
         return self.dynamo.read(self.table_name, key, value)
 
-    def read(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[List[T]]:
+    def read(self, key: Optional[str], value: Optional[DynamoValue]) -> List[T]:
         raw = self._read_internal(key, value)
 
         if not raw:
-            return None
+            return []
 
         return [
             self.convert_from_dynamo(r)
@@ -43,7 +43,7 @@ class Dao(Generic[T]):
     def read_one(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[T]:
         result = self.read(key, value)
 
-        if not result or len(result) == 0:
+        if len(result) == 0:
             return None
 
         return result[0]

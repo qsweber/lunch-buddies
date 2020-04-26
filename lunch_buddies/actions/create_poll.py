@@ -68,6 +68,7 @@ def create_poll(
         channel_id=channel_id,
         choices=choices,
         group_size=group_size,
+        stripe_invoice_id=None,
     )
 
     polls_dao.create(poll)

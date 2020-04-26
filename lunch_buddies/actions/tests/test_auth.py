@@ -155,6 +155,12 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
             'name',
             'updated team name',
         ),
+        mocker.call(
+            'lunch_buddies_Team',
+            {'team_id': '123'},
+            'stripe_customer_id',
+            'fake-stripe-customer-id',
+        ),
     ])
     service_context.daos.team_settings._create_internal.assert_called_with(
         {

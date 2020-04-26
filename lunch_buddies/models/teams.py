@@ -9,4 +9,5 @@ class Team(NamedTuple):
     name: str
     created_at: datetime
     feature_notify_in_channel: bool
+    invoicing_enabled: Optional[bool]
     stripe_customer_id: Optional[str]

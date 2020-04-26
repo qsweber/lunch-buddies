@@ -35,6 +35,7 @@ from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id='fake-stripe-invoice-id',
             ),
             {
                 'team_id': '123',
@@ -45,6 +46,7 @@ from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
                 'state': 'CREATED',
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
                 'group_size': 6,
+                'stripe_invoice_id': 'fake-stripe-invoice-id',
             }
         ),
         (
@@ -70,6 +72,7 @@ from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id='fake-stripe-invoice-id',
             ),
             {
                 'team_id': '123',
@@ -80,6 +83,7 @@ from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
                 'state': 'CREATED',
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
                 'group_size': 6,
+                'stripe_invoice_id': 'fake-stripe-invoice-id',
             }
         )
     ]
@@ -130,6 +134,7 @@ def test_roundtrip_convert(model, dynamo):
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id=None,
             ),
         ),
         (
@@ -141,6 +146,7 @@ def test_roundtrip_convert(model, dynamo):
                 'state': 'CREATED',
                 'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
                 'group_size': 6,
+                'stripe_invoice_id': 'fake-stripe-invoice-id',
             },
             Poll(
                 team_id='123',
@@ -164,6 +170,7 @@ def test_roundtrip_convert(model, dynamo):
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id='fake-stripe-invoice-id',
             ),
         ),
         (
@@ -175,6 +182,7 @@ def test_roundtrip_convert(model, dynamo):
                 'state': 'CREATED',
                 'choices': '{"yes_1145": "Yes (11:45)", "yes_1230": "Yes (12:30)", "no": "No"}',
                 'group_size': 6,
+                'stripe_invoice_id': 'fake-stripe-invoice-id',
             },
             Poll(
                 team_id='123',
@@ -204,6 +212,7 @@ def test_roundtrip_convert(model, dynamo):
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id='fake-stripe-invoice-id',
             ),
         ),
         (
@@ -215,6 +224,7 @@ def test_roundtrip_convert(model, dynamo):
                 'state': 'CREATED',
                 'choices': '[["yes_1130", "Yes (11:30)"], ["yes_1230", "Yes (12:30)"], ["no", "No"]]',
                 'group_size': 6,
+                'stripe_invoice_id': 'fake-stripe-invoice-id',
             },
             Poll(
                 team_id='123',
@@ -244,6 +254,7 @@ def test_roundtrip_convert(model, dynamo):
                     ),
                 ],
                 group_size=6,
+                stripe_invoice_id='fake-stripe-invoice-id',
             ),
         ),
     ],

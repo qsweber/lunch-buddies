@@ -1,6 +1,6 @@
 import pytest
 
-from lunch_buddies.actions.tests.fixtures import dynamo_team, stripe_customer
+from lunch_buddies.actions.tests.fixtures import dynamo_team, stripe_customer, dynamo_poll
 from lunch_buddies.lib.service_context import service_context
 
 
@@ -63,31 +63,16 @@ def mocked_stripe(mocker):
 
 @pytest.fixture
 def mocked_polls(mocker):
+    poll_one = dynamo_poll.copy()
+    poll_one['callback_id'] = 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb'
+    poll_one['created_at'] = 1522117903.551714  # make it earlier
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
-            {
-                'team_id': '123',
-                'created_at': float(1586645982.850783),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': 'CREATED',
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': 6,
-            },
-            {
-                'team_id': '123',
-                'created_at': float(1586645992.227006),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': 'CREATED',
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': 6,
-            },
+            poll_one,
+            dynamo_poll,
         ]
     )
     mocker.patch.object(
@@ -96,7 +81,6 @@ def mocked_polls(mocker):
         auto_spec=True,
         return_value=True,
     )
-
     mocker.patch.object(
         service_context.daos.polls,
         '_create_internal',

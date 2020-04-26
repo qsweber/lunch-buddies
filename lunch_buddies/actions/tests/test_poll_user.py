@@ -11,7 +11,7 @@ def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
         UsersToPollMessage(
             team_id='123',
             user_id='test_user_id',
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -22,11 +22,12 @@ def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
         bot_access_token=team.bot_access_token,
         attachments=[{
             'fallback': 'Something has gone wrong.',
-            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
             'color': '#3AA3E3',
             'attachment_type': 'default',
             'actions': [
-                {'name': 'answer', 'text': 'Yes (12:00)', 'type': 'button', 'value': 'yes_1200'},
+                {'name': 'answer', 'text': 'Yes (11:30)', 'type': 'button', 'value': 'yes_1130'},
+                {'name': 'answer', 'text': 'Yes (12:30)', 'type': 'button', 'value': 'yes_1230'},
                 {'name': 'answer', 'text': 'No', 'type': 'button', 'value': 'no'},
             ]
         }],

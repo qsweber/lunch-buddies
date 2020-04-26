@@ -4,50 +4,12 @@ from uuid import UUID
 
 import pytest
 
-from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.models.polls import Choice, Poll
+from lunch_buddies.models.polls import Choice
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 from lunch_buddies.types import PollsToCloseMessage, GroupsToNotifyMessage
-from lunch_buddies.actions.tests.fixtures import team
-
-
-@pytest.fixture
-def mocked_polls(mocker):
-    mocker.patch.object(
-        service_context.daos.polls,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[
-            {
-                'team_id': '123',
-                'created_at': float(1586645982.850783),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-            {
-                'team_id': '123',
-                'created_at': float(1586645992.227006),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': polls_constants.DEFAULT_GROUP_SIZE,
-            },
-        ]
-    )
-    mocker.patch.object(
-        service_context.daos.polls,
-        'mark_poll_closed',
-        auto_spec=True,
-        return_value=True,
-    )
+from lunch_buddies.actions.tests.fixtures import team, poll, dynamo_poll
 
 
 @pytest.fixture
@@ -58,16 +20,16 @@ def mocked_poll_responses(mocker):
         auto_spec=True,
         return_value=[
             {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'user_id': 'user_id_one',
                 'created_at': float('1516117983.234873'),
-                'response': 'yes_1200',
+                'response': 'yes_1130',
             },
             {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'user_id': 'user_id_two',
                 'created_at': float('1516117984.234873'),
-                'response': 'yes_1200',
+                'response': 'yes_1130',
             }
         ]
     )
@@ -87,23 +49,14 @@ def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
     )
 
     service_context.daos.polls.mark_poll_closed.assert_called_with(
-        poll=Poll(
-            team_id='123',
-            created_at=datetime.fromtimestamp(1586645992.227006),
-            channel_id='test_channel_id',
-            created_by_user_id='foo',
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            state='CREATED',
-            choices=polls_constants.CHOICES,
-            group_size=polls_constants.DEFAULT_GROUP_SIZE,
-        ),
+        poll=poll,
     )
 
     assert result == [
         GroupsToNotifyMessage(
             team_id="123",
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            response="yes_1200",
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
+            response="yes_1130",
             user_ids=["user_id_one", "user_id_two"],
         )
     ]
@@ -133,23 +86,14 @@ def test_close_poll_null_channel(mocker, mocked_team, mocked_polls, mocked_poll_
     )
 
     service_context.daos.polls.mark_poll_closed.assert_called_with(
-        poll=Poll(
-            team_id='123',
-            created_at=datetime.fromtimestamp(1586645992.227006),
-            channel_id='test_channel_id',
-            created_by_user_id='foo',
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            state='CREATED',
-            choices=polls_constants.CHOICES,
-            group_size=polls_constants.DEFAULT_GROUP_SIZE,
-        ),
+        poll=poll,
     )
 
     assert result == [
         GroupsToNotifyMessage(
             team_id="123",
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            response="yes_1200",
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
+            response="yes_1130",
             user_ids=["user_id_one", "user_id_two"],
         )
     ]
@@ -179,54 +123,31 @@ def test_close_poll_null_channel_no_default_channel(mocker, mocked_team, mocked_
     )
 
     service_context.daos.polls.mark_poll_closed.assert_called_with(
-        poll=Poll(
-            team_id='123',
-            created_at=datetime.fromtimestamp(1586645992.227006),
-            channel_id='test_channel_id',
-            created_by_user_id='foo',
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            state='CREATED',
-            choices=polls_constants.CHOICES,
-            group_size=polls_constants.DEFAULT_GROUP_SIZE,
-        ),
+        poll=poll,
     )
 
     assert result == [
         GroupsToNotifyMessage(
             team_id="123",
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
-            response="yes_1200",
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
+            response="yes_1130",
             user_ids=["user_id_one", "user_id_two"],
         )
     ]
 
 
 def test_close_poll_messages_creating_user_if_already_closed(mocker, mocked_team, mocked_slack):
+    poll_one = dynamo_poll.copy()
+    poll_one['callback_id'] = 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb'
+    poll_two = dynamo_poll.copy()
+    poll_two['state'] = 'CLOSED'
     mocker.patch.object(
         service_context.daos.polls,
         '_read_internal',
         auto_spec=True,
         return_value=[
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
-                'state': polls_constants.CREATED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': 6,
-            },
-            {
-                'team_id': '123',
-                'created_at': datetime.now().timestamp(),
-                'channel_id': 'test_channel_id',
-                'created_by_user_id': 'foo',
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
-                'state': polls_constants.CLOSED,
-                'choices': '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                'group_size': 6,
-            },
+            poll_one,
+            poll_two,
         ]
     )
 
@@ -342,25 +263,16 @@ def test_group_by_answer():
         display_text='Yes (12:30)',
     )
 
-    poll = Poll(
-        team_id='123',
-        created_at=datetime.now(),
-        channel_id='test_channel_id',
-        created_by_user_id='456',
-        callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'),
-        state='CREATED',
-        choices=[
-            choice_1145,
-            choice_1230,
-            Choice(
-                key='no',
-                is_yes=False,
-                time='',
-                display_text='No',
-            ),
-        ],
-        group_size=polls_constants.DEFAULT_GROUP_SIZE,
-    )
+    updated_poll = poll._replace(choices=[
+        choice_1145,
+        choice_1230,
+        Choice(
+            key='no',
+            is_yes=False,
+            time='',
+            display_text='No',
+        ),
+    ])
 
     poll_responses = [
         PollResponse(callback_id=UUID('450c4b9d-267b-431e-97b9-e3cb32d233c4'), user_id='U3LTPT61J', created_at=datetime(2018, 1, 31, 16, 43, 19, 93329), response='yes_1230'),
@@ -379,6 +291,6 @@ def test_group_by_answer():
         ],
     }
 
-    actual = module._group_by_answer(poll_responses, poll)
+    actual = module._group_by_answer(poll_responses, updated_poll)
 
     assert actual == expected

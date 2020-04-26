@@ -46,15 +46,10 @@ class PollsDao(Dao[Poll]):
         return polls[-1]
 
     def mark_poll_closed(self, poll: Poll) -> None:
-        return self.dynamo.update(
-            self.table_name,
-            {
-                'team_id': poll.team_id,
-                'created_at': Decimal(poll.created_at.timestamp()),
-            },
-            'state',
-            CLOSED,
-        )
+        self.update(poll, poll._replace(state=CLOSED))
+
+    def mark_poll_invoiced(self, poll: Poll, stripe_invoice_id: str) -> None:
+        self.update(poll, poll._replace(stripe_invoice_id=stripe_invoice_id))
 
     def convert_to_dynamo(self, q: Poll) -> DynamoObject:
         return {
@@ -66,6 +61,7 @@ class PollsDao(Dao[Poll]):
             'state': q.state,
             'choices': choices_to_dynamo(q.choices),
             'group_size': q.group_size,
+            'stripe_invoice_id': q.stripe_invoice_id
         }
 
     def convert_from_dynamo(self, q: DynamoObject) -> Poll:
@@ -78,6 +74,7 @@ class PollsDao(Dao[Poll]):
             state=str(q['state']),
             choices=choices_from_dynamo(str(q['choices'])),
             group_size=int(str(q['group_size'])),
+            stripe_invoice_id=str(q['stripe_invoice_id']) if 'stripe_invoice_id' in q and q['stripe_invoice_id'] is not None else None,
         )
 
 
