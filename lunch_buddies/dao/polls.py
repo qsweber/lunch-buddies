@@ -1,4 +1,3 @@
-from decimal import Decimal
 import json
 from uuid import UUID
 from typing import List, Optional
@@ -54,7 +53,7 @@ class PollsDao(Dao[Poll]):
     def convert_to_dynamo(self, q: Poll) -> DynamoObject:
         return {
             'team_id': q.team_id,
-            'created_at': Decimal(q.created_at.timestamp()),
+            'created_at': self._convert_datetime_to_dynamo(q.created_at),
             'channel_id': q.channel_id,
             'created_by_user_id': q.created_by_user_id,
             'callback_id': str(q.callback_id),

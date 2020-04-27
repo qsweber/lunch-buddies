@@ -1,4 +1,3 @@
-from decimal import Decimal
 from uuid import UUID
 
 from lunch_buddies.dao.base import Dao
@@ -14,7 +13,7 @@ class PollResponsesDao(Dao[PollResponse]):
         return {
             'callback_id': str(q.callback_id),
             'user_id': q.user_id,
-            'created_at': Decimal(q.created_at.timestamp()),
+            'created_at': self._convert_datetime_to_dynamo(q.created_at),
             'response': q.response,
         }
 

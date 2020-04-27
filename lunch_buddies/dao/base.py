@@ -1,4 +1,5 @@
 from datetime import datetime
+from decimal import Decimal
 from typing import List, Optional, TypeVar, Generic
 
 from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject, DynamoValue
@@ -56,16 +57,19 @@ class Dao(Generic[T]):
 
         return result
 
-    def _convert_datetime_from_dynamo(self, input: DynamoValue) -> datetime:
-        if not input:
-            raise Exception('not found')
+    def _convert_datetime_to_dynamo(self, var: datetime) -> DynamoValue:
+        return Decimal(var.timestamp())
 
-        return datetime.fromtimestamp(float(input))
+    def _convert_datetime_from_dynamo(self, var: DynamoValue) -> datetime:
+        if not var:
+            raise Exception('valid datetime not provided')
 
-    def convert_to_dynamo(self, input: T) -> DynamoObject:
+        return datetime.fromtimestamp(float(var))
+
+    def convert_to_dynamo(self, var: T) -> DynamoObject:
         raise Exception('abstract')
 
-    def convert_from_dynamo(self, input: DynamoObject) -> T:
+    def convert_from_dynamo(self, var: DynamoObject) -> T:
         raise Exception('abstract')
 
     def update(self, original: T, updated: T) -> None:
