@@ -28,5 +28,5 @@ class TeamsDao(Dao[Team]):
             created_at=self._convert_datetime_from_dynamo(var['created_at']),
             feature_notify_in_channel=bool(var['feature_notify_in_channel']) if 'feature_notify_in_channel' in var else False,
             stripe_customer_id=str(var['stripe_customer_id']) if 'stripe_customer_id' in var and var['stripe_customer_id'] is not None else None,
-            invoicing_enabled=bool(var['feature_notify_in_channel']) if 'feature_notify_in_channel' in var else False,
+            invoicing_enabled=bool(var['invoicing_enabled']) if 'invoicing_enabled' in var else False,
         )

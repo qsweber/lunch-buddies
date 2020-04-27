@@ -44,14 +44,15 @@ def invoice(service_context: ServiceContext) -> None:
 
 
 def _find_teams_eligible_for_invoicing(service_context: ServiceContext) -> List[Team]:
-    temp = datetime(datetime.now().year, datetime.now().month, 1) - timedelta(days=45)
+    now = _get_now()
+    temp = datetime(now.year, now.month, 1) - timedelta(days=45)
     at_least_two_full_months_ago = datetime(temp.year, temp.month, 1)
 
     return [
         team
-        for team in service_context.daos.teams.read('team_id', 'T0NPTQTA5')
+        for team in service_context.daos.teams.read(None, None)
         if team.stripe_customer_id and
-        team.created_at > at_least_two_full_months_ago and
+        team.created_at < at_least_two_full_months_ago and
         team.invoicing_enabled
     ]
 
@@ -73,3 +74,7 @@ def _get_unique_yes_users_from_polls(service_context: ServiceContext, polls: Lis
         for response in service_context.daos.poll_responses.read('callback_id', str(poll.callback_id))
         if 'yes' in response.response
     ]))
+
+
+def _get_now():
+    return datetime.now()
