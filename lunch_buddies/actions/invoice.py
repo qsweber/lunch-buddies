@@ -16,7 +16,7 @@ def invoice(service_context: ServiceContext) -> None:
     teams = _find_teams_eligible_for_invoicing(service_context)
     for team in teams:
         if not team.stripe_customer_id:
-            raise Exception('types')
+            raise Exception('making mypy happy')
         polls = _get_polls_needing_invoice(service_context, team)
         yes_users = _get_unique_yes_users_from_polls(service_context, polls)
         latest_invoice = service_context.clients.stripe.latest_invoice_for_customer(team.stripe_customer_id)
@@ -30,7 +30,7 @@ def invoice(service_context: ServiceContext) -> None:
                     amount=10.0,
                     description='{} people responded Yes to a Lunch Buddies poll since {}'.format(
                         len(yes_users),
-                        latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else team.created_at.strftime('%Y-%m-%d'),
+                        latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else (team.created_at + timedelta(days=60)).strftime('%Y-%m-%d'),
                     ),
                 ),
             ],
