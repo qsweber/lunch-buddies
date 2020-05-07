@@ -28,7 +28,7 @@ def invoice(service_context: ServiceContext) -> None:
             ),
             [
                 LineItem(
-                    amount=10.0,
+                    amount=len(yes_users) * 1.0,
                     description='{} people responded Yes to a Lunch Buddies poll since {}'.format(
                         len(yes_users),
                         latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else (team.created_at + timedelta(days=60)).strftime('%Y-%m-%d'),

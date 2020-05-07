@@ -70,7 +70,7 @@ def test_auth(mocker, mocked_slack):
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
         as_user=True,
-        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
+        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.\n\nFor information about pricing, check out https://www.lunchbuddiesapp.com/pricing/',
     )
     service_context.clients.http.get.assert_called_with(
         url='https://slack.com/api/oauth.access',
@@ -172,7 +172,7 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
         as_user=True,
-        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
+        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.',
     )
     service_context.clients.http.get.assert_called_with(
         url='https://slack.com/api/oauth.access',
@@ -260,7 +260,7 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
         as_user=True,
-        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
+        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.\n\nFor information about pricing, check out https://www.lunchbuddiesapp.com/pricing/',
     )
     service_context.clients.http.get.assert_called_with(
         url='https://slack.com/api/oauth.access',

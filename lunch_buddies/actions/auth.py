@@ -80,11 +80,16 @@ def auth(
 
     logger.info('Installed by {} {}'.format(user_name, user_email))
 
+    message = 'Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.'
+
+    if team.invoicing_enabled:
+        message += '\n\nFor information about pricing, check out https://www.lunchbuddiesapp.com/pricing/'
+
     service_context.clients.slack.post_message(
         bot_access_token=bot_access_token,
         channel=response['user_id'],
         as_user=True,
-        text='Thanks for installing Lunch Buddies! To get started, invite me to any channel and say "@Lunch Buddies create"',
+        text=message,
     )
 
     return

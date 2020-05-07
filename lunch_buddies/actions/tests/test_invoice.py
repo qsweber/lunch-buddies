@@ -86,7 +86,7 @@ def test_invoice(mocker, mocked_data):
         ),
         [
             LineItem(
-                amount=10.0,
+                amount=11.0,
                 description='11 people responded Yes to a Lunch Buddies poll since 2020-03-31',
             ),
         ],
@@ -117,7 +117,7 @@ def test_invoice_when_not_first_invoice(mocker, mocked_data):
         ),
         [
             LineItem(
-                amount=10.0,
+                amount=11.0,
                 description='11 people responded Yes to a Lunch Buddies poll since 2020-03-14',
             ),
         ],
