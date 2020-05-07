@@ -31,7 +31,7 @@ def invoice(service_context: ServiceContext) -> None:
                     amount=len(yes_users) * 1.0,
                     description='{} people responded Yes to a Lunch Buddies poll since {}'.format(
                         len(yes_users),
-                        latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else (team.created_at + timedelta(days=60)).strftime('%Y-%m-%d'),
+                        latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else (team.created_at + timedelta(days=30)).strftime('%Y-%m-%d'),
                     ),
                 ),
             ],
@@ -46,14 +46,14 @@ def invoice(service_context: ServiceContext) -> None:
 
 def _find_teams_eligible_for_invoicing(service_context: ServiceContext) -> List[Team]:
     now = _get_now()
-    temp = datetime(now.year, now.month, 1) - timedelta(days=45)
-    at_least_two_full_months_ago = datetime(temp.year, temp.month, 1)
+    temp = datetime(now.year, now.month, 1) - timedelta(days=15)
+    at_least_one_full_month_ago = datetime(temp.year, temp.month, 1)
 
     return [
         team
         for team in service_context.daos.teams.read(None, None)
         if team.stripe_customer_id and
-        team.created_at < at_least_two_full_months_ago and
+        team.created_at < at_least_one_full_month_ago and
         team.invoicing_enabled
     ]
 
@@ -64,7 +64,7 @@ def _get_polls_needing_invoice(service_context: ServiceContext, team: Team) -> L
         for poll in service_context.daos.polls.read('team_id', team.team_id)
         if poll.state == 'CLOSED' and
         not poll.stripe_invoice_id and
-        poll.created_at > (team.created_at + timedelta(days=60))
+        poll.created_at > (team.created_at + timedelta(days=30))
     ]
 
 

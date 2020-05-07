@@ -16,7 +16,7 @@ def mocked_data(mocker):
         module,
         '_get_now',
         auto_spec=True,
-        return_value=datetime(2020, 4, 16, 3, 3, 3)
+        return_value=datetime(2020, 3, 16, 3, 3, 3)
     )
     mocker.patch.object(
         service_context.daos.teams,
@@ -37,7 +37,7 @@ def mocked_data(mocker):
             {
                 **dynamo_poll,
                 'state': 'CLOSED',
-                'created_at': Decimal(datetime(2020, 4, 15).timestamp()),
+                'created_at': Decimal(datetime(2020, 3, 15).timestamp()),
             },
         ],
     )
@@ -87,13 +87,13 @@ def test_invoice(mocker, mocked_data):
         [
             LineItem(
                 amount=11.0,
-                description='11 people responded Yes to a Lunch Buddies poll since 2020-03-31',
+                description='11 people responded Yes to a Lunch Buddies poll since 2020-03-01',
             ),
         ],
     )
 
     service_context.daos.polls.mark_poll_invoiced.assert_called_with(
-        poll._replace(state='CLOSED', created_at=datetime(2020, 4, 15)),
+        poll._replace(state='CLOSED', created_at=datetime(2020, 3, 15)),
         'new-stripe-invoice-id',
     )
 
@@ -105,7 +105,7 @@ def test_invoice_when_not_first_invoice(mocker, mocked_data):
         auto_spec=True,
         return_value=Invoice(
             id='previous',
-            created_at=datetime(2020, 3, 14),
+            created_at=datetime(2020, 2, 14),
         ),
     )
 
@@ -118,7 +118,7 @@ def test_invoice_when_not_first_invoice(mocker, mocked_data):
         [
             LineItem(
                 amount=11.0,
-                description='11 people responded Yes to a Lunch Buddies poll since 2020-03-14',
+                description='11 people responded Yes to a Lunch Buddies poll since 2020-02-14',
             ),
         ],
     )
@@ -130,7 +130,7 @@ def test_find_teams_eligible_for_invoicing(mocker):
         module,
         '_get_now',
         auto_spec=True,
-        return_value=datetime(2020, 4, 16, 3, 3, 3)
+        return_value=datetime(2020, 3, 16, 3, 3, 3)
     )
 
     mocker.patch.object(
@@ -169,8 +169,9 @@ def test_find_teams_eligible_for_invoicing(mocker):
 @pytest.mark.parametrize(
     'now, created_ats, expected',
     [
-        (datetime(2020, 4, 16), [datetime(2020, 2, 15), datetime(2020, 1, 31)], [1]),
-        (datetime(2020, 4, 2), [datetime(2020, 2, 15), datetime(2020, 1, 31)], [1]),
+        (datetime(2020, 3, 16), [datetime(2020, 2, 15), datetime(2020, 1, 31)], [1]),
+        (datetime(2020, 3, 2), [datetime(2020, 2, 15), datetime(2020, 1, 31)], [1]),
+        (datetime(2020, 4, 2), [datetime(2020, 2, 15), datetime(2020, 1, 31)], [0, 1]),
     ]
 )
 def test_find_teams_eligible_for_invoicing_created_at(mocker, now, created_ats, expected):
@@ -215,31 +216,31 @@ def test_get_polls_needing_invoice(mocker):
                     'callback_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
                     'stripe_invoice_id': None,
                     'state': 'CLOSED',
-                    'created_at': Decimal((team.created_at + timedelta(days=59)).timestamp()),
+                    'created_at': Decimal((team.created_at + timedelta(days=29)).timestamp()),
                 },
                 {
                     'callback_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2',
                     'stripe_invoice_id': None,
                     'state': 'CLOSED',
-                    'created_at': Decimal((team.created_at + timedelta(days=60)).timestamp()),
+                    'created_at': Decimal((team.created_at + timedelta(days=30)).timestamp()),
                 },
                 {
                     'callback_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3',
                     'stripe_invoice_id': None,
                     'state': 'CLOSED',
-                    'created_at': Decimal((team.created_at + timedelta(days=61)).timestamp()),
+                    'created_at': Decimal((team.created_at + timedelta(days=31)).timestamp()),
                 },
                 {
                     'callback_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4',
                     'stripe_invoice_id': None,
                     'state': 'CREATED',
-                    'created_at': Decimal((team.created_at + timedelta(days=61)).timestamp()),
+                    'created_at': Decimal((team.created_at + timedelta(days=31)).timestamp()),
                 },
                 {
                     'callback_id': 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5',
                     'stripe_invoice_id': 'fake',
                     'state': 'CLOSED',
-                    'created_at': Decimal((team.created_at + timedelta(days=61)).timestamp()),
+                    'created_at': Decimal((team.created_at + timedelta(days=31)).timestamp()),
                 },
             ]
         ]
