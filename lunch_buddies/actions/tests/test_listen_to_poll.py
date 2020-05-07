@@ -11,16 +11,23 @@ def test_listen_to_poll(mocker, mocked_polls):
         'username': 'Lunch Buddies',
         'bot_id': 'fake_bot_id',
         'attachments': [{
-            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+            'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
             'fallback': 'Something has gone wrong.',
             'id': 1,
             'color': '3AA3E3',
             'actions': [{
                 'id': '1',
                 'name': 'answer',
-                'text': 'Yes (12:00)',
+                'text': 'Yes (11:30)',
                 'type': 'button',
-                'value': 'yes_1200',
+                'value': 'yes_1130',
+                'style': '',
+            }, {
+                'id': '1',
+                'name': 'answer',
+                'text': 'Yes (12:30)',
+                'type': 'button',
+                'value': 'yes_1230',
                 'style': '',
             }, {
                 'id': '2',
@@ -48,19 +55,19 @@ def test_listen_to_poll(mocker, mocked_polls):
             original_message=original_message,
             team_id='fake_team_id',
             user_id='fake_user_id',
-            choice_key='yes_1200',
+            choice_key='yes_1130',
             action_ts=float('1516117984.234873'),
-            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb'),
+            callback_id=UUID('f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa'),
         ),
         service_context.daos.polls,
         service_context.daos.poll_responses,
     )
 
     expected_poll_response = {
-        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+        'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
         'user_id': 'fake_user_id',
         'created_at': float('1516117984.234873'),
-        'response': 'yes_1200',
+        'response': 'yes_1130',
     }
 
     service_context.daos.poll_responses._create_internal.assert_called_with(expected_poll_response)
@@ -71,16 +78,23 @@ def test_listen_to_poll(mocker, mocked_polls):
         'bot_id': 'fake_bot_id',
         'attachments': [
             {
-                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb',
+                'callback_id': 'f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa',
                 'fallback': 'Something has gone wrong.',
                 'id': 1,
                 'color': '3AA3E3',
                 'actions': [{
                     'id': '1',
                     'name': 'answer',
-                    'text': 'Yes (12:00)',
+                    'text': 'Yes (11:30)',
                     'type': 'button',
-                    'value': 'yes_1200',
+                    'value': 'yes_1130',
+                    'style': '',
+                }, {
+                    'id': '1',
+                    'name': 'answer',
+                    'text': 'Yes (12:30)',
+                    'type': 'button',
+                    'value': 'yes_1230',
                     'style': '',
                 }, {
                     'id': '2',
@@ -89,9 +103,9 @@ def test_listen_to_poll(mocker, mocked_polls):
                     'type': 'button',
                     'value': 'no',
                     'style': '',
-                }],
+                }]
             }, {
-                'text': ':white_check_mark: Your answer of `Yes (12:00)` was received!',
+                'text': ':white_check_mark: Your answer of `Yes (11:30)` was received!',
             },
         ],
         'type': 'message',

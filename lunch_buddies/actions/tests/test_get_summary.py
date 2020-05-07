@@ -33,6 +33,7 @@ def test_get_summary_for_poll(mocker):
             state=CLOSED,
             choices=CHOICES,
             group_size=5,
+            stripe_invoice_id=None,
         ),
         service_context.daos.groups,
         'America/New_York',

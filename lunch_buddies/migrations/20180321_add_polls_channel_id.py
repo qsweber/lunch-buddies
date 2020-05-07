@@ -22,13 +22,13 @@ def migrate():
         team_id = raw_poll['team_id']
         team = teams_dao.read_one_or_die('team_id', team_id)
 
-        test = slack_client._channels_list_internal(team)
+        test = slack_client._channels_list_internal(team.bot_access_token)
         if isinstance(test, dict) and 'error' in test:
             logger.error('Error with team {}: {}'.format(team_id, test['error']))
             continue
 
         try:
-            channel = slack_client.get_channel(team, 'lunch_buddies')
+            channel = slack_client.get_channel(team.bot_access_token, 'lunch_buddies')
         except Exception as e:
             logger.error('Error with team {}: {}'.format(team_id, str(e)))
             continue

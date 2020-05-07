@@ -9,6 +9,7 @@ from lunch_buddies.actions.create_poll import create_poll as create_poll_action
 from lunch_buddies.actions.close_poll import close_poll as close_poll_action
 from lunch_buddies.actions.poll_user import poll_user as poll_user_action
 from lunch_buddies.actions.notify_group import notify_group as notify_group_action
+from lunch_buddies.actions.invoice import invoice as invoice_action
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.types import (
     PollsToCloseMessage,
@@ -90,3 +91,7 @@ def notify_groups_from_queue(message: SqsMessage) -> None:
 @sqsHandler
 def error_queue(message: SqsMessage) -> None:
     raise Exception('Test of error handling')
+
+
+def invoice(*args) -> None:
+    invoice_action(service_context)

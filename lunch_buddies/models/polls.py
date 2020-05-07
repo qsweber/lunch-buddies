@@ -19,3 +19,4 @@ class Poll(NamedTuple):
     state: str
     choices: List[Choice]
     group_size: int
+    stripe_invoice_id: Optional[str]

@@ -29,7 +29,7 @@ def close_poll(
     if not poll:
         # TODO: give the use some more information since they probably just need to find the right poll to close
         slack_client.post_message(
-            team=team,
+            bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
             text='No poll found',
@@ -38,7 +38,7 @@ def close_poll(
 
     if poll.state != CREATED:
         slack_client.post_message(
-            team=team,
+            bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
             text='The poll you tried to close has already been closed',
@@ -71,7 +71,7 @@ def close_poll(
 
 def _guess_channel_id(slack_client: SlackClient, team: Team) -> Optional[str]:
     try:
-        lunch_buddies_channel = slack_client.get_channel(team, LUNCH_BUDDIES_CHANNEL_NAME)
+        lunch_buddies_channel = slack_client.get_channel(team.bot_access_token, LUNCH_BUDDIES_CHANNEL_NAME)
         return lunch_buddies_channel['id']
     except ChannelDoesNotExist:
         return None

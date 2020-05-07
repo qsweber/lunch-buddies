@@ -66,7 +66,7 @@ def bot(
         response_text = ''
 
     service_context.clients.slack.post_message(
-        team=team,
+        bot_access_token=team.bot_access_token,
         channel=message.channel_id,
         as_user=True,
         text=response_text,

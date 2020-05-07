@@ -33,7 +33,7 @@ def get_summary(
         if poll.created_at > (datetime.now() - timedelta(days=lookback_days))
     ]
 
-    user_tz = service_context.clients.slack.get_user_tz(team, message.user_id)
+    user_tz = service_context.clients.slack.get_user_tz(team.bot_access_token, message.user_id)
 
     return '\n\n'.join([
         _get_summary_for_poll(poll, service_context.daos.groups, user_tz)

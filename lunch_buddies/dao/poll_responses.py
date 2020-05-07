@@ -1,4 +1,3 @@
-from decimal import Decimal
 from uuid import UUID
 
 from lunch_buddies.dao.base import Dao
@@ -8,13 +7,13 @@ from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 class PollResponsesDao(Dao[PollResponse]):
     def __init__(self, dynamo: DynamoClient):
-        super(PollResponsesDao, self).__init__(dynamo, 'lunch_buddies_PollResponse')
+        super(PollResponsesDao, self).__init__(dynamo, 'lunch_buddies_PollResponse', ['callback_id', 'user_id'])
 
     def convert_to_dynamo(self, q: PollResponse) -> DynamoObject:
         return {
             'callback_id': str(q.callback_id),
             'user_id': q.user_id,
-            'created_at': Decimal(q.created_at.timestamp()),
+            'created_at': self._convert_datetime_to_dynamo(q.created_at),
             'response': q.response,
         }
 
