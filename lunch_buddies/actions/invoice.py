@@ -15,6 +15,7 @@ def invoice(service_context: ServiceContext) -> None:
     # find all teams with a stripe_customer_id that are signed up for invoicing
     teams = _find_teams_eligible_for_invoicing(service_context)
     for team in teams:
+        logger.info('Starting invoicing for {}'.format(team.team_id))
         if not team.stripe_customer_id:
             raise Exception('making mypy happy')
         polls = _get_polls_needing_invoice(service_context, team)
