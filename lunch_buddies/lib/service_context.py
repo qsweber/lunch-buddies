@@ -9,7 +9,6 @@ from lunch_buddies.clients.sqs_v2 import SqsClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
 from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
 
 
@@ -18,7 +17,6 @@ class Daos(NamedTuple):
     polls: PollsDao
     poll_responses: PollResponsesDao
     teams: TeamsDao
-    team_settings: TeamSettingsDao
 
 
 class Clients(NamedTuple):
@@ -42,7 +40,6 @@ service_context = ServiceContext(
         polls=PollsDao(dynamo),
         poll_responses=PollResponsesDao(dynamo),
         teams=TeamsDao(dynamo),
-        team_settings=TeamSettingsDao(dynamo),
     ),
     clients=Clients(
         slack=SlackClient(),

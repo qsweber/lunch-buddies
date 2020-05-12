@@ -21,12 +21,6 @@ def test_auth(mocker, mocked_slack):
         return_value=[],
     )
     mocker.patch.object(
-        service_context.daos.team_settings,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
-    )
-    mocker.patch.object(
         service_context.clients.http,
         'get',
         auto_spec=True,
@@ -60,12 +54,6 @@ def test_auth(mocker, mocked_slack):
     )
 
     service_context.daos.teams._create_internal.assert_called_with(dynamo_team)
-    service_context.daos.team_settings._create_internal.assert_called_with(
-        {
-            'team_id': team.team_id,
-            'feature_notify_in_channel': 1,
-        },
-    )
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
@@ -107,12 +95,6 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
             'feature_notify_in_channel': 1,
             'stripe_customer_id': None,
         }],
-    )
-    mocker.patch.object(
-        service_context.daos.team_settings,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
     )
     oath_response['team_name'] = 'updated team name'
     mocker.patch.object(
@@ -162,12 +144,6 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
             'fake-stripe-customer-id',
         ),
     ])
-    service_context.daos.team_settings._create_internal.assert_called_with(
-        {
-            'team_id': team.team_id,
-            'feature_notify_in_channel': 1,
-        },
-    )
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
@@ -201,12 +177,6 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         '_read_internal',
         auto_spec=True,
         return_value=[dynamo_team],
-    )
-    mocker.patch.object(
-        service_context.daos.team_settings,
-        '_create_internal',
-        auto_spec=True,
-        return_value=True,
     )
     oath_response['team_name'] = 'updated team name'
     mocker.patch.object(
@@ -250,12 +220,6 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
             'updated team name',
         ),
     ])
-    service_context.daos.team_settings._create_internal.assert_called_with(
-        {
-            'team_id': team.team_id,
-            'feature_notify_in_channel': 1,
-        },
-    )
     service_context.clients.slack.post_message.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel='fake-user-id',
