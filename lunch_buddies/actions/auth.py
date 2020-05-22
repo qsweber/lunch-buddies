@@ -4,7 +4,6 @@ import logging
 import os
 
 from lunch_buddies.models.teams import Team
-from lunch_buddies.models.team_settings import TeamSettings
 from lunch_buddies.lib.service_context import ServiceContext
 from lunch_buddies.types import Auth
 
@@ -71,12 +70,6 @@ def auth(
             invoicing_enabled=True,
         )
         service_context.daos.teams.create(team)
-
-    # TODO: remove this table
-    service_context.daos.team_settings.create(TeamSettings(
-        team_id=team.team_id,
-        feature_notify_in_channel=True,
-    ))
 
     logger.info('Installed by {} {}'.format(user_name, user_email))
 

@@ -83,7 +83,6 @@ def notify_groups_from_queue(message: SqsMessage) -> None:
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.teams,
-        service_context.daos.team_settings,
         service_context.daos.groups,
     )
 

@@ -5,7 +5,6 @@ from lunch_buddies.models.polls import Poll, Choice
 from lunch_buddies.models.teams import Team
 from lunch_buddies.models.groups import Group
 from lunch_buddies.models.poll_responses import PollResponse
-from lunch_buddies.models.team_settings import TeamSettings
 from lunch_buddies.clients.stripe import Customer
 
 
@@ -115,14 +114,4 @@ dynamo_poll_response = {
     'user_id': 'test_user_id',
     'created_at': 1522117983.551714,
     'response': 'yes_1145',
-}
-
-team_settings = TeamSettings(
-    team_id='123',
-    feature_notify_in_channel=True,
-)
-
-dynamo_team_settings = {
-    'team_id': '123',
-    'feature_notify_in_channel': 1
 }

@@ -4,15 +4,15 @@ from uuid import UUID
 from lunch_buddies.lib.service_context import service_context
 import lunch_buddies.actions.notify_group as module
 from lunch_buddies.types import GroupsToNotifyMessage
-from lunch_buddies.actions.tests.fixtures import team
+from lunch_buddies.actions.tests.fixtures import team, dynamo_team
 
 
-def test_notify_group(mocker, mocked_team, mocked_polls, mocked_slack):
+def test_notify_group(mocker, mocked_polls, mocked_slack):
     mocker.patch.object(
-        service_context.daos.team_settings,
+        service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
-        return_value=[]
+        return_value=[{**dynamo_team, 'feature_notify_in_channel': 0}]
     )
 
     mocked_groups_dao_create_internal = mocker.patch.object(
@@ -40,7 +40,6 @@ def test_notify_group(mocker, mocked_team, mocked_polls, mocked_slack):
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.teams,
-        service_context.daos.team_settings,
         service_context.daos.groups,
     )
 
@@ -65,16 +64,6 @@ def test_notify_group(mocker, mocked_team, mocked_polls, mocked_slack):
 
 
 def test_notify_group_feature_notify_in_channel(mocker, mocked_team, mocked_polls, mocked_slack):
-    mocker.patch.object(
-        service_context.daos.team_settings,
-        '_read_internal',
-        auto_spec=True,
-        return_value=[{
-            'team_id': '123',
-            'feature_notify_in_channel': 1,
-        }]
-    )
-
     mocked_groups_dao_create_internal = mocker.patch.object(
         service_context.daos.groups,
         '_create_internal',
@@ -102,7 +91,6 @@ def test_notify_group_feature_notify_in_channel(mocker, mocked_team, mocked_poll
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.teams,
-        service_context.daos.team_settings,
         service_context.daos.groups,
     )
 

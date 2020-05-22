@@ -3,7 +3,6 @@ import random
 from lunch_buddies.clients.slack import SlackClient
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
-from lunch_buddies.dao.team_settings import TeamSettingsDao
 from lunch_buddies.dao.groups import GroupsDao
 from lunch_buddies.models.groups import Group
 from lunch_buddies.models.teams import Team
@@ -16,7 +15,6 @@ def notify_group(
     slack_client: SlackClient,
     polls_dao: PollsDao,
     teams_dao: TeamsDao,
-    team_settings_dao: TeamSettingsDao,
     groups_dao: GroupsDao,
 ) -> None:
     team = teams_dao.read_one_or_die('team_id', message.team_id)
@@ -36,8 +34,7 @@ def notify_group(
 
     groups_dao.create(group)
 
-    team_settings_search = team_settings_dao.read('team_id', message.team_id)
-    if team_settings_search and team_settings_search[0].feature_notify_in_channel:
+    if team.feature_notify_in_channel:
         _notify_in_channel(message, slack_client, team, poll, choice)
     else:
         _notify_private_group(message, slack_client, team, choice)
