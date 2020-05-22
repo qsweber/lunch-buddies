@@ -12,7 +12,7 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         service_context.daos.teams,
         '_read_internal',
         auto_spec=True,
-        return_value=[{ **dynamo_team, 'feature_notify_in_channel': 0}]
+        return_value=[{**dynamo_team, 'feature_notify_in_channel': 0}]
     )
 
     mocked_groups_dao_create_internal = mocker.patch.object(
