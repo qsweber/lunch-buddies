@@ -12,7 +12,7 @@ Slack APP for creating lunch buddy groups.
 
 ### Flow of information
 
-insert image
+![Foo](https://github.com/qsweber/lunch-buddies/blob/readme-media/media/architecture.png)
 
 The above diagram shows the flow of information throughout the system. The diagram shows two Lambda functions. The one on the left is running a flask app and responding to HTTP requests. The one on the left is an async task handler triggered by messages being added to one of the SQS queues.
 
