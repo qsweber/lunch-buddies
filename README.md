@@ -2,63 +2,47 @@
 
 ![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) ![Test Coverage](https://img.shields.io/badge/tests-86%25-yellow) ![Type Coverage](https://img.shields.io/badge/types-67%25-red)
 
+This is the backend for the Lunch Buddies slack app.
+
 Slack APP for creating lunch buddy groups.
 
 [![Add to Slack](https://platform.slack-edge.com/img/add_to_slack.png)](https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production/api/v0/install)
 
-## How it works
+## Basic Architecture
 
-This is a python flask app that has the following entrypoints.
+### Flow of information
 
-### Workflow
+insert image
 
-#### create_poll_http
+The above diagram shows the flow of information throughout the system. The diagram shows two Lambda functions. The one on the left is running a flask app and responding to HTTP requests. The one on the left is an async task handler triggered by messages being added to one of the SQS queues.
 
-This is exposed to the web, and is invoked via a slash command. When this function is called, a message is added to the `polls_to_create` SQS queue with information about the poll that needs creation.
+1. The flask app receives a request from slack to start a poll and adds a message to the "polls_to_start" queue.
+2. The presence of a message in the "polls_to_start" queue triggers a task that finds which users to notify and adds a message per user to the "users_to_poll" queue.
+3. The presence of a message in the "users_to_poll" queue triggers a task that sends a message to the user asking about participation.
+4. Each user clicks an option on the poll, which is handled by the flask app. Responses are stored in DynamoDB.
+5. When it's time to close the poll and aggregate results, a user triggers this within Slack, which pings the flask app, which adds a message to the "polls_to_close" queue.
+6. A message in the "polls_to_close" queue triggers a task that gathers all responses and divides respondants into evenly sized groups. A message per group is added to the "groups_to_notify" queue.
+7. A message in the "groups_to_notify" queue triggers a task that notifies the group in slack
 
-#### create_poll_from_queue
+### Database schema
 
-This is a CRON job that runs every 5 minutes and tries to read from the `polls_to_create` queue. When a message is found, it does the following:
+insert image
 
-- Save a `Poll` object to DynamoDB
-- Find all of the users in the `lunch_buddies` channel
-- For each user, write a message to the `users_to_poll` queue
+### Why so many queues?
 
-#### poll_users_from_queue
+When user interactions are sent to the flask app, Slack expects a response within 3 seconds. Most of the operations that need to happen as a result of the user interaction could take longer than 3 seconds, so I figured it was safer to put as much as possible into the async handlers.
 
-This is a CRON job that runs every 5 minutes and tries to read from the `users_to_poll` queue. When a message is found, it does the following:
+### Why DynamoDB for a relational database?
 
-- Send a direct message to the user with a question about participating in "Lunch Buddies"
+When I first started building this app, I wanted to make it as cheap as possible to run. DynamoDB scales really well, and I only have to pay for usage. Using RDS would have meant paying for uptime all day every day.
 
-#### listen_to_poll_http
+Making DynamoDB work as a relational database wound up not being too tricky.
 
-This is exposed to the web and is invoked when a clicks on a button in the message sent in the `poll_users_from_queue` step. When a user clicks on a button, a POST request is made to this endpoint and the following happens:
+## Other technologies used
 
-- Saves information as a `PollResponse` object in DynamoDB
-
-#### close_poll_http
-
-This is exposed to the web, and is invoked via a slash command. When this function is called, a message is added to the `polls_to_close` SQS queue with information about the poll that needs to be closed.
-
-#### close_poll_from_queue
-
-This is a CRON job that runs every 5 minutes and tries to read from the `polls_to_close` queue. When a message is found, it does the following:
-
-- Find the most recent `Poll` for in DynamoDB
-- Get all of the `PollResponse` objects for that poll
-- Randomly group respondants
-- For each group of respondants, write to the `groups_to_notify` queue 
-
-#### close_poll_from_queue
-
-This is a CRON job that runs every 5 minutes and tries to read from the `groups_to_notify` queue. When a message is found, it does the following:
-
-- Send a private group message to the group of users that should meet
-- Randomly select one of the users to choose where to meet
-
-### Other Development notes
-
-This is entirely serverless and uses a combination of Lambda, SQS, and DynamoDB. Continuous deployment happens with TravisCI.
+- Zappa
+- Github Actions
+- Stripe
 
 ## Credits
 
