@@ -4,8 +4,6 @@
 
 This is the backend for the Lunch Buddies slack app.
 
-Slack APP for creating lunch buddy groups.
-
 [![Add to Slack](https://platform.slack-edge.com/img/add_to_slack.png)](https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production/api/v0/install)
 
 ## Basic Architecture
