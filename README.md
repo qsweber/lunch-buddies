@@ -24,19 +24,23 @@ The above diagram shows the flow of information throughout the system. The diagr
 6. A message in the "polls_to_close" queue triggers a task that gathers all responses and divides respondants into evenly sized groups. A message per group is added to the "groups_to_notify" queue.
 7. A message in the "groups_to_notify" queue triggers a task that notifies the group in slack
 
-### Database schema
-
-![Database Schema](https://github.com/qsweber/lunch-buddies/blob/readme-media/media/database.png)
-
 ### Why so many queues?
 
 When user interactions are sent to the flask app, Slack expects a response within 3 seconds. Most of the operations that need to happen as a result of the user interaction could take longer than 3 seconds, so I figured it was safer to put as much as possible into the async handlers.
+
+### Database schema
+
+![Database Schema](https://github.com/qsweber/lunch-buddies/blob/readme-media/media/database.png)
 
 ### Why DynamoDB for a relational database?
 
 When I first started building this app, I wanted to make it as cheap as possible to run. DynamoDB scales really well, and I only have to pay for usage. Using RDS would have meant paying for uptime all day every day.
 
-Making DynamoDB work as a relational database wound up not being too tricky.
+### What's up with those Primary Keys?
+
+DynamoDB only really supports having a primary key, and that key can either be one column or two. If two, the second column is called the "sort key".
+
+In the case of the "polls" table, I had to build the keys around the usage pattern, which was that I'd be receiving a user input from a specific team to open or close a poll. I needed to be able to look up the polls for that team, which meant team_id had to be in the primary key. Since team_id does not uniquely define a poll, I picked "created_at" for the sort key.
 
 ## Other technologies used
 
