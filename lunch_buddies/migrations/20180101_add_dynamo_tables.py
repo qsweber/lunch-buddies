@@ -1,138 +1,80 @@
 import boto3
 
-if __name__ == '__main__':
-    dynamodb = boto3.resource('dynamodb', region_name='us-west-2')
+if __name__ == "__main__":
+    dynamodb = boto3.resource("dynamodb", region_name="us-west-2")
 
     polls = dynamodb.create_table(
-        TableName='lunch_buddies_Poll',
+        TableName="lunch_buddies_Poll",
         KeySchema=[
             {
-                'AttributeName': 'team_id',  # globally unique partition
-                'KeyType': 'HASH',
+                "AttributeName": "team_id",  # globally unique partition
+                "KeyType": "HASH",
             },
-            {
-                'AttributeName': 'created_at',
-                'KeyType': 'RANGE',
-            }
+            {"AttributeName": "created_at", "KeyType": "RANGE",},
         ],
         AttributeDefinitions=[
-            {
-                'AttributeName': 'team_id',
-                'AttributeType': 'S',
-            },
-            {
-                'AttributeName': 'created_at',
-                'AttributeType': 'N',
-            },
+            {"AttributeName": "team_id", "AttributeType": "S",},
+            {"AttributeName": "created_at", "AttributeType": "N",},
         ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    polls.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Poll')
+    polls.meta.client.get_waiter("table_exists").wait(TableName="lunch_buddies_Poll")
 
     poll_responses = dynamodb.create_table(
-        TableName='lunch_buddies_PollResponse',
+        TableName="lunch_buddies_PollResponse",
         KeySchema=[
             {
-                'AttributeName': 'callback_id',  # globally unique partition
-                'KeyType': 'HASH',
+                "AttributeName": "callback_id",  # globally unique partition
+                "KeyType": "HASH",
             },
-            {
-                'AttributeName': 'user_id',
-                'KeyType': 'RANGE',
-            }
+            {"AttributeName": "user_id", "KeyType": "RANGE",},
         ],
         AttributeDefinitions=[
-            {
-                'AttributeName': 'callback_id',
-                'AttributeType': 'S',
-            },
-            {
-                'AttributeName': 'user_id',
-                'AttributeType': 'S',
-            },
+            {"AttributeName": "callback_id", "AttributeType": "S",},
+            {"AttributeName": "user_id", "AttributeType": "S",},
         ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    poll_responses.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_PollResponse')
+    poll_responses.meta.client.get_waiter("table_exists").wait(
+        TableName="lunch_buddies_PollResponse"
+    )
 
     team = dynamodb.create_table(
-        TableName='lunch_buddies_Team',
-        KeySchema=[
-            {
-                'AttributeName': 'team_id',
-                'KeyType': 'HASH',
-            },
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'team_id',
-                'AttributeType': 'S',
-            },
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
+        TableName="lunch_buddies_Team",
+        KeySchema=[{"AttributeName": "team_id", "KeyType": "HASH",},],
+        AttributeDefinitions=[{"AttributeName": "team_id", "AttributeType": "S",},],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    team.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Team')
+    team.meta.client.get_waiter("table_exists").wait(TableName="lunch_buddies_Team")
 
     groups = dynamodb.create_table(
-        TableName='lunch_buddies_Group',
+        TableName="lunch_buddies_Group",
         KeySchema=[
             {
-                'AttributeName': 'callback_id',  # globally unique partition
-                'KeyType': 'HASH',
+                "AttributeName": "callback_id",  # globally unique partition
+                "KeyType": "HASH",
             },
-            {
-                'AttributeName': 'user_ids',
-                'KeyType': 'RANGE',
-            }
+            {"AttributeName": "user_ids", "KeyType": "RANGE",},
         ],
         AttributeDefinitions=[
-            {
-                'AttributeName': 'callback_id',
-                'AttributeType': 'S',
-            },
-            {
-                'AttributeName': 'user_ids',
-                'AttributeType': 'S',
-            },
+            {"AttributeName": "callback_id", "AttributeType": "S",},
+            {"AttributeName": "user_ids", "AttributeType": "S",},
         ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    groups.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_Group')
+    groups.meta.client.get_waiter("table_exists").wait(TableName="lunch_buddies_Group")
 
     team_settings = dynamodb.create_table(
-        TableName='lunch_buddies_TeamSettings',
-        KeySchema=[
-            {
-                'AttributeName': 'team_id',
-                'KeyType': 'HASH',
-            },
-        ],
-        AttributeDefinitions=[
-            {
-                'AttributeName': 'team_id',
-                'AttributeType': 'S',
-            },
-        ],
-        ProvisionedThroughput={
-            'ReadCapacityUnits': 5,
-            'WriteCapacityUnits': 5
-        }
+        TableName="lunch_buddies_TeamSettings",
+        KeySchema=[{"AttributeName": "team_id", "KeyType": "HASH",},],
+        AttributeDefinitions=[{"AttributeName": "team_id", "AttributeType": "S",},],
+        ProvisionedThroughput={"ReadCapacityUnits": 5, "WriteCapacityUnits": 5},
     )
 
-    team_settings.meta.client.get_waiter('table_exists').wait(TableName='lunch_buddies_TeamSettings')
+    team_settings.meta.client.get_waiter("table_exists").wait(
+        TableName="lunch_buddies_TeamSettings"
+    )

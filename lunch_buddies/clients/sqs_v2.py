@@ -32,20 +32,15 @@ class SqsMessage(NamedTuple):
 
 
 class RoundTripEncoder(json.JSONEncoder):
-    '''
+    """
     Copied from https://gist.github.com/simonw/7000493
-    '''
+    """
+
     def default(self, obj):
         if isinstance(obj, datetime):
-            return {
-                "_type": "datetime",
-                "value": obj.timestamp()
-            }
+            return {"_type": "datetime", "value": obj.timestamp()}
         elif isinstance(obj, UUID):
-            return {
-                "_type": "UUID",
-                "value": str(obj)
-            }
+            return {"_type": "UUID", "value": str(obj)}
 
         return super(RoundTripEncoder, self).default(obj)
 
@@ -55,70 +50,74 @@ class RoundTripDecoder(json.JSONDecoder):
         json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
 
     def object_hook(self, obj):
-        if '_type' not in obj:
+        if "_type" not in obj:
             return obj
-        output_type = obj['_type']
-        if output_type == 'datetime':
-            return datetime.fromtimestamp(obj['value'])
-        elif output_type == 'UUID':
-            return UUID(obj['value'])
+        output_type = obj["_type"]
+        if output_type == "datetime":
+            return datetime.fromtimestamp(obj["value"])
+        elif output_type == "UUID":
+            return UUID(obj["value"])
         else:
             return obj
 
 
 class SqsClient:
     def __init__(self) -> None:
-        if os.environ.get('IS_TEST'):
+        if os.environ.get("IS_TEST"):
             self.sqs = None
             return
 
-        self.sqs = boto3.client('sqs')
+        self.sqs = boto3.client("sqs")
 
     def _name_for_queue_stage(self, queue_name: str, stage: Stage) -> str:
         if stage == Stage.PROD:
             return queue_name
         else:
-            return '{}_{}'.format(stage.value, queue_name)
+            return "{}_{}".format(stage.value, queue_name)
 
     def _url_for_queue(self, queue_name: str) -> str:
-        return 'https://us-west-2.queue.amazonaws.com/120356305272/{}'.format(
-            self._name_for_queue_stage(queue_name, Stage.PROD if os.environ['STAGE'] == Stage.PROD.value else Stage.DEV),
+        return "https://us-west-2.queue.amazonaws.com/120356305272/{}".format(
+            self._name_for_queue_stage(
+                queue_name,
+                Stage.PROD if os.environ["STAGE"] == Stage.PROD.value else Stage.DEV,
+            ),
         )
 
     def _url_from_arn(self, arn: str) -> str:
-        arn_parts = arn.split(':')
+        arn_parts = arn.split(":")
         region = arn_parts[3]
         account_id = arn_parts[4]
         queue_name = arn_parts[5]
-        return 'https://sqs.{}.amazonaws.com/{}/{}'.format(
-            region,
-            account_id,
-            queue_name,
+        return "https://sqs.{}.amazonaws.com/{}/{}".format(
+            region, account_id, queue_name,
         )
 
     def _parse_sqs_message(self, raw: dict) -> SqsMessage:
         return SqsMessage(
-            message_id=UUID(raw['messageId']),
-            receipt_handle=raw['receiptHandle'],
-            body=json.loads(raw['body'], cls=RoundTripDecoder),
+            message_id=UUID(raw["messageId"]),
+            receipt_handle=raw["receiptHandle"],
+            body=json.loads(raw["body"], cls=RoundTripDecoder),
             attributes=SqsMessageAttributes(
-                approximate_receive_count=int(raw['attributes']['ApproximateReceiveCount']),
-                sent_timestamp=datetime.utcfromtimestamp(float(raw['attributes']['SentTimestamp']) / 1000),
-                sender_id=raw['attributes']['SenderId'],
-                approxmate_first_receive_timestamp=datetime.utcfromtimestamp(float(raw['attributes']['ApproximateFirstReceiveTimestamp']) / 1000),
+                approximate_receive_count=int(
+                    raw["attributes"]["ApproximateReceiveCount"]
+                ),
+                sent_timestamp=datetime.utcfromtimestamp(
+                    float(raw["attributes"]["SentTimestamp"]) / 1000
+                ),
+                sender_id=raw["attributes"]["SenderId"],
+                approxmate_first_receive_timestamp=datetime.utcfromtimestamp(
+                    float(raw["attributes"]["ApproximateFirstReceiveTimestamp"]) / 1000
+                ),
             ),
-            md5_of_body=raw['md5OfBody'],
-            event_source=raw['eventSource'],
-            event_source_arn=raw['eventSourceARN'],
-            event_source_url=self._url_from_arn(raw['eventSourceARN']),
-            aws_region=raw['awsRegion'],
+            md5_of_body=raw["md5OfBody"],
+            event_source=raw["eventSource"],
+            event_source_arn=raw["eventSourceARN"],
+            event_source_url=self._url_from_arn(raw["eventSourceARN"]),
+            aws_region=raw["awsRegion"],
         )
 
     def parse_sqs_messages(self, raw: dict) -> List[SqsMessage]:
-        return [
-            self._parse_sqs_message(m)
-            for m in raw['Records']
-        ]
+        return [self._parse_sqs_message(m) for m in raw["Records"]]
 
     def _send_message_internal(self, queue_name: str, message: NamedTuple) -> None:
         if not self.sqs:

@@ -17,14 +17,10 @@ def notify_group(
     teams_dao: TeamsDao,
     groups_dao: GroupsDao,
 ) -> None:
-    team = teams_dao.read_one_or_die('team_id', message.team_id)
+    team = teams_dao.read_one_or_die("team_id", message.team_id)
     poll = polls_dao.find_by_callback_id_or_die(message.team_id, message.callback_id)
 
-    choice = [
-        choice
-        for choice in poll.choices
-        if choice.key == message.response
-    ][0]
+    choice = [choice for choice in poll.choices if choice.key == message.response][0]
 
     group = Group(
         callback_id=message.callback_id,
@@ -50,17 +46,18 @@ def _notify_private_group(
 ):
     user_in_charge = random.choice(message.user_ids)
     text = (
-        'Hello! This is your group for today. ' +
-        'You all should meet somewhere at `{}`. '.format(choice.time) +
-        'I am selecting <@{}> to be in charge of picking the location.'.format(user_in_charge)
+        "Hello! This is your group for today. "
+        + "You all should meet somewhere at `{}`. ".format(choice.time)
+        + "I am selecting <@{}> to be in charge of picking the location.".format(
+            user_in_charge
+        )
     )
     conversation = slack_client.open_conversation(
-        bot_access_token=team.bot_access_token,
-        users=','.join(message.user_ids),
+        bot_access_token=team.bot_access_token, users=",".join(message.user_ids),
     )
     slack_client.post_message(
         bot_access_token=team.bot_access_token,
-        channel=conversation['channel']['id'],
+        channel=conversation["channel"]["id"],
         as_user=True,
         text=text,
     )
@@ -73,14 +70,13 @@ def _notify_in_channel(
     poll: Poll,
     choice: Choice,
 ):
-    users_formatted = ', '.join([
-        '<@{}>'.format(user_id)
-        for user_id in message.user_ids
-    ])
+    users_formatted = ", ".join(
+        ["<@{}>".format(user_id) for user_id in message.user_ids]
+    )
     text = (
-        'Hey {}!'.format(users_formatted) +
-        ' This is your group for today.' +
-        ' You all should meet somewhere at `{}`.'.format(choice.time)
+        "Hey {}!".format(users_formatted)
+        + " This is your group for today."
+        + " You all should meet somewhere at `{}`.".format(choice.time)
     )
     result = slack_client.post_message(
         bot_access_token=team.bot_access_token,
@@ -88,11 +84,11 @@ def _notify_in_channel(
         as_user=True,
         text=text,
     )
-    text = '<@{}> should pick the location.'.format(random.choice(message.user_ids))
+    text = "<@{}> should pick the location.".format(random.choice(message.user_ids))
     slack_client.post_message(
         bot_access_token=team.bot_access_token,
         channel=poll.channel_id,
         as_user=True,
         text=text,
-        thread_ts=result['ts']
+        thread_ts=result["ts"],
     )

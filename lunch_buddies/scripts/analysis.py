@@ -15,25 +15,32 @@ def run() -> None:
     def team_summary(team):
         polls = polls_by_team[team.team_id]
         # print(polls)
-        latest_poll = None if len(polls) == 0 else max(polls, key=lambda x: x.created_at)
+        latest_poll = (
+            None if len(polls) == 0 else max(polls, key=lambda x: x.created_at)
+        )
 
         return {
-            'name': team.name,
-            'count': 0 if len(polls) == 0 else len(polls),
-            'earliest': None if len(polls) == 0 else min(polls, key=lambda x: x.created_at).created_at,
-            'latest': None if not latest_poll else latest_poll.created_at,
-            'latest_poll': latest_poll,
-            'responses_in_latest': 0 if not latest_poll else len(service_context.daos.poll_responses.read('callback_id', str(latest_poll.callback_id))),
+            "name": team.name,
+            "count": 0 if len(polls) == 0 else len(polls),
+            "earliest": None
+            if len(polls) == 0
+            else min(polls, key=lambda x: x.created_at).created_at,
+            "latest": None if not latest_poll else latest_poll.created_at,
+            "latest_poll": latest_poll,
+            "responses_in_latest": 0
+            if not latest_poll
+            else len(
+                service_context.daos.poll_responses.read(
+                    "callback_id", str(latest_poll.callback_id)
+                )
+            ),
             # 'error': service_context.clients.slack._get_base_client_for_token(team.bot_access_token).api_call('auth.test').get('error'),
-            'team': team,
+            "team": team,
         }
 
     agg = {team: team_summary(team) for team in teams}
 
     # sorted(agg.items(), key=lambda v: v[1]['count'])
-    sorted(agg.items(), key=lambda v: v[1]['team'].created_at)
+    sorted(agg.items(), key=lambda v: v[1]["team"].created_at)
 
-    {
-        v['name']: v['error']
-        for k, v in agg.items()
-    }
+    {v["name"]: v["error"] for k, v in agg.items()}

@@ -5,15 +5,12 @@ from typing import List, Optional, TypeVar, Generic
 from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject, DynamoValue
 
 
-T = TypeVar('T')
+T = TypeVar("T")
 
 
 class Dao(Generic[T]):
     def __init__(
-        self,
-        dynamo: DynamoClient,
-        table_name: str,
-        unique_key: List[str],
+        self, dynamo: DynamoClient, table_name: str, unique_key: List[str],
     ) -> None:
         self.dynamo = dynamo
         self.table_name = table_name
@@ -27,7 +24,9 @@ class Dao(Generic[T]):
 
         return self._create_internal(ready)
 
-    def _read_internal(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[List[DynamoObject]]:
+    def _read_internal(
+        self, key: Optional[str], value: Optional[DynamoValue]
+    ) -> Optional[List[DynamoObject]]:
         return self.dynamo.read(self.table_name, key, value)
 
     def read(self, key: Optional[str], value: Optional[DynamoValue]) -> List[T]:
@@ -36,10 +35,7 @@ class Dao(Generic[T]):
         if not raw:
             return []
 
-        return [
-            self.convert_from_dynamo(r)
-            for r in raw
-        ]
+        return [self.convert_from_dynamo(r) for r in raw]
 
     def read_one(self, key: Optional[str], value: Optional[DynamoValue]) -> Optional[T]:
         result = self.read(key, value)
@@ -53,7 +49,7 @@ class Dao(Generic[T]):
         result = self.read_one(key, value)
 
         if not result:
-            raise Exception('not found')
+            raise Exception("not found")
 
         return result
 
@@ -62,15 +58,15 @@ class Dao(Generic[T]):
 
     def _convert_datetime_from_dynamo(self, var: DynamoValue) -> datetime:
         if not var:
-            raise Exception('valid datetime not provided')
+            raise Exception("valid datetime not provided")
 
         return datetime.fromtimestamp(float(var))
 
     def convert_to_dynamo(self, var: T) -> DynamoObject:
-        raise Exception('abstract')
+        raise Exception("abstract")
 
     def convert_from_dynamo(self, var: DynamoObject) -> T:
-        raise Exception('abstract')
+        raise Exception("abstract")
 
     def update(self, original: T, updated: T) -> None:
         original_dyanmo = self.convert_to_dynamo(original)
@@ -84,7 +80,7 @@ class Dao(Generic[T]):
         unique_key = {}
         for unique_key_column in self.unique_key:
             if original_dyanmo[unique_key_column] != updated_dynamo[unique_key_column]:
-                raise Exception('updated entity must have the same key as the original')
+                raise Exception("updated entity must have the same key as the original")
 
             unique_key[unique_key_column] = original_dyanmo[unique_key_column]
 
