@@ -30,7 +30,9 @@ def sqsHandler(func):
             try:
                 func(message)
             except Exception:
-                service_context.clients.sqs_v2.set_visibility_timeout_with_backoff(message)
+                service_context.clients.sqs_v2.set_visibility_timeout_with_backoff(
+                    message
+                )
                 sentry.captureException()
                 raise
 
@@ -48,7 +50,9 @@ def create_poll_from_queue(message: SqsMessage) -> None:
 
     # Read this for why we have to do the cast
     # https://github.com/python/mypy/issues/2984
-    service_context.clients.sqs_v2.send_messages('users_to_poll', cast(List[NamedTuple], output_messages))
+    service_context.clients.sqs_v2.send_messages(
+        "users_to_poll", cast(List[NamedTuple], output_messages)
+    )
 
 
 @sqsHandler
@@ -73,7 +77,9 @@ def close_poll_from_queue(message: SqsMessage) -> None:
 
     # Read this for why we have to do the cast
     # https://github.com/python/mypy/issues/2984
-    service_context.clients.sqs_v2.send_messages('groups_to_notify', cast(List[NamedTuple], output_messages))
+    service_context.clients.sqs_v2.send_messages(
+        "groups_to_notify", cast(List[NamedTuple], output_messages)
+    )
 
 
 @sqsHandler
@@ -89,7 +95,7 @@ def notify_groups_from_queue(message: SqsMessage) -> None:
 
 @sqsHandler
 def error_queue(message: SqsMessage) -> None:
-    raise Exception('Test of error handling')
+    raise Exception("Test of error handling")
 
 
 def invoice(*args) -> None:

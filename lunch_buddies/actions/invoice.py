@@ -15,23 +15,27 @@ def invoice(service_context: ServiceContext) -> None:
     # find all teams with a stripe_customer_id that are signed up for invoicing
     teams = _find_teams_eligible_for_invoicing(service_context)
     for team in teams:
-        logger.info('Starting invoicing for {}'.format(team.team_id))
+        logger.info("Starting invoicing for {}".format(team.team_id))
         if not team.stripe_customer_id:
-            raise Exception('making mypy happy')
+            raise Exception("making mypy happy")
         polls = _get_polls_needing_invoice(service_context, team)
         yes_users = _get_unique_yes_users_from_polls(service_context, polls)
-        latest_invoice = service_context.clients.stripe.latest_invoice_for_customer(team.stripe_customer_id)
+        latest_invoice = service_context.clients.stripe.latest_invoice_for_customer(
+            team.stripe_customer_id
+        )
 
         invoice = service_context.clients.stripe.create_invoice(
-            Customer(
-                id=team.stripe_customer_id,
-            ),
+            Customer(id=team.stripe_customer_id,),
             [
                 LineItem(
                     amount=len(yes_users) * 1.0,
-                    description='{} people responded Yes to a Lunch Buddies poll since {}'.format(
+                    description="{} people responded Yes to a Lunch Buddies poll since {}".format(
                         len(yes_users),
-                        latest_invoice.created_at.strftime('%Y-%m-%d') if latest_invoice else (team.created_at + timedelta(days=30)).strftime('%Y-%m-%d'),
+                        latest_invoice.created_at.strftime("%Y-%m-%d")
+                        if latest_invoice
+                        else (team.created_at + timedelta(days=30)).strftime(
+                            "%Y-%m-%d"
+                        ),
                     ),
                 ),
             ],
@@ -52,29 +56,39 @@ def _find_teams_eligible_for_invoicing(service_context: ServiceContext) -> List[
     return [
         team
         for team in service_context.daos.teams.read(None, None)
-        if team.stripe_customer_id and
-        team.created_at < at_least_one_full_month_ago and
-        team.invoicing_enabled
+        if team.stripe_customer_id
+        and team.created_at < at_least_one_full_month_ago
+        and team.invoicing_enabled
     ]
 
 
-def _get_polls_needing_invoice(service_context: ServiceContext, team: Team) -> List[Poll]:
+def _get_polls_needing_invoice(
+    service_context: ServiceContext, team: Team
+) -> List[Poll]:
     return [
         poll
-        for poll in service_context.daos.polls.read('team_id', team.team_id)
-        if poll.state == 'CLOSED' and
-        not poll.stripe_invoice_id and
-        poll.created_at > (team.created_at + timedelta(days=30))
+        for poll in service_context.daos.polls.read("team_id", team.team_id)
+        if poll.state == "CLOSED"
+        and not poll.stripe_invoice_id
+        and poll.created_at > (team.created_at + timedelta(days=30))
     ]
 
 
-def _get_unique_yes_users_from_polls(service_context: ServiceContext, polls: List[Poll]) -> List[str]:
-    return list(set([
-        response.user_id
-        for poll in polls
-        for response in service_context.daos.poll_responses.read('callback_id', str(poll.callback_id))
-        if 'yes' in response.response
-    ]))
+def _get_unique_yes_users_from_polls(
+    service_context: ServiceContext, polls: List[Poll]
+) -> List[str]:
+    return list(
+        set(
+            [
+                response.user_id
+                for poll in polls
+                for response in service_context.daos.poll_responses.read(
+                    "callback_id", str(poll.callback_id)
+                )
+                if "yes" in response.response
+            ]
+        )
+    )
 
 
 def _get_now():

@@ -16,12 +16,11 @@ def queue_close_poll(request_form: ClosePoll, service_contect: ServiceContext) -
     )
 
     service_contect.clients.sqs_v2.send_messages(
-        'polls_to_close',
-        cast(List[NamedTuple], [message]),
+        "polls_to_close", cast(List[NamedTuple], [message]),
     )
 
-    return 'ok!'
+    return "ok!"
 
 
 def _is_help(request_form: ClosePoll) -> bool:
-    return request_form.text.lower().strip() == 'help'
+    return request_form.text.lower().strip() == "help"

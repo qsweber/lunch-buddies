@@ -23,7 +23,7 @@ DEFAULT_CHANNEL_NOT_FOUND = (
 
 USER_NOT_IN_DEFAULT_CHANNEL = (
     'Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#{}|{}>. '
-    'You can join that channel and try again.'
+    "You can join that channel and try again."
 )
 
 
@@ -33,21 +33,31 @@ def create_poll(
     polls_dao: PollsDao,
     teams_dao: TeamsDao,
 ) -> List[UsersToPollMessage]:
-    logger.info('Create poll: {} {}'.format(message.team_id, message.channel_id))
-    team = teams_dao.read_one_or_die('team_id', message.team_id)
-    channel_id = message.channel_id or _get_default_channel_id(message, slack_client, team)
+    logger.info("Create poll: {} {}".format(message.team_id, message.channel_id))
+    team = teams_dao.read_one_or_die("team_id", message.team_id)
+    channel_id = message.channel_id or _get_default_channel_id(
+        message, slack_client, team
+    )
     if not channel_id:
         return []
 
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
-    if poll and poll.state != polls.CLOSED and poll.created_at > (datetime.now() - timedelta(days=1)):
-        logger.info('Found the following poll: {}'.format(json.dumps(poll._asdict(), default=str)))
+    if (
+        poll
+        and poll.state != polls.CLOSED
+        and poll.created_at > (datetime.now() - timedelta(days=1))
+    ):
+        logger.info(
+            "Found the following poll: {}".format(
+                json.dumps(poll._asdict(), default=str)
+            )
+        )
         slack_client.post_message(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
-            text='There is already an active poll',
+            text="There is already an active poll",
         )
 
         return []
@@ -74,18 +84,20 @@ def create_poll(
     polls_dao.create(poll)
 
     return [
-        UsersToPollMessage(team_id=message.team_id, user_id=user_id, callback_id=callback_id)
+        UsersToPollMessage(
+            team_id=message.team_id, user_id=user_id, callback_id=callback_id
+        )
         for user_id in users
     ]
 
 
 def _get_default_channel_id(
-    message: PollsToStartMessage,
-    slack_client: SlackClient,
-    team: Team,
+    message: PollsToStartMessage, slack_client: SlackClient, team: Team,
 ):
     try:
-        default_channel = slack_client.get_channel(team.bot_access_token, slack.LUNCH_BUDDIES_CHANNEL_NAME)
+        default_channel = slack_client.get_channel(
+            team.bot_access_token, slack.LUNCH_BUDDIES_CHANNEL_NAME
+        )
     except ChannelDoesNotExist:
         slack_client.post_message(
             bot_access_token=team.bot_access_token,
@@ -96,14 +108,18 @@ def _get_default_channel_id(
 
         return None
 
-    channel_id = default_channel['id']
+    channel_id = default_channel["id"]
 
-    if message.user_id not in slack_client.list_users(team.bot_access_token, channel_id):
+    if message.user_id not in slack_client.list_users(
+        team.bot_access_token, channel_id
+    ):
         slack_client.post_message(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
-            text=USER_NOT_IN_DEFAULT_CHANNEL.format(channel_id, default_channel['name'])
+            text=USER_NOT_IN_DEFAULT_CHANNEL.format(
+                channel_id, default_channel["name"]
+            ),
         )
 
         return None
@@ -139,22 +155,17 @@ def parse_message_text(text: str) -> Tuple[List[Choice], int]:
 
     text, group_size = _get_group_size_from_text(text)
 
-    options = list(map(lambda o: o.strip(), text.split(',')))
+    options = list(map(lambda o: o.strip(), text.split(",")))
 
     choices = list(map(get_choice_from_raw_option, options))
-    choices.append(Choice(
-        key='no',
-        is_yes=False,
-        time='',
-        display_text='No',
-    ))
+    choices.append(Choice(key="no", is_yes=False, time="", display_text="No",))
 
     return choices, group_size
 
 
 def _get_group_size_from_text(text: str) -> Tuple[str, int]:
     text = text.strip()
-    size_search = re.search(r'(.*)size=(.+)', text)
+    size_search = re.search(r"(.*)size=(.+)", text)
     if size_search:
         try:
             group_size = int(size_search.group(2))
@@ -178,10 +189,10 @@ def get_choice_from_raw_option(option: str) -> Choice:
     time = get_time_from_raw_option(option)
 
     return Choice(
-        key='yes_{}'.format(option),
+        key="yes_{}".format(option),
         is_yes=True,
         time=time,
-        display_text='Yes ({})'.format(time),
+        display_text="Yes ({})".format(time),
     )
 
 
@@ -194,4 +205,4 @@ def get_time_from_raw_option(raw_option: str) -> str:
     except ValueError:
         raise InvalidPollOption(raw_option)
 
-    return '{}:{}'.format(hour, str(minute).zfill(2))
+    return "{}:{}".format(hour, str(minute).zfill(2))

@@ -1,1 +1,1 @@
-LUNCH_BUDDIES_CHANNEL_NAME = 'lunch_buddies'
+LUNCH_BUDDIES_CHANNEL_NAME = "lunch_buddies"

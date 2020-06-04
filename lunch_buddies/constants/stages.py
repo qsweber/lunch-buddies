@@ -2,5 +2,5 @@ from enum import Enum
 
 
 class Stage(Enum):
-    DEV = 'dev'
-    PROD = 'production'
+    DEV = "dev"
+    PROD = "production"
