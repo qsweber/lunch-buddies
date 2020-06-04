@@ -3,7 +3,7 @@ import json
 import uuid
 
 import lunch_buddies.clients.sqs_v2 as module
-from lunch_buddies.app.tests.requests.sqs_message import test_input, test_output
+from tests.app.requests.sqs_message import test_input, test_output
 
 
 def test_json_round_trip_encoding():

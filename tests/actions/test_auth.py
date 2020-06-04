@@ -4,7 +4,7 @@ import os
 import lunch_buddies.actions.auth as module
 from lunch_buddies.types import Auth
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.actions.tests.fixtures import (
+from tests.fixtures import (
     oath_response,
     team,
     dynamo_team,

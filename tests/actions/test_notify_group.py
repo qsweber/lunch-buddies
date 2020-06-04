@@ -4,7 +4,7 @@ from uuid import UUID
 from lunch_buddies.lib.service_context import service_context
 import lunch_buddies.actions.notify_group as module
 from lunch_buddies.types import GroupsToNotifyMessage
-from lunch_buddies.actions.tests.fixtures import team, dynamo_team
+from tests.fixtures import team, dynamo_team
 
 
 def test_notify_group(mocker, mocked_polls, mocked_slack):

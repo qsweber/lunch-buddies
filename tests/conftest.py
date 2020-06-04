@@ -1,6 +1,6 @@
 import pytest
 
-from lunch_buddies.actions.tests.fixtures import (
+from tests.fixtures import (
     dynamo_team,
     stripe_customer,
     dynamo_poll,

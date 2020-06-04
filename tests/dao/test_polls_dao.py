@@ -5,7 +5,7 @@ import pytest
 
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Poll, Choice
-from lunch_buddies.actions.tests.fixtures import poll, dynamo_poll
+from tests.fixtures import poll, dynamo_poll
 
 
 @pytest.mark.parametrize(

@@ -1,7 +1,7 @@
 import lunch_buddies.app.handlers as module
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.types import PollsToStartMessage
-from lunch_buddies.app.tests.requests.sqs_message import test_input, test_output
+from tests.app.requests.sqs_message import test_input, test_output
 
 
 def test_sqs_handler(mocker):

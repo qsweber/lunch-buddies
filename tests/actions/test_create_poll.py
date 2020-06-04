@@ -10,7 +10,7 @@ from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
 import lunch_buddies.actions.create_poll as module
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
-from lunch_buddies.actions.tests.fixtures import team, dynamo_poll
+from tests.fixtures import team, dynamo_poll
 
 
 EXPECTED_UUID = UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb")

@@ -1,7 +1,7 @@
 import pytest
 
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.actions.tests.fixtures import group, dynamo_group
+from tests.fixtures import group, dynamo_group
 
 
 @pytest.mark.parametrize("model, dynamo", [(group, dynamo_group)])

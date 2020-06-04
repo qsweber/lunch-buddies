@@ -9,7 +9,7 @@ from lunch_buddies.models.polls import Choice
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 from lunch_buddies.types import PollsToCloseMessage, GroupsToNotifyMessage
-from lunch_buddies.actions.tests.fixtures import team, poll, dynamo_poll
+from tests.fixtures import team, poll, dynamo_poll
 
 
 @pytest.fixture

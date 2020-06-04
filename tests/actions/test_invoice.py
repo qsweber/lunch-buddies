@@ -7,7 +7,7 @@ import pytest
 import lunch_buddies.actions.invoice as module
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.clients.stripe import Invoice, Customer, LineItem
-from lunch_buddies.actions.tests.fixtures import (
+from tests.fixtures import (
     dynamo_team,
     dynamo_poll,
     team,

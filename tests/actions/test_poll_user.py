@@ -3,7 +3,7 @@ from uuid import UUID
 import lunch_buddies.actions.poll_user as module
 from lunch_buddies.types import UsersToPollMessage
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.actions.tests.fixtures import team
+from tests.fixtures import team
 
 
 def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):

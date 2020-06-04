@@ -1,5 +1,5 @@
 from lunch_buddies.lib.service_context import service_context
-from lunch_buddies.actions.tests.fixtures import team
+from tests.fixtures import team
 
 
 users_info = {

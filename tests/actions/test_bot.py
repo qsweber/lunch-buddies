@@ -1,6 +1,6 @@
 import pytest
 
-from lunch_buddies.actions.tests.fixtures import team as test_team
+from tests.fixtures import team as test_team
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.types import BotMention, CreatePoll, ClosePoll
 import lunch_buddies.actions.bot as module
