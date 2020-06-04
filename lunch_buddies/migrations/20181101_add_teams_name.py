@@ -26,8 +26,8 @@ def migrate():
             continue
 
         dynamo_table.update_item(
-            Key={"team_id": team.team_id,},
+            Key={"team_id": team.team_id},
             AttributeUpdates={
-                "name": {"Value": team_info["team"]["name"], "Action": "PUT",}
+                "name": {"Value": team_info["team"]["name"], "Action": "PUT"}
             },
         )

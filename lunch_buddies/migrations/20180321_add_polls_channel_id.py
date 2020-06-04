@@ -34,6 +34,6 @@ def migrate():
             continue
 
         dynamo_table.update_item(
-            Key={"team_id": team_id, "created_at": raw_poll["created_at"],},
-            AttributeUpdates={"channel_id": {"Value": channel["id"], "Action": "PUT",}},
+            Key={"team_id": team_id, "created_at": raw_poll["created_at"]},
+            AttributeUpdates={"channel_id": {"Value": channel["id"], "Action": "PUT"}},
         )

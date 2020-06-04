@@ -26,7 +26,7 @@ def mocked_data(mocker):
         "_read_internal",
         auto_spec=True,
         return_value=[
-            {**dynamo_team, "created_at": Decimal(datetime(2020, 1, 31).timestamp()),},
+            {**dynamo_team, "created_at": Decimal(datetime(2020, 1, 31).timestamp())},
         ],
     )
     mocker.patch.object(
@@ -46,7 +46,7 @@ def mocked_data(mocker):
         "_read_internal",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll_response, "user_id": str(i), "response": "yes_1145",}
+            {**dynamo_poll_response, "user_id": str(i), "response": "yes_1145"}
             for i in range(11)
         ],
     )
@@ -124,7 +124,7 @@ def test_find_teams_eligible_for_invoicing(mocker):
         "read",
         auto_spec=True,
         return_value=[
-            {**base_team, "team_id": "1",},
+            {**base_team, "team_id": "1"},
             {
                 **base_team,
                 "team_id": "2",
@@ -187,7 +187,7 @@ def test_get_polls_needing_invoice(mocker):
         "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll, **variants,}
+            {**dynamo_poll, **variants}
             for variants in [
                 {
                     "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
@@ -246,10 +246,10 @@ def test_get_unique_yes_users_from_polls(mocker):
         "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145",},
-            {**dynamo_poll_response, "user_id": "2", "response": "no",},
-            {**dynamo_poll_response, "user_id": "3", "response": "yes_1145",},
-            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145",},
+            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145"},
+            {**dynamo_poll_response, "user_id": "2", "response": "no"},
+            {**dynamo_poll_response, "user_id": "3", "response": "yes_1145"},
+            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145"},
         ],
     )
 

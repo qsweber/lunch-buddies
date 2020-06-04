@@ -18,8 +18,8 @@ def migrate():
         team_id = raw_poll["team_id"]
 
         dynamo_table.update_item(
-            Key={"team_id": team_id, "created_at": raw_poll["created_at"],},
+            Key={"team_id": team_id, "created_at": raw_poll["created_at"]},
             AttributeUpdates={
-                "group_size": {"Value": DEFAULT_GROUP_SIZE, "Action": "PUT",}
+                "group_size": {"Value": DEFAULT_GROUP_SIZE, "Action": "PUT"}
             },
         )

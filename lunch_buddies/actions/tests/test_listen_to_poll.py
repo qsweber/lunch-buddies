@@ -117,7 +117,7 @@ def test_listen_to_poll(mocker, mocked_polls):
                     },
                 ],
             },
-            {"text": ":white_check_mark: Your answer of `Yes (11:30)` was received!",},
+            {"text": ":white_check_mark: Your answer of `Yes (11:30)` was received!"},
         ],
         "type": "message",
         "subtype": "bot_message",

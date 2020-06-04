@@ -46,5 +46,5 @@ class DynamoClient:
         table = self.dynamo.Table(table_name)
 
         table.update_item(
-            Key=key, AttributeUpdates={column: {"Value": new_value, "Action": "PUT",}}
+            Key=key, AttributeUpdates={column: {"Value": new_value, "Action": "PUT"}}
         )

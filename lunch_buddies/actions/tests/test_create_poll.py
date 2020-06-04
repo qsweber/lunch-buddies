@@ -39,7 +39,7 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[first_poll,],
+        return_value=[first_poll],
     )
 
     result = module.create_poll(
@@ -79,7 +79,7 @@ def test_create_poll_custom_times(
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[first_poll,],
+        return_value=[first_poll],
     )
 
     result = module.create_poll(
@@ -119,7 +119,7 @@ def test_create_poll_messages_creating_user_if_already_created(
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[first_poll,],
+        return_value=[first_poll],
     )
 
     result = module.create_poll(
@@ -151,7 +151,7 @@ def test_create_poll_works_if_existing_is_old(
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[first_poll,],
+        return_value=[first_poll],
     )
 
     result = module.create_poll(
@@ -256,7 +256,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
 
 
 @pytest.mark.parametrize(
-    "text", [("1145, 1230"), ("1145,1230"), ("  1145,   1230 "),],
+    "text", [("1145, 1230"), ("1145,1230"), ("  1145,   1230 ")],
 )
 def test_parse_message_text_two_options(text):
     actual_choices, actual_group_size = module.parse_message_text(text)
@@ -293,7 +293,7 @@ def test_parse_message_text(text, expected_group_size):
 
 @pytest.mark.parametrize(
     "text, expected_group_size",
-    [("1145,1200 size=3", 3), (" 1145, 1200      size=5", 5),],
+    [("1145,1200 size=3", 3), (" 1145, 1200      size=5", 5)],
 )
 def test_parse_message_text_group_multiple_times(text, expected_group_size):
     actual_choices, actual_group_size = module.parse_message_text(text)

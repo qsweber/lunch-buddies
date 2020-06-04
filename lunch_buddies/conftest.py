@@ -74,7 +74,7 @@ def mocked_polls(mocker):
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[poll_one, dynamo_poll,],
+        return_value=[poll_one, dynamo_poll],
     )
     mocker.patch.object(
         service_context.daos.polls,

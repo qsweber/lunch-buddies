@@ -46,7 +46,7 @@ def test_get_summary_for_poll(mocker):
 
 
 @pytest.mark.parametrize(
-    "rest_of_command, expected", [(" 4 ", 4), (" asdf ", 7), ("asdf 5", 5),]  # default
+    "rest_of_command, expected", [(" 4 ", 4), (" asdf ", 7), ("asdf 5", 5)]  # default
 )
 def test_get_lookback_days(rest_of_command, expected):
     actual = module._get_lookback_days(rest_of_command)

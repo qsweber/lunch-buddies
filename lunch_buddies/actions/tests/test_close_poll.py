@@ -135,7 +135,7 @@ def test_close_poll_messages_creating_user_if_already_closed(
         service_context.daos.polls,
         "_read_internal",
         auto_spec=True,
-        return_value=[poll_one, poll_two,],
+        return_value=[poll_one, poll_two],
     )
 
     result = module.close_poll(

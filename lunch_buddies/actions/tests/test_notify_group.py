@@ -75,7 +75,7 @@ def test_notify_group_feature_notify_in_channel(
         service_context.clients.slack,
         "post_message",
         auto_spec=True,
-        return_value={"ts": "fake_thread_ts",},
+        return_value={"ts": "fake_thread_ts"},
     )
     random.seed(0)
 
