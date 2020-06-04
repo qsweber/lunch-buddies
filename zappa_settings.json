@@ -3,50 +3,49 @@
         "app_function": "lunch_buddies.app.http.app",
         "aws_region": "us-west-2",
         "project_name": "lunch-buddies",
-        "runtime": "python3.6",
+        "runtime": "python3.7",
         "s3_bucket": "zappa-vt9hd6vy9",
         "log_level": "INFO",
         "timeout_seconds": 55,
-        "events": [
-            {
+        "events": [{
                 "function": "lunch_buddies.app.handlers.create_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:polls_to_start",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:polls_to_start",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.poll_users_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:users_to_poll",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:users_to_poll",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.close_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:polls_to_close",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:polls_to_close",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:groups_to_notify",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:groups_to_notify",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.error_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:error",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:error",
                     "batch_size": 1,
                     "enabled": false
-               }
+                }
             }
         ]
     },
@@ -54,50 +53,49 @@
         "app_function": "lunch_buddies.app.http.app",
         "aws_region": "us-west-2",
         "project_name": "lunch-buddies",
-        "runtime": "python3.6",
+        "runtime": "python3.7",
         "s3_bucket": "zappa-vt9hd6vy9",
         "log_level": "INFO",
         "timeout_seconds": 55,
-        "events": [
-            {
+        "events": [{
                 "function": "lunch_buddies.app.handlers.create_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_polls_to_start",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:dev_polls_to_start",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.poll_users_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_users_to_poll",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:dev_users_to_poll",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.close_poll_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_polls_to_close",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:dev_polls_to_close",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.notify_groups_from_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_groups_to_notify",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:dev_groups_to_notify",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             },
             {
                 "function": "lunch_buddies.app.handlers.error_queue",
                 "event_source": {
-                    "arn":  "arn:aws:sqs:us-west-2:120356305272:dev_error",
+                    "arn": "arn:aws:sqs:us-west-2:120356305272:dev_error",
                     "batch_size": 1,
                     "enabled": true
-               }
+                }
             }
         ]
     }
