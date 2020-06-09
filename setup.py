@@ -7,6 +7,5 @@ setup(
     author="Quinn Weber",
     maintainer="Quinn Weber",
     maintainer_email="quinn@quinnweber.com",
-    # install_requires=("flask", "boto3",),
     package_dir={"": "src"},
 )
