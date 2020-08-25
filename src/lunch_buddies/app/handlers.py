@@ -99,4 +99,4 @@ def error_queue(message: SqsMessage) -> None:
 
 
 def invoice(*args) -> None:
-    invoice_action(service_context)
+    invoice_action(service_context, True)

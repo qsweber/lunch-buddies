@@ -25,3 +25,26 @@ def run() -> None:
         spamwriter.writerow(poll_responses[0]._asdict())  # header
         for poll_response in poll_responses:
             spamwriter.writerow(poll_response._asdict().values())
+
+
+"""
+library(data.table)
+teams = data.table(read.csv('~/qsweber/lunch-buddies/.export/teams.csv', stringsAsFactors = F))
+polls = data.table(read.csv('~/qsweber/lunch-buddies/.export/polls.csv', stringsAsFactors = F))
+poll_responses = data.table(read.csv('~/qsweber/lunch-buddies/.export/poll_responses.csv', stringsAsFactors = F))
+merge(
+    merge(
+        teams[order(created_at),list(name, team_id, team_created_at=created_at)],
+        polls[,list(team_id, callback_id, poll_created_at=created_at)],
+        by='team_id',
+        all.x=T
+    ),
+    poll_responses[,list(
+        count=.N,
+        count_yes=nrow(.SD[grepl('yes', response, fixed=T)]),
+        count_no=nrow(.SD[grepl('no', response, fixed=T)])
+    ), by=list(callback_id)],
+    by='callback_id',
+    all.x=T
+)[order(team_created_at, poll_created_at)]
+"""

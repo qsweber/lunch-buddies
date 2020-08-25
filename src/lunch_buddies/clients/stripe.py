@@ -51,6 +51,9 @@ class StripeClient:
         )
 
     def latest_invoice_for_customer(self, customer_id: str) -> Optional[Invoice]:
+        if not self.stripe:
+            return None
+
         invoices = self.stripe.Invoice.list(customer=customer_id, limit=1)
 
         if len(invoices["data"]) == 0:
