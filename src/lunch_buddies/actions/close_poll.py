@@ -48,7 +48,14 @@ def close_poll(
     poll_responses = poll_responses_dao.read("callback_id", str(poll.callback_id))
 
     if not poll_responses:
-        raise Exception("no responses found for poll")
+        slack_client.post_message(
+            bot_access_token=team.bot_access_token,
+            channel=message.user_id,
+            as_user=True,
+            text="No poll responses found",
+        )
+        polls_dao.mark_poll_closed(poll=poll)
+        return []
 
     poll_responses_by_choice = _group_by_answer(poll_responses, poll)
 

@@ -158,6 +158,38 @@ def test_close_poll_messages_creating_user_if_already_closed(
     assert result == []
 
 
+def test_close_poll_messages_creating_user_if_no_responses(
+    mocker, mocked_team, mocked_polls, mocked_slack
+):
+    mocker.patch.object(
+        service_context.daos.poll_responses,
+        "_read_internal",
+        auto_spec=True,
+        return_value=[],
+    )
+
+    result = module.close_poll(
+        PollsToCloseMessage(
+            team_id="123", channel_id="test_channel_id", user_id="closing_user_id",
+        ),
+        service_context.clients.slack,
+        service_context.daos.polls,
+        service_context.daos.poll_responses,
+        service_context.daos.teams,
+    )
+
+    service_context.clients.slack.post_message.assert_called_with(
+        bot_access_token=team.bot_access_token,
+        channel="closing_user_id",
+        as_user=True,
+        text="No poll responses found",
+    )
+
+    service_context.daos.polls.mark_poll_closed.assert_called_with(poll=poll,)
+
+    assert result == []
+
+
 def test_close_poll_messages_creating_user_if_does_not_exist(
     mocker, mocked_team, mocked_polls, mocked_slack
 ):
