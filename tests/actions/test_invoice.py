@@ -89,6 +89,14 @@ def test_invoice(mocker, mocked_data):
     )
 
 
+def test_invoice_dry_run(mocker, mocked_data):
+    module.invoice(service_context, True)
+
+    service_context.clients.stripe.create_invoice.assert_not_called()
+
+    service_context.daos.polls.mark_poll_invoiced.assert_not_called()
+
+
 def test_invoice_when_not_first_invoice(mocker, mocked_data):
     mocker.patch.object(
         service_context.clients.stripe,
