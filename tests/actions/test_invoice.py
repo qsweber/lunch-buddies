@@ -97,6 +97,23 @@ def test_invoice_dry_run(mocker, mocked_data):
     service_context.daos.polls.mark_poll_invoiced.assert_not_called()
 
 
+def test_invoice_line_item_zero(mocker, mocked_data):
+    mocker.patch.object(
+        service_context.daos.poll_responses,
+        "_read_internal",
+        auto_spec=True,
+        return_value=[
+            {**dynamo_poll_response, "user_id": str(i), "response": "no"}
+            for i in range(11)
+        ],
+    )
+    module.invoice(service_context, True)
+
+    service_context.clients.stripe.create_invoice.assert_not_called()
+
+    service_context.daos.polls.mark_poll_invoiced.assert_not_called()
+
+
 def test_invoice_when_not_first_invoice(mocker, mocked_data):
     mocker.patch.object(
         service_context.clients.stripe,

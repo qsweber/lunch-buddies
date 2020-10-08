@@ -21,21 +21,26 @@ def invoice(service_context: ServiceContext, dry_run: bool) -> None:
             raise Exception("making mypy happy")
         polls = _get_polls_needing_invoice(service_context, team)
         line_item = _get_line_item(service_context, team, polls)
+
+        if line_item.amount == 0:
+            logger.info("No need to invoice team {}".format(team.name))
+            continue
+
         if dry_run:
             logger.info(
                 "Would invoice team {} with {}".format(
                     team.name, dumps(line_item._asdict())
                 )
             )
-        else:
+            continue
 
-            invoice = service_context.clients.stripe.create_invoice(
-                Customer(id=team.stripe_customer_id,), [line_item],
-            )
+        invoice = service_context.clients.stripe.create_invoice(
+            Customer(id=team.stripe_customer_id,), [line_item],
+        )
 
-            if invoice:
-                for poll in polls:
-                    service_context.daos.polls.mark_poll_invoiced(poll, invoice.id)
+        if invoice:
+            for poll in polls:
+                service_context.daos.polls.mark_poll_invoiced(poll, invoice.id)
 
     return None
 
