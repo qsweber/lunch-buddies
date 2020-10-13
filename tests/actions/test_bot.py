@@ -82,7 +82,10 @@ def test_bot_help(mocker, mocked_slack, mocked_team):
 
 def test_bot_create(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        module, "queue_create_poll", return_value="mocked_return_value", auto_spec=True,
+        module,
+        "queue_create_poll",
+        return_value="mocked_return_value",
+        auto_spec=True,
     )
 
     module.bot(
@@ -116,7 +119,10 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
 
 def test_bot_close(mocker, mocked_slack, mocked_team):
     mocker.patch.object(
-        module, "queue_close_poll", return_value="mocked_return_value", auto_spec=True,
+        module,
+        "queue_close_poll",
+        return_value="mocked_return_value",
+        auto_spec=True,
     )
 
     module.bot(

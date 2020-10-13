@@ -20,7 +20,10 @@ def test_auth(mocker, mocked_slack):
         return_value=True,
     )
     mocker.patch.object(
-        service_context.daos.teams, "_read_internal", auto_spec=True, return_value=[],
+        service_context.daos.teams,
+        "_read_internal",
+        auto_spec=True,
+        return_value=[],
     )
     mocker.patch.object(
         service_context.clients.http,
@@ -29,7 +32,10 @@ def test_auth(mocker, mocked_slack):
         return_value=mocker.Mock(text=json.dumps(oath_response)),
     )
     mocker.patch.object(
-        module, "_get_created_at", auto_spec=True, return_value=team.created_at,
+        module,
+        "_get_created_at",
+        auto_spec=True,
+        return_value=team.created_at,
     )
     mocker.patch.object(
         service_context.clients.slack,
@@ -48,7 +54,8 @@ def test_auth(mocker, mocked_slack):
     os.environ["CLIENT_SECRET"] = "test_client_secret"
 
     module.auth(
-        Auth(code="test_code"), service_context,
+        Auth(code="test_code"),
+        service_context,
     )
 
     service_context.daos.teams._create_internal.assert_called_with(dynamo_team)
@@ -67,16 +74,22 @@ def test_auth(mocker, mocked_slack):
         },
     )
     service_context.clients.slack.get_user_name_email.assert_called_with(
-        bot_access_token=team.bot_access_token, user_id="fake-user-id",
+        bot_access_token=team.bot_access_token,
+        user_id="fake-user-id",
     )
     service_context.clients.stripe.create_customer.assert_called_with(
-        name="Test Name", email="test@example.com", team_name="fake-team-name",
+        name="Test Name",
+        email="test@example.com",
+        team_name="fake-team-name",
     )
 
 
 def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
     mocker.patch.object(
-        service_context.daos.teams.dynamo, "update", auto_spec=True, return_value=True,
+        service_context.daos.teams.dynamo,
+        "update",
+        auto_spec=True,
+        return_value=True,
     )
     mocker.patch.object(
         service_context.daos.teams,
@@ -102,7 +115,10 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         return_value=mocker.Mock(text=json.dumps(oath_response)),
     )
     mocker.patch.object(
-        module, "_get_created_at", auto_spec=True, return_value=team.created_at,
+        module,
+        "_get_created_at",
+        auto_spec=True,
+        return_value=team.created_at,
     )
     mocker.patch.object(
         service_context.clients.slack,
@@ -121,13 +137,17 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
     os.environ["CLIENT_SECRET"] = "test_client_secret"
 
     module.auth(
-        Auth(code="test_code"), service_context,
+        Auth(code="test_code"),
+        service_context,
     )
 
     service_context.daos.teams.dynamo.update.assert_has_calls(
         [
             mocker.call(
-                "lunch_buddies_Team", {"team_id": "123"}, "name", "updated team name",
+                "lunch_buddies_Team",
+                {"team_id": "123"},
+                "name",
+                "updated team name",
             ),
             mocker.call(
                 "lunch_buddies_Team",
@@ -152,16 +172,22 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         },
     )
     service_context.clients.slack.get_user_name_email.assert_called_with(
-        bot_access_token=team.bot_access_token, user_id="fake-user-id",
+        bot_access_token=team.bot_access_token,
+        user_id="fake-user-id",
     )
     service_context.clients.stripe.create_customer.assert_called_with(
-        name="Test Name", email="test@example.com", team_name="updated team name",
+        name="Test Name",
+        email="test@example.com",
+        team_name="updated team name",
     )
 
 
 def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
     mocker.patch.object(
-        service_context.daos.teams.dynamo, "update", auto_spec=True, return_value=True,
+        service_context.daos.teams.dynamo,
+        "update",
+        auto_spec=True,
+        return_value=True,
     )
     mocker.patch.object(
         service_context.daos.teams,
@@ -177,7 +203,10 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         return_value=mocker.Mock(text=json.dumps(oath_response)),
     )
     mocker.patch.object(
-        module, "_get_created_at", auto_spec=True, return_value=team.created_at,
+        module,
+        "_get_created_at",
+        auto_spec=True,
+        return_value=team.created_at,
     )
     mocker.patch.object(
         service_context.clients.slack,
@@ -196,13 +225,17 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
     os.environ["CLIENT_SECRET"] = "test_client_secret"
 
     module.auth(
-        Auth(code="test_code"), service_context,
+        Auth(code="test_code"),
+        service_context,
     )
 
     service_context.daos.teams.dynamo.update.assert_has_calls(
         [
             mocker.call(
-                "lunch_buddies_Team", {"team_id": "123"}, "name", "updated team name",
+                "lunch_buddies_Team",
+                {"team_id": "123"},
+                "name",
+                "updated team name",
             ),
         ]
     )
@@ -221,7 +254,8 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         },
     )
     service_context.clients.slack.get_user_name_email.assert_called_with(
-        bot_access_token=team.bot_access_token, user_id="fake-user-id",
+        bot_access_token=team.bot_access_token,
+        user_id="fake-user-id",
     )
     service_context.clients.stripe.update_customer.assert_called_with(
         customer_id="fake-stripe-customer-id",

@@ -49,7 +49,9 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         "response_key": "yes_1130",
     }
 
-    mocked_groups_dao_create_internal.assert_called_with(expected_group,)
+    mocked_groups_dao_create_internal.assert_called_with(
+        expected_group,
+    )
 
     assert service_context.clients.slack.post_message.call_count == 1
 

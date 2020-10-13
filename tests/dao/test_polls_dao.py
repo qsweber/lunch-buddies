@@ -27,7 +27,12 @@ from tests.fixtures import poll, dynamo_poll
                         time="12:00",
                         display_text="Yes (12:00)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id="fake-stripe-invoice-id",
@@ -59,7 +64,12 @@ from tests.fixtures import poll, dynamo_poll
                         time="12:00",
                         display_text="Yes (12:00)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id="fake-stripe-invoice-id",
@@ -116,7 +126,12 @@ def test_roundtrip_convert(model, dynamo):
                         time="12:00",
                         display_text="Yes (12:00)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id=None,
@@ -147,7 +162,12 @@ def test_roundtrip_convert(model, dynamo):
                         time="12:00",
                         display_text="Yes (12:00)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id="fake-stripe-invoice-id",
@@ -184,7 +204,12 @@ def test_roundtrip_convert(model, dynamo):
                         time="12:30",
                         display_text="Yes (12:30)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id="fake-stripe-invoice-id",
@@ -221,7 +246,12 @@ def test_roundtrip_convert(model, dynamo):
                         time="12:30",
                         display_text="Yes (12:30)",
                     ),
-                    Choice(key="no", is_yes=False, time="", display_text="No",),
+                    Choice(
+                        key="no",
+                        is_yes=False,
+                        time="",
+                        display_text="No",
+                    ),
                 ],
                 group_size=6,
                 stripe_invoice_id="fake-stripe-invoice-id",
@@ -342,7 +372,10 @@ def test_find_by_callback_id_or_die_multiple_matching(mocker):
 
 def test_mark_poll_closed(mocker):
     mocker.patch.object(
-        service_context.daos.polls.dynamo, "update", auto_spec=True, return_value=None,
+        service_context.daos.polls.dynamo,
+        "update",
+        auto_spec=True,
+        return_value=None,
     )
 
     service_context.daos.polls.mark_poll_closed(poll)
@@ -357,11 +390,15 @@ def test_mark_poll_closed(mocker):
 
 def test_create(mocker):
     mocker.patch.object(
-        service_context.daos.polls.dynamo, "create", auto_spec=True, return_value=None,
+        service_context.daos.polls.dynamo,
+        "create",
+        auto_spec=True,
+        return_value=None,
     )
 
     service_context.daos.polls.create(poll)
 
     service_context.daos.polls.dynamo.create.assert_called_with(
-        "lunch_buddies_Poll", dynamo_poll,
+        "lunch_buddies_Poll",
+        dynamo_poll,
     )

@@ -38,7 +38,9 @@ def mocked_poll_responses(mocker):
 def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
     result = module.close_poll(
         PollsToCloseMessage(
-            team_id="123", channel_id="test_channel_id", user_id="abc",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="abc",
         ),
         None,
         service_context.daos.polls,
@@ -46,7 +48,9 @@ def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(poll=poll,)
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
+        poll=poll,
+    )
 
     assert result == [
         GroupsToNotifyMessage(
@@ -72,14 +76,20 @@ def test_close_poll_null_channel(
     )
 
     result = module.close_poll(
-        PollsToCloseMessage(team_id="123", channel_id="", user_id="abc",),
+        PollsToCloseMessage(
+            team_id="123",
+            channel_id="",
+            user_id="abc",
+        ),
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.poll_responses,
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(poll=poll,)
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
+        poll=poll,
+    )
 
     assert result == [
         GroupsToNotifyMessage(
@@ -105,14 +115,20 @@ def test_close_poll_null_channel_no_default_channel(
     )
 
     result = module.close_poll(
-        PollsToCloseMessage(team_id="123", channel_id="", user_id="abc",),
+        PollsToCloseMessage(
+            team_id="123",
+            channel_id="",
+            user_id="abc",
+        ),
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.poll_responses,
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(poll=poll,)
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
+        poll=poll,
+    )
 
     assert result == [
         GroupsToNotifyMessage(
@@ -140,7 +156,9 @@ def test_close_poll_messages_creating_user_if_already_closed(
 
     result = module.close_poll(
         PollsToCloseMessage(
-            team_id="123", channel_id="test_channel_id", user_id="closing_user_id",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="closing_user_id",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -170,7 +188,9 @@ def test_close_poll_messages_creating_user_if_no_responses(
 
     result = module.close_poll(
         PollsToCloseMessage(
-            team_id="123", channel_id="test_channel_id", user_id="closing_user_id",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="closing_user_id",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -185,7 +205,9 @@ def test_close_poll_messages_creating_user_if_no_responses(
         text="No poll responses found",
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(poll=poll,)
+    service_context.daos.polls.mark_poll_closed.assert_called_with(
+        poll=poll,
+    )
 
     assert result == []
 
@@ -195,7 +217,9 @@ def test_close_poll_messages_creating_user_if_does_not_exist(
 ):
     result = module.close_poll(
         PollsToCloseMessage(
-            team_id="123", channel_id="wrong_channel_id", user_id="closing_user_id",
+            team_id="123",
+            channel_id="wrong_channel_id",
+            user_id="closing_user_id",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -285,18 +309,29 @@ def test_get_groups_works_for_all_company_sizes(elements):
 
 def test_group_by_answer():
     choice_1145 = Choice(
-        key="yes_1145", is_yes=True, time="11:45", display_text="Yes (11:45)",
+        key="yes_1145",
+        is_yes=True,
+        time="11:45",
+        display_text="Yes (11:45)",
     )
 
     choice_1230 = Choice(
-        key="yes_1230", is_yes=True, time="12:30", display_text="Yes (12:30)",
+        key="yes_1230",
+        is_yes=True,
+        time="12:30",
+        display_text="Yes (12:30)",
     )
 
     updated_poll = poll._replace(
         choices=[
             choice_1145,
             choice_1230,
-            Choice(key="no", is_yes=False, time="", display_text="No",),
+            Choice(
+                key="no",
+                is_yes=False,
+                time="",
+                display_text="No",
+            ),
         ]
     )
 

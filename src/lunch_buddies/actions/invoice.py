@@ -35,7 +35,10 @@ def invoice(service_context: ServiceContext, dry_run: bool) -> None:
             continue
 
         invoice = service_context.clients.stripe.create_invoice(
-            Customer(id=team.stripe_customer_id,), [line_item],
+            Customer(
+                id=team.stripe_customer_id,
+            ),
+            [line_item],
         )
 
         if invoice:

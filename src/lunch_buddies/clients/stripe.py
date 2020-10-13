@@ -35,7 +35,9 @@ class StripeClient:
             return None
 
         response = self.stripe.Customer.create(
-            name=name, email=email, description=team_name,
+            name=name,
+            email=email,
+            description=team_name,
         )
 
         return Customer(id=response["id"])

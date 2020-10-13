@@ -19,7 +19,10 @@ EXPECTED_UUID = UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb")
 @pytest.fixture
 def mocked_module(mocker):
     mocker.patch.object(
-        create_poll_module, "_get_uuid", auto_spec=True, return_value=EXPECTED_UUID,
+        create_poll_module,
+        "_get_uuid",
+        auto_spec=True,
+        return_value=EXPECTED_UUID,
     )
 
     d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
@@ -27,7 +30,10 @@ def mocked_module(mocker):
     d_aware = timezone.localize(d_naive)
 
     mocker.patch.object(
-        create_poll_module, "_get_created_at", auto_spec=True, return_value=d_aware,
+        create_poll_module,
+        "_get_created_at",
+        auto_spec=True,
+        return_value=d_aware,
     )
 
 
@@ -44,7 +50,10 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
 
     result = module.create_poll(
         PollsToStartMessage(
-            team_id="123", channel_id="test_channel_id", user_id="456", text="",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="456",
+            text="",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -61,10 +70,14 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
 
     assert result == [
         UsersToPollMessage(
-            team_id="123", user_id="user_id_one", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_one",
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
-            team_id="123", user_id="user_id_two", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_two",
+            callback_id=EXPECTED_UUID,
         ),
     ]
 
@@ -84,7 +97,10 @@ def test_create_poll_custom_times(
 
     result = module.create_poll(
         PollsToStartMessage(
-            team_id="123", channel_id="test_channel_id", user_id="456", text="1213",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="456",
+            text="1213",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -101,10 +117,14 @@ def test_create_poll_custom_times(
 
     assert result == [
         UsersToPollMessage(
-            team_id="123", user_id="user_id_one", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_one",
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
-            team_id="123", user_id="user_id_two", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_two",
+            callback_id=EXPECTED_UUID,
         ),
     ]
 
@@ -124,7 +144,10 @@ def test_create_poll_messages_creating_user_if_already_created(
 
     result = module.create_poll(
         PollsToStartMessage(
-            team_id="123", channel_id="test_channel_id", user_id="456", text="",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="456",
+            text="",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -156,7 +179,10 @@ def test_create_poll_works_if_existing_is_old(
 
     result = module.create_poll(
         PollsToStartMessage(
-            team_id="123", channel_id="test_channel_id", user_id="456", text="",
+            team_id="123",
+            channel_id="test_channel_id",
+            user_id="456",
+            text="",
         ),
         service_context.clients.slack,
         service_context.daos.polls,
@@ -173,10 +199,14 @@ def test_create_poll_works_if_existing_is_old(
 
     assert result == [
         UsersToPollMessage(
-            team_id="123", user_id="user_id_one", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_one",
+            callback_id=EXPECTED_UUID,
         ),
         UsersToPollMessage(
-            team_id="123", user_id="user_id_two", callback_id=EXPECTED_UUID,
+            team_id="123",
+            user_id="user_id_two",
+            callback_id=EXPECTED_UUID,
         ),
     ]
 
@@ -199,7 +229,12 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(
     )
 
     result = module.create_poll(
-        PollsToStartMessage(team_id="123", channel_id="", user_id="456", text="",),
+        PollsToStartMessage(
+            team_id="123",
+            channel_id="",
+            user_id="456",
+            text="",
+        ),
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.teams,
@@ -239,7 +274,12 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
     )
 
     result = module.create_poll(
-        PollsToStartMessage(team_id="123", channel_id="", user_id="456", text="",),
+        PollsToStartMessage(
+            team_id="123",
+            channel_id="",
+            user_id="456",
+            text="",
+        ),
         service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.teams,
@@ -256,15 +296,31 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
 
 
 @pytest.mark.parametrize(
-    "text", [("1145, 1230"), ("1145,1230"), ("  1145,   1230 ")],
+    "text",
+    [("1145, 1230"), ("1145,1230"), ("  1145,   1230 ")],
 )
 def test_parse_message_text_two_options(text):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [
-        Choice(key="yes_1145", is_yes=True, time="11:45", display_text="Yes (11:45)",),
-        Choice(key="yes_1230", is_yes=True, time="12:30", display_text="Yes (12:30)",),
-        Choice(key="no", is_yes=False, time="", display_text="No",),
+        Choice(
+            key="yes_1145",
+            is_yes=True,
+            time="11:45",
+            display_text="Yes (11:45)",
+        ),
+        Choice(
+            key="yes_1230",
+            is_yes=True,
+            time="12:30",
+            display_text="Yes (12:30)",
+        ),
+        Choice(
+            key="no",
+            is_yes=False,
+            time="",
+            display_text="No",
+        ),
     ]
 
     assert actual_choices == expected
@@ -283,8 +339,18 @@ def test_parse_message_text(text, expected_group_size):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [
-        Choice(key="yes_1200", is_yes=True, time="12:00", display_text="Yes (12:00)",),
-        Choice(key="no", is_yes=False, time="", display_text="No",),
+        Choice(
+            key="yes_1200",
+            is_yes=True,
+            time="12:00",
+            display_text="Yes (12:00)",
+        ),
+        Choice(
+            key="no",
+            is_yes=False,
+            time="",
+            display_text="No",
+        ),
     ]
 
     assert actual_choices == expected
@@ -299,9 +365,24 @@ def test_parse_message_text_group_multiple_times(text, expected_group_size):
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [
-        Choice(key="yes_1145", is_yes=True, time="11:45", display_text="Yes (11:45)",),
-        Choice(key="yes_1200", is_yes=True, time="12:00", display_text="Yes (12:00)",),
-        Choice(key="no", is_yes=False, time="", display_text="No",),
+        Choice(
+            key="yes_1145",
+            is_yes=True,
+            time="11:45",
+            display_text="Yes (11:45)",
+        ),
+        Choice(
+            key="yes_1200",
+            is_yes=True,
+            time="12:00",
+            display_text="Yes (12:00)",
+        ),
+        Choice(
+            key="no",
+            is_yes=False,
+            time="",
+            display_text="No",
+        ),
     ]
 
     assert actual_choices == expected

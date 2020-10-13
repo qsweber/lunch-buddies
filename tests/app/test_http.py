@@ -62,11 +62,17 @@ def test_create_poll_http(mocker, client):
     os.environ["VERIFICATION_TOKEN"] = "test_token"
 
     mocked_queue_create_poll = mocker.patch.object(
-        module, "queue_create_poll", return_value=None, auto_spec=True,
+        module,
+        "queue_create_poll",
+        return_value=None,
+        auto_spec=True,
     )
 
     mocker.patch.object(
-        module, "_validate_team", return_value=None, auto_spec=True,
+        module,
+        "_validate_team",
+        return_value=None,
+        auto_spec=True,
     )
 
     client.post(

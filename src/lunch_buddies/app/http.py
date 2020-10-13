@@ -22,7 +22,12 @@ from lunch_buddies.lib.service_context import service_context
 
 
 app = Flask(__name__)
-sentry = Sentry(app, client=Client(transport=RequestsHTTPTransport,),)
+sentry = Sentry(
+    app,
+    client=Client(
+        transport=RequestsHTTPTransport,
+    ),
+)
 logger = logging.getLogger(__name__)
 
 
@@ -144,7 +149,9 @@ def auth_http() -> WResponse:
     """
     Authorize a new workspace
     """
-    request_form = Auth(code=request.args["code"],)
+    request_form = Auth(
+        code=request.args["code"],
+    )
 
     auth_action(request_form, service_context)
 
@@ -164,7 +171,8 @@ def bot_http() -> Tuple[str, int]:
     request_form = parse_raw_request(raw_request_form)
 
     bot_action(
-        request_form, service_context,
+        request_form,
+        service_context,
     )
 
     return "ok", 200

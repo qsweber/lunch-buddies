@@ -32,5 +32,8 @@ CLOSE_POLL = (
 SUPPORT_LINE = "If you have any questions, comments or concerns, please send an email to support@lunchbuddiesapp.com"
 
 APP_EXPLANATION = "{}\n\n{}\n\n{}\n\n{}".format(
-    TAG_LINE, CREATE_POLL, CLOSE_POLL, SUPPORT_LINE,
+    TAG_LINE,
+    CREATE_POLL,
+    CLOSE_POLL,
+    SUPPORT_LINE,
 )

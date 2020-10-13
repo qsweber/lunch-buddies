@@ -27,7 +27,8 @@ def queue_create_poll(request_form: CreatePoll, service_context: ServiceContext)
     )
 
     service_context.clients.sqs_v2.send_messages(
-        "polls_to_start", cast(List[NamedTuple], [message]),
+        "polls_to_start",
+        cast(List[NamedTuple], [message]),
     )
 
     return "ok!"

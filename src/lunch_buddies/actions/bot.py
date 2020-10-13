@@ -14,7 +14,10 @@ from lunch_buddies.lib.service_context import ServiceContext
 logger = logging.getLogger(__name__)
 
 
-def bot(message: BotMention, service_context: ServiceContext,) -> None:
+def bot(
+    message: BotMention,
+    service_context: ServiceContext,
+) -> None:
     logger.info("Input: {}".format(message.text))
 
     parsed_text = _parse_message(message)
@@ -26,7 +29,10 @@ def bot(message: BotMention, service_context: ServiceContext,) -> None:
 
     first_word, rest_of_command = parsed_text
     logger.info(
-        "First word: {}, Rest of command: {}".format(first_word, rest_of_command,)
+        "First word: {}, Rest of command: {}".format(
+            first_word,
+            rest_of_command,
+        )
     )
 
     if first_word == "create":

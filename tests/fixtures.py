@@ -50,9 +50,24 @@ poll = Poll(
     callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
     state="CREATED",
     choices=[
-        Choice(key="yes_1130", is_yes=True, time="11:30", display_text="Yes (11:30)",),
-        Choice(key="yes_1230", is_yes=True, time="12:30", display_text="Yes (12:30)",),
-        Choice(key="no", is_yes=False, time="", display_text="No",),
+        Choice(
+            key="yes_1130",
+            is_yes=True,
+            time="11:30",
+            display_text="Yes (11:30)",
+        ),
+        Choice(
+            key="yes_1230",
+            is_yes=True,
+            time="12:30",
+            display_text="Yes (12:30)",
+        ),
+        Choice(
+            key="no",
+            is_yes=False,
+            time="",
+            display_text="No",
+        ),
     ],
     group_size=6,
     stripe_invoice_id=None,

@@ -89,7 +89,9 @@ class SqsClient:
         account_id = arn_parts[4]
         queue_name = arn_parts[5]
         return "https://sqs.{}.amazonaws.com/{}/{}".format(
-            region, account_id, queue_name,
+            region,
+            account_id,
+            queue_name,
         )
 
     def _parse_sqs_message(self, raw: dict) -> SqsMessage:

@@ -53,7 +53,8 @@ def _notify_private_group(
         )
     )
     conversation = slack_client.open_conversation(
-        bot_access_token=team.bot_access_token, users=",".join(message.user_ids),
+        bot_access_token=team.bot_access_token,
+        users=",".join(message.user_ids),
     )
     slack_client.post_message(
         bot_access_token=team.bot_access_token,

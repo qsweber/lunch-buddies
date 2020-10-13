@@ -10,7 +10,10 @@ T = TypeVar("T")
 
 class Dao(Generic[T]):
     def __init__(
-        self, dynamo: DynamoClient, table_name: str, unique_key: List[str],
+        self,
+        dynamo: DynamoClient,
+        table_name: str,
+        unique_key: List[str],
     ) -> None:
         self.dynamo = dynamo
         self.table_name = table_name

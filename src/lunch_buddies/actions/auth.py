@@ -11,7 +11,10 @@ from lunch_buddies.types import Auth
 logger = logging.getLogger(__name__)
 
 
-def auth(request_form: Auth, service_context: ServiceContext,) -> None:
+def auth(
+    request_form: Auth,
+    service_context: ServiceContext,
+) -> None:
     response = json.loads(
         service_context.clients.http.get(
             url="https://slack.com/api/oauth.access",

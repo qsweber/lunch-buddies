@@ -59,7 +59,10 @@ def _get_summary_for_poll(poll: Poll, groups_dao: GroupsDao, user_tz: str) -> st
         .strftime("%B %d, %Y")
     )
 
-    header = "*{}: started by* <@{}>".format(created_at, poll.created_by_user_id,)
+    header = "*{}: started by* <@{}>".format(
+        created_at,
+        poll.created_by_user_id,
+    )
 
     groups = groups_dao.read("callback_id", str(poll.callback_id))
 

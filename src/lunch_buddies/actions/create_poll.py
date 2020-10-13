@@ -92,7 +92,9 @@ def create_poll(
 
 
 def _get_default_channel_id(
-    message: PollsToStartMessage, slack_client: SlackClient, team: Team,
+    message: PollsToStartMessage,
+    slack_client: SlackClient,
+    team: Team,
 ):
     try:
         default_channel = slack_client.get_channel(
@@ -158,7 +160,14 @@ def parse_message_text(text: str) -> Tuple[List[Choice], int]:
     options = list(map(lambda o: o.strip(), text.split(",")))
 
     choices = list(map(get_choice_from_raw_option, options))
-    choices.append(Choice(key="no", is_yes=False, time="", display_text="No",))
+    choices.append(
+        Choice(
+            key="no",
+            is_yes=False,
+            time="",
+            display_text="No",
+        )
+    )
 
     return choices, group_size
 
