@@ -17,7 +17,7 @@ def auth(
 ) -> None:
     response = json.loads(
         service_context.clients.http.get(
-            url="https://slack.com/api/oauth.access",
+            url="https://slack.com/oauth/v2/authorize",
             params={
                 "client_id": os.environ["CLIENT_ID"],
                 "client_secret": os.environ["CLIENT_SECRET"],
