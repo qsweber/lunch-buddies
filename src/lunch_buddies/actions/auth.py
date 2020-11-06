@@ -15,16 +15,16 @@ def auth(
     request_form: Auth,
     service_context: ServiceContext,
 ) -> None:
-    foo = service_context.clients.http.get(
-        url="https://slack.com/oauth/v2/authorize",
-        params={
-            "client_id": os.environ["CLIENT_ID"],
-            "client_secret": os.environ["CLIENT_SECRET"],
-            "code": request_form.code,
-        },
+    response = json.loads(
+        service_context.clients.http.get(
+            url="https://slack.com/api/oauth.v2.access",
+            params={
+                "client_id": os.environ["CLIENT_ID"],
+                "client_secret": os.environ["CLIENT_SECRET"],
+                "code": request_form.code,
+            },
+        ).text
     )
-    print(foo)
-    response = json.loads(foo.text)
 
     logger.info("Auth response: {}".format(json.dumps(response)))
 

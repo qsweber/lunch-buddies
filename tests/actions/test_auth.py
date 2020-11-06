@@ -66,7 +66,7 @@ def test_auth(mocker, mocked_slack):
         text="Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.\n\nFor information about pricing, check out https://www.lunchbuddiesapp.com/pricing/",
     )
     service_context.clients.http.get.assert_called_with(
-        url="https://slack.com/oauth/v2/authorize",
+        url="https://slack.com/api/oauth.v2.access",
         params={
             "client_id": "test_client_id",
             "client_secret": "test_client_secret",
@@ -164,7 +164,7 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         text="Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.",
     )
     service_context.clients.http.get.assert_called_with(
-        url="https://slack.com/oauth/v2/authorize",
+        url="https://slack.com/api/oauth.v2.access",
         params={
             "client_id": "test_client_id",
             "client_secret": "test_client_secret",
@@ -246,7 +246,7 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         text="Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`.\n\nFor information about pricing, check out https://www.lunchbuddiesapp.com/pricing/",
     )
     service_context.clients.http.get.assert_called_with(
-        url="https://slack.com/oauth/v2/authorize",
+        url="https://slack.com/api/oauth.v2.access",
         params={
             "client_id": "test_client_id",
             "client_secret": "test_client_secret",
