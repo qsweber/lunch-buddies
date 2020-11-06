@@ -153,6 +153,8 @@ def auth_http() -> WResponse:
         code=request.args["code"],
     )
 
+    logger.info(json.dumps(request_form))
+
     auth_action(request_form, service_context)
 
     return redirect("https://www.lunchbuddiesapp.com/registration/")
