@@ -5,7 +5,7 @@ import lunch_buddies.actions.auth as module
 from lunch_buddies.types import Auth
 from lunch_buddies.lib.service_context import service_context
 from tests.fixtures import (
-    oath_response,
+    oauth2_response,
     team,
     dynamo_team,
     stripe_customer,
@@ -29,7 +29,7 @@ def test_auth(mocker, mocked_slack):
         service_context.clients.http,
         "get",
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(oath_response)),
+        return_value=mocker.Mock(text=json.dumps(oauth2_response)),
     )
     mocker.patch.object(
         module,
@@ -97,22 +97,17 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         auto_spec=True,
         return_value=[
             {
-                "team_id": "123",
-                "access_token": "fake-token",
-                "name": "fake-team-name",
-                "bot_access_token": "fake-bot-token",
-                "created_at": 1585153363.983078,
-                "feature_notify_in_channel": 1,
+                **dynamo_team,
                 "stripe_customer_id": None,
             }
         ],
     )
-    oath_response["team_name"] = "updated team name"
+    oauth2_response["team"]["name"] = "updated team name"
     mocker.patch.object(
         service_context.clients.http,
         "get",
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(oath_response)),
+        return_value=mocker.Mock(text=json.dumps(oauth2_response)),
     )
     mocker.patch.object(
         module,
@@ -195,12 +190,12 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         auto_spec=True,
         return_value=[dynamo_team],
     )
-    oath_response["team_name"] = "updated team name"
+    oauth2_response["team"]["name"] = "updated team name"
     mocker.patch.object(
         service_context.clients.http,
         "get",
         auto_spec=True,
-        return_value=mocker.Mock(text=json.dumps(oath_response)),
+        return_value=mocker.Mock(text=json.dumps(oauth2_response)),
     )
     mocker.patch.object(
         module,

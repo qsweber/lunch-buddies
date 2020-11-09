@@ -10,7 +10,7 @@ from lunch_buddies.clients.stripe import Customer
 
 dynamo_team = {
     "team_id": "123",
-    "access_token": "fake-token",
+    "access_token": "DEPRECATED",
     "name": "fake-team-name",
     "bot_access_token": "fake-bot-token",
     "created_at": 1585153363.983078,
@@ -21,7 +21,7 @@ dynamo_team = {
 
 team = Team(
     team_id="123",
-    access_token="fake-token",
+    access_token="DEPRECATED",
     name="fake-team-name",
     bot_access_token="fake-bot-token",
     created_at=datetime.fromtimestamp(1585153363.983078),
@@ -38,6 +38,18 @@ oath_response = {
     "team_name": "fake-team-name",
     "team_id": "123",
     "bot": {"bot_user_id": "U8PRM6XHN", "bot_access_token": "fake-bot-token"},
+}
+
+oauth2_response = {
+    "ok": True,
+    "app_id": "foo",
+    "authed_user": {"id": "fake-user-id"},
+    "scope": "channels:read,chat:write,commands,groups:read,im:history,im:read,im:write,mpim:history,mpim:read,mpim:write,team:read,users:read,users:read.email,users:write",
+    "token_type": "bot",
+    "access_token": "fake-bot-token",
+    "bot_user_id": "U8PRM6XHN",
+    "team": {"id": "123", "name": "fake-team-name"},
+    "enterprise": None,
 }
 
 stripe_customer = Customer(id="fake-stripe-customer-id")
