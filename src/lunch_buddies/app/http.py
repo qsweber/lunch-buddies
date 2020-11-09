@@ -12,6 +12,7 @@ from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.actions.auth import auth as auth_action
+from lunch_buddies.actions.oauth2 import oauth2 as oauth2_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
@@ -153,7 +154,12 @@ def auth_http() -> WResponse:
         code=request.args["code"],
     )
 
-    auth_action(request_form, service_context)
+    if "foo" in request.args:
+        logger.info("Oauth2")
+        oauth2_action(request_form, service_context)
+    else:
+        logger.info("Old deprecated auth")
+        auth_action(request_form, service_context)
 
     return redirect("https://www.lunchbuddiesapp.com/registration/")
 
