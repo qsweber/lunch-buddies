@@ -142,6 +142,7 @@ def install_http() -> WResponse:
     """
     Install a new workspace
     """
+    logger.info("{} {}".format(request.url, json.dumps(request.args)))
     return redirect(os.environ["AUTH_URL"])
 
 
@@ -150,10 +151,11 @@ def auth_http() -> WResponse:
     """
     Authorize a new workspace
     """
+    logger.info("{} {}".format(request.url, json.dumps(request.args)))
+
     request_form = Auth(
         code=request.args["code"],
     )
-    logger.info("{} {}".format(request.url, json.dumps(request.args)))
 
     if "oauth/v2" in os.environ["AUTH_URL"]:
         logger.info("Oauth2")
