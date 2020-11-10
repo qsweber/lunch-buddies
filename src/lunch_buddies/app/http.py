@@ -155,7 +155,7 @@ def auth_http() -> WResponse:
     )
     logger.info("{} {}".format(request.url, json.dumps(request.args)))
 
-    if "oauth/v2" in request.url:
+    if "oauth/v2" in os.environ["AUTH_URL"]:
         logger.info("Oauth2")
         oauth2_action(request_form, service_context)
     else:
