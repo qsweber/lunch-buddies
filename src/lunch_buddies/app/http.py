@@ -153,6 +153,7 @@ def auth_http() -> WResponse:
     request_form = Auth(
         code=request.args["code"],
     )
+    logger.info("{} {}".format(request.url, json.dumps(request.args)))
 
     if "oauth/v2" in request.url:
         logger.info("Oauth2")
