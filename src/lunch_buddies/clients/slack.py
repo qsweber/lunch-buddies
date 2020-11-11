@@ -1,14 +1,18 @@
-from typing import List, Tuple
+from typing import List, Tuple, NamedTuple
 
-from slackclient import SlackClient as BaseSlackClient
+from slack_sdk import WebClient as BaseSlackClient
 
 
 class ChannelDoesNotExist(Exception):
     pass
 
 
+class PostMessageResponse(NamedTuple):
+    ts: str
+
+
 class SlackClient(object):
-    def _get_base_client_for_token(self, token: str):
+    def _get_base_client_for_token(self, token: str) -> BaseSlackClient:
         return BaseSlackClient(token)
 
     def open_conversation(self, bot_access_token: str, **kwargs):
@@ -16,27 +20,33 @@ class SlackClient(object):
             "conversations.open", **kwargs
         )
 
-    def post_message(self, bot_access_token: str, **kwargs):
-        return self._get_base_client_for_token(bot_access_token).api_call(
-            "chat.postMessage", **kwargs
+    def post_message(
+        self, bot_access_token: str, channel: str, as_user: bool, text: str
+    ) -> PostMessageResponse:
+        base_client = self._get_base_client_for_token(bot_access_token)
+        response = base_client.chat_postMessage(
+            channel=channel, as_user=as_user, text=text
         )
+        return PostMessageResponse(ts=response.get("ts"))
 
     def _channels_list_internal(self, bot_access_token: str) -> List[dict]:
-        base_client = self._get_base_client_for_token(bot_access_token)
-        return base_client.api_call("conversations.list")["channels"]
+        return (
+            self._get_base_client_for_token(bot_access_token)
+            .conversations_list()
+            .data["channels"]
+        )
 
     def _channel_members(self, bot_access_token: str, channel_id: str) -> List[str]:
         base_client = self._get_base_client_for_token(bot_access_token)
-        result = base_client.api_call("conversations.members", channel=channel_id)
+        result = base_client.conversations_members(channel=channel_id)
         if not result["ok"]:
             raise ChannelDoesNotExist()
 
         return result["members"]
 
-    def _users_info_internal(self, bot_access_token: str, **kwargs) -> dict:
-        return self._get_base_client_for_token(bot_access_token).api_call(
-            "users.info", **kwargs
-        )
+    def _users_info_internal(self, bot_access_token: str, user_id: str) -> dict:
+        base_client = self._get_base_client_for_token(bot_access_token)
+        return base_client.users_info(user=user_id)
 
     def get_channel(self, bot_access_token: str, name: str) -> dict:
         channels = [

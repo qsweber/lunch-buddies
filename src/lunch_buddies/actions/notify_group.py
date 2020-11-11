@@ -91,5 +91,5 @@ def _notify_in_channel(
         channel=poll.channel_id,
         as_user=True,
         text=text,
-        thread_ts=result["ts"],
+        thread_ts=result.ts,
     )
