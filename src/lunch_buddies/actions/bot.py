@@ -112,7 +112,11 @@ def parse_raw_request(raw_request_form: dict) -> BotMention:
         return BotMention(
             team_id=raw_request_form["team_id"],
             channel_id=raw_request_form["event"]["channel"],
-            user_id=raw_request_form["event"]["user"],
+            user_id=(
+                raw_request_form["event"]["user"]
+                if "user" in raw_request_form["event"]
+                else raw_request_form["event"]["bot_id"]
+            ),
             text=raw_request_form["event"]["text"],
             message_type=raw_request_form["event"]["type"],
         )

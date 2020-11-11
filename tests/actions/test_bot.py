@@ -48,6 +48,83 @@ def test_parse_message(text, message_type, expected):
 
 
 @pytest.mark.parametrize(
+    "raw_request, expected",
+    [
+        (
+            {
+                "token": "TOKEN",
+                "team_id": "ABCDEF",
+                "api_app_id": "API_APP_ID",
+                "event": {
+                    "type": "app_mention",
+                    "subtype": "bot_message",
+                    "text": "<@U011111111> close",
+                    "ts": "1605117601.000100",
+                    "username": "User Name",
+                    "bot_id": "B0111111111",
+                    "channel": "C0111111111",
+                    "event_ts": "1605117601.000100",
+                },
+                "type": "event_callback",
+                "event_id": "Ev0111111111",
+                "event_time": 1605117601,
+                "authed_users": ["U011111111"],
+            },
+            BotMention(
+                team_id="ABCDEF",
+                channel_id="C0111111111",
+                user_id="B0111111111",
+                text="<@U011111111> close",
+                message_type="app_mention",
+            ),
+        ),
+        (
+            {
+                "token": "TOKEN",
+                "team_id": "ABCDEF",
+                "api_app_id": "API_APP_ID",
+                "event": {
+                    "type": "message",
+                    "message": {
+                        "type": "message",
+                        "user": "U0111111111",
+                        "text": "<@foo> close",
+                        "client_msg_id": "0a3c8b7d-fd6a-495b-a621-d6515a90c802",
+                        "edited": {"user": "U0111111111", "ts": "1549258304.000000"},
+                        "ts": "1549258117.001500",
+                    },
+                    "subtype": "message_changed",
+                    "channel": "C0111111111",
+                    "previous_message": {
+                        "type": "message",
+                        "user": "U0111111111",
+                        "text": "test",
+                        "client_msg_id": "0a3c8b7d-fd6a-495b-a621-d6515a90c802",
+                        "ts": "1549258117.001500",
+                    },
+                    "event_ts": "1549258304.001600",
+                    "ts": "1549258304.001600",
+                    "channel_type": "im",
+                },
+                "type": "event_callback",
+            },
+            BotMention(
+                team_id="ABCDEF",
+                channel_id="C0111111111",
+                user_id="U0111111111",
+                text="<@foo> close",
+                message_type="message",
+            ),
+        ),
+    ],
+)
+def test_parse_raw_request(raw_request, expected):
+    actual = module.parse_raw_request(raw_request)
+
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
     "text, expected",
     [
         ("hello there", ("hello", "there")),
