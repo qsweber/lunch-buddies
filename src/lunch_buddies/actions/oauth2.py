@@ -15,12 +15,24 @@ def oauth2(
     request_form: Auth,
     service_context: ServiceContext,
 ) -> None:
+    # While Slack is confirming my new oauth flow, need to prioritize using the dev token
+    client_id = (
+        os.environ["CLIENT_ID_DEV"]
+        if "CLIENT_ID_DEV" in os.environ
+        else os.environ["CLIENT_ID"]
+    )
+    client_secret = (
+        os.environ["CLIENT_SECRET_DEV"]
+        if "CLIENT_SECRET_DEV" in os.environ
+        else os.environ["CLIENT_SECRET"]
+    )
+
     response = json.loads(
         service_context.clients.http.get(
             url="https://slack.com/api/oauth.v2.access",
             params={
-                "client_id": os.environ["CLIENT_ID"],
-                "client_secret": os.environ["CLIENT_SECRET"],
+                "client_id": client_id,
+                "client_secret": client_secret,
                 "code": request_form.code,
             },
         ).text

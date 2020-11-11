@@ -157,11 +157,11 @@ def auth_http() -> WResponse:
         code=request.args["code"],
     )
 
-    if "oauth/v2" in os.environ["AUTH_URL"]:
+    try:
         logger.info("Oauth2")
         oauth2_action(request_form, service_context)
-    else:
-        logger.info("Old deprecated auth")
+    except Exception:
+        logger.info("Oauth2 failed, so trying v1")
         auth_action(request_form, service_context)
 
     return redirect("https://www.lunchbuddiesapp.com/registration/")
