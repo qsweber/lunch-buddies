@@ -12,6 +12,7 @@ from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
 from lunch_buddies.actions.auth import auth as auth_action
+from lunch_buddies.actions.oauth2 import oauth2 as oauth2_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
@@ -141,6 +142,7 @@ def install_http() -> WResponse:
     """
     Install a new workspace
     """
+    logger.info("{} {}".format(request.url, json.dumps(request.args)))
     return redirect(os.environ["AUTH_URL"])
 
 
@@ -149,11 +151,18 @@ def auth_http() -> WResponse:
     """
     Authorize a new workspace
     """
+    logger.info("{} {}".format(request.url, json.dumps(request.args)))
+
     request_form = Auth(
         code=request.args["code"],
     )
 
-    auth_action(request_form, service_context)
+    try:
+        logger.info("Oauth2")
+        oauth2_action(request_form, service_context)
+    except Exception:
+        logger.info("Oauth2 failed, so trying v1")
+        auth_action(request_form, service_context)
 
     return redirect("https://www.lunchbuddiesapp.com/registration/")
 
