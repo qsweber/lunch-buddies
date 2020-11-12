@@ -1,6 +1,6 @@
 from collections import defaultdict
 import random
-from typing import Dict, List, Optional
+from typing import cast, Dict, List, Optional
 
 from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
 from lunch_buddies.constants.polls import CREATED
@@ -83,7 +83,7 @@ def _guess_channel_id(slack_client: SlackClient, team: Team) -> Optional[str]:
         lunch_buddies_channel = slack_client.get_channel(
             team.bot_access_token, LUNCH_BUDDIES_CHANNEL_NAME
         )
-        return lunch_buddies_channel["id"]
+        return cast(str, lunch_buddies_channel["id"])
     except ChannelDoesNotExist:
         return None
 

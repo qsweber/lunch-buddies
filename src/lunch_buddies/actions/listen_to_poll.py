@@ -1,5 +1,6 @@
 import datetime
 import logging
+import typing
 
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.poll_responses import PollResponsesDao
@@ -13,7 +14,7 @@ def listen_to_poll(
     request_form: ListenToPoll,
     polls_dao: PollsDao,
     poll_responses_dao: PollResponsesDao,
-) -> dict:
+) -> typing.Dict[str, typing.Any]:
     poll = polls_dao.find_by_callback_id_or_die(
         request_form.team_id, request_form.callback_id
     )

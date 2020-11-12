@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import re
-from typing import List, Tuple
+from typing import cast, Optional, List, Tuple
 import uuid
 
 from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
@@ -95,7 +95,7 @@ def _get_default_channel_id(
     message: PollsToStartMessage,
     slack_client: SlackClient,
     team: Team,
-):
+) -> Optional[str]:
     try:
         default_channel = slack_client.get_channel(
             team.bot_access_token, slack.LUNCH_BUDDIES_CHANNEL_NAME
@@ -126,7 +126,7 @@ def _get_default_channel_id(
 
         return None
 
-    return channel_id
+    return cast(str, channel_id)
 
 
 def _get_uuid() -> uuid.UUID:

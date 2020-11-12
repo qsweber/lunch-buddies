@@ -1,8 +1,8 @@
 import logging
-from typing import cast, List, NamedTuple
+from typing import Callable, Dict, Any, cast, List, NamedTuple
 
-from raven import Client
-from raven.transport.requests import RequestsHTTPTransport
+from raven import Client  # type: ignore
+from raven.transport.requests import RequestsHTTPTransport  # type: ignore
 
 from lunch_buddies.clients.sqs_v2 import SqsMessage
 from lunch_buddies.actions.create_poll import create_poll as create_poll_action
@@ -23,8 +23,8 @@ sentry = Client(transport=RequestsHTTPTransport)
 logger = logging.getLogger(__name__)
 
 
-def sqsHandler(func):
-    def wrapper(event: dict, context: dict):
+def sqsHandler(func: Callable[[SqsMessage], None]) -> Callable[[Any], Any]:
+    def wrapper(event: Dict[str, Any]) -> None:
         messages = service_context.clients.sqs_v2.parse_sqs_messages(event)
         for message in messages:
             try:
@@ -98,5 +98,5 @@ def error_queue(message: SqsMessage) -> None:
     raise Exception("Test of error handling")
 
 
-def invoice(*args) -> None:
+def invoice() -> None:
     invoice_action(service_context, True)

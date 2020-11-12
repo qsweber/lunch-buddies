@@ -7,7 +7,7 @@ from tests.app.requests.sqs_message import test_input, test_output
 def test_sqs_handler(mocker):
     mocker.patch.object(module, "create_poll_action", auto_spec=True, return_value=[])
 
-    module.create_poll_from_queue(test_input, {})
+    module.create_poll_from_queue(test_input)
 
     module.create_poll_action.assert_called_with(
         PollsToStartMessage(team_id="1", channel_id="2", user_id="abc", text="def"),
@@ -33,7 +33,7 @@ def test_sqs_handler_failure(mocker):
     )
 
     try:
-        module.create_poll_from_queue(test_input, {})
+        module.create_poll_from_queue(test_input)
         assert 1 == 0
     except Exception as err:
         assert err.args[0] == "test failure message"

@@ -111,5 +111,5 @@ def _get_unique_yes_users_from_polls(
     )
 
 
-def _get_now():
+def _get_now() -> datetime:
     return datetime.now()
