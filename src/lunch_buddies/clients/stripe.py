@@ -2,7 +2,7 @@ import os
 from datetime import datetime, timedelta
 from typing import NamedTuple, List, Optional
 
-import stripe
+import stripe  # type: ignore
 
 
 class Customer(NamedTuple):
@@ -20,7 +20,7 @@ class LineItem(NamedTuple):
 
 
 class StripeClient:
-    def __init__(self):
+    def __init__(self) -> None:
         if os.environ.get("IS_TEST") or "STRIPE_API_KEY" not in os.environ:
             self.stripe = None
             return

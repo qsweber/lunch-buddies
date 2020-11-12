@@ -5,9 +5,9 @@ from typing import Tuple, cast, List, NamedTuple
 from uuid import UUID
 
 from flask import Flask, jsonify, request, redirect, Response
-from raven import Client
-from raven.contrib.flask import Sentry
-from raven.transport.requests import RequestsHTTPTransport
+from raven import Client  # type: ignore
+from raven.contrib.flask import Sentry  # type: ignore
+from raven.transport.requests import RequestsHTTPTransport  # type: ignore
 from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
@@ -70,7 +70,7 @@ def create_poll_http() -> Response:
     response = jsonify({"text": outgoing_text})
     response.headers.add("Access-Control-Allow-Origin", "*")
 
-    return response
+    return cast(Response, response)
 
 
 @app.route("/api/v0/poll", methods=["POST"])
@@ -97,7 +97,7 @@ def listen_to_poll_http() -> Response:
     response = jsonify(outgoing_message)
     response.headers.add("Access-Control-Allow-Origin", "*")
 
-    return response
+    return cast(Response, response)
 
 
 @app.route("/api/v0/poll/close", methods=["POST"])
@@ -120,7 +120,7 @@ def close_poll_http() -> Response:
     response = jsonify({"text": outgoing_message})
     response.headers.add("Access-Control-Allow-Origin", "*")
 
-    return response
+    return cast(Response, response)
 
 
 @app.route("/api/v0/help", methods=["POST"])
@@ -134,7 +134,7 @@ def help_http() -> Response:
     response = jsonify({"text": APP_EXPLANATION})
     response.headers.add("Access-Control-Allow-Origin", "*")
 
-    return response
+    return cast(Response, response)
 
 
 @app.route("/api/v0/install", methods=["GET"])

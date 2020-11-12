@@ -1,7 +1,7 @@
 import json
 import logging
 import re
-from typing import Optional, Tuple
+from typing import Any, Dict, Optional, Tuple
 
 from lunch_buddies.actions.queue_create_poll import queue_create_poll
 from lunch_buddies.actions.queue_close_poll import queue_close_poll
@@ -98,7 +98,7 @@ def _split_text(text: str) -> Tuple[str, str]:
     return first_word, " ".join(words).strip()
 
 
-def parse_raw_request(raw_request_form: dict) -> BotMention:
+def parse_raw_request(raw_request_form: Dict[str, Any]) -> BotMention:
     logger.info("Parsing raw request: {}".format(json.dumps(raw_request_form)))
     if raw_request_form["event"].get("subtype") == "message_changed":
         return BotMention(

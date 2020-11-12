@@ -43,7 +43,7 @@ def _notify_private_group(
     slack_client: SlackClient,
     team: Team,
     choice: Choice,
-):
+) -> None:
     user_in_charge = random.choice(message.user_ids)
     text = (
         "Hello! This is your group for today. "
@@ -70,7 +70,7 @@ def _notify_in_channel(
     team: Team,
     poll: Poll,
     choice: Choice,
-):
+) -> None:
     users_formatted = ", ".join(
         ["<@{}>".format(user_id) for user_id in message.user_ids]
     )
