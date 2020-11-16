@@ -56,6 +56,9 @@ def oauth2(
         ),
         user_id=user_id,
     )
+
+    logger.info("User info response: {}".format(json.dumps(user)))
+
     user_name = user.name
     user_email = user.email
 
