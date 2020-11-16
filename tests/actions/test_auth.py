@@ -38,12 +38,6 @@ def test_auth(mocker, mocked_slack):
         return_value=team.created_at,
     )
     mocker.patch.object(
-        service_context.clients.slack,
-        "get_user_name_email",
-        auto_spec=True,
-        return_value=("Test Name", "test@example.com"),
-    )
-    mocker.patch.object(
         service_context.clients.stripe,
         "create_customer",
         auto_spec=True,
@@ -73,7 +67,7 @@ def test_auth(mocker, mocked_slack):
             "code": "test_code",
         },
     )
-    service_context.clients.slack.get_user_name_email.assert_called_with(
+    service_context.clients.slack.get_user_info.assert_called_with(
         bot_access_token=team.bot_access_token,
         user_id="fake-user-id",
     )
@@ -121,12 +115,6 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
         return_value=team.created_at,
     )
     mocker.patch.object(
-        service_context.clients.slack,
-        "get_user_name_email",
-        auto_spec=True,
-        return_value=("Test Name", "test@example.com"),
-    )
-    mocker.patch.object(
         service_context.clients.stripe,
         "create_customer",
         auto_spec=True,
@@ -171,7 +159,7 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
             "code": "test_code",
         },
     )
-    service_context.clients.slack.get_user_name_email.assert_called_with(
+    service_context.clients.slack.get_user_info.assert_called_with(
         bot_access_token=team.bot_access_token,
         user_id="fake-user-id",
     )
@@ -207,12 +195,6 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
         "_get_created_at",
         auto_spec=True,
         return_value=team.created_at,
-    )
-    mocker.patch.object(
-        service_context.clients.slack,
-        "get_user_name_email",
-        auto_spec=True,
-        return_value=("Test Name", "test@example.com"),
     )
     mocker.patch.object(
         service_context.clients.stripe,
@@ -253,7 +235,7 @@ def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
             "code": "test_code",
         },
     )
-    service_context.clients.slack.get_user_name_email.assert_called_with(
+    service_context.clients.slack.get_user_info.assert_called_with(
         bot_access_token=team.bot_access_token,
         user_id="fake-user-id",
     )

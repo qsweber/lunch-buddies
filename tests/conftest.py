@@ -6,6 +6,7 @@ from tests.fixtures import (
     dynamo_poll,
 )
 from lunch_buddies.lib.service_context import service_context
+from lunch_buddies.clients.slack import Channel, User
 
 
 @pytest.fixture
@@ -32,16 +33,25 @@ def mocked_slack(mocker):
         "_channels_list_internal",
         auto_spec=True,
         return_value=[
-            {"name": "lunch_buddies", "id": "slack_channel_id"},
-            {"name": "foo", "id": "foo"},
+            Channel(name="lunch_buddies", channel_id="test_channel_id"),
+            Channel(name="foo", channel_id="foo"),
         ],
     )
 
     mocker.patch.object(
         service_context.clients.slack,
-        "_channel_members",
+        "conversations_members",
         auto_spec=True,
         return_value=["user_id_one", "user_id_two"],
+    )
+
+    mocker.patch.object(
+        service_context.clients.slack,
+        "get_user_info",
+        auto_spec=True,
+        return_value=User(
+            name="Test Name", email="test@example.com", tz="America/Los_Angeles"
+        ),
     )
 
 

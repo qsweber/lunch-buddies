@@ -47,7 +47,7 @@ def oauth2(
     team_name = response["team"]["name"]
     user_id = response["authed_user"]["id"]
 
-    user_name, user_email = service_context.clients.slack.get_user_name_email(
+    user = service_context.clients.slack.get_user_info(
         bot_access_token=(
             # TODO: not sure why I did it this way
             existing_team.bot_access_token
@@ -56,6 +56,8 @@ def oauth2(
         ),
         user_id=user_id,
     )
+    user_name = user.name
+    user_email = user.email
 
     stripe_customer_id = None
     if not existing_team or not existing_team.stripe_customer_id:

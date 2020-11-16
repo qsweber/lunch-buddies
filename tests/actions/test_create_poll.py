@@ -5,6 +5,7 @@ import pytz
 import pytest
 
 from lunch_buddies.actions import create_poll as create_poll_module
+from lunch_buddies.clients.slack import Channel
 from lunch_buddies.constants import polls as polls_constants
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
@@ -223,8 +224,8 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(
         "_channels_list_internal",
         auto_spec=True,
         return_value=[
-            {"name": "not_lunch_buddies", "id": "slack_channel_id"},
-            {"name": "foo", "id": "foo"},
+            Channel(name="not_lunch_buddies", channel_id="test_channel_id"),
+            Channel(name="foo", channel_id="foo"),
         ],
     )
 
@@ -259,16 +260,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
 
     mocker.patch.object(
         service_context.clients.slack,
-        "_channels_list_internal",
-        auto_spec=True,
-        return_value=[
-            {"name": "lunch_buddies", "id": "slack_channel_id"},
-            {"name": "foo", "id": "foo"},
-        ],
-    )
-    mocker.patch.object(
-        service_context.clients.slack,
-        "_channel_members",
+        "conversations_members",
         auto_spec=True,
         return_value=["user_id_one", "user_id_two"],
     )
@@ -289,7 +281,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
-        text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#slack_channel_id|lunch_buddies>. You can join that channel and try again.',
+        text='Error creating poll. To create a poll via the slash command "/lunch_buddies_create", you must be a member of <#test_channel_id|lunch_buddies>. You can join that channel and try again.',
     )
 
     assert result == []
