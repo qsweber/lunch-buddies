@@ -65,7 +65,7 @@ def bot(
     elif first_word == "help":
         response_text = APP_EXPLANATION
     else:
-        response_text = ""
+        return
 
     service_context.clients.slack.post_message(
         bot_access_token=team.bot_access_token,
