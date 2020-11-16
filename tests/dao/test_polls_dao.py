@@ -53,7 +53,7 @@ from tests.fixtures import poll, dynamo_poll
             Poll(
                 team_id="123",
                 created_at=datetime.fromtimestamp(1522117983.551714),
-                channel_id=None,
+                channel_id="OLD_POLL",
                 created_by_user_id="456",
                 callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
                 state="CREATED",
@@ -151,7 +151,7 @@ def test_roundtrip_convert(model, dynamo):
             Poll(
                 team_id="123",
                 created_at=datetime.fromtimestamp(1522117983.551714),
-                channel_id=None,
+                channel_id="OLD_POLL",
                 created_by_user_id="456",
                 callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
                 state="CREATED",
@@ -187,7 +187,7 @@ def test_roundtrip_convert(model, dynamo):
             Poll(
                 team_id="123",
                 created_at=datetime.fromtimestamp(1522117983.551714),
-                channel_id=None,
+                channel_id="OLD_POLL",
                 created_by_user_id="456",
                 callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
                 state="CREATED",
@@ -229,7 +229,7 @@ def test_roundtrip_convert(model, dynamo):
             Poll(
                 team_id="123",
                 created_at=datetime.fromtimestamp(1522117983.551714),
-                channel_id=None,
+                channel_id="OLD_POLL",
                 created_by_user_id="456",
                 callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
                 state="CREATED",

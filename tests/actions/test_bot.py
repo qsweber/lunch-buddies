@@ -229,3 +229,18 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
         as_user=True,
         text="mocked_return_value",
     )
+
+
+def test_bot_nothing(mocker, mocked_slack, mocked_team):
+    module.bot(
+        BotMention(
+            team_id="test_team_id",
+            channel_id="test_channel_id",
+            user_id="test_user_id",
+            text="<@BOT> yooooooo",
+            message_type="app_mention",
+        ),
+        service_context,
+    )
+
+    service_context.clients.slack.post_message.assert_not_called()

@@ -1,6 +1,7 @@
 import random
 from uuid import UUID
 
+from lunch_buddies.clients.slack import PostMessageResponse, OpenConversationResponse
 from lunch_buddies.lib.service_context import service_context
 import lunch_buddies.actions.notify_group as module
 from lunch_buddies.types import GroupsToNotifyMessage
@@ -26,7 +27,7 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         service_context.clients.slack,
         "open_conversation",
         auto_spec=True,
-        return_value={"channel": {"id": "new_group_message_channel"}},
+        return_value=OpenConversationResponse(channel_id="new_group_message_channel"),
     )
     random.seed(0)
 
@@ -77,7 +78,7 @@ def test_notify_group_feature_notify_in_channel(
         service_context.clients.slack,
         "post_message",
         auto_spec=True,
-        return_value={"ts": "fake_thread_ts"},
+        return_value=PostMessageResponse(ts="fake_thread_ts"),
     )
     random.seed(0)
 

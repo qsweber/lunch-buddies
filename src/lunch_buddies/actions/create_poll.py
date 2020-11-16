@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 import json
 import logging
 import re
-from typing import cast, Optional, List, Tuple
+from typing import Optional, List, Tuple
 import uuid
 
 from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
@@ -67,7 +67,7 @@ def create_poll(
 
     choices, group_size = parse_message_text(message.text)
 
-    users = slack_client.list_users(team.bot_access_token, channel_id)
+    users = slack_client.conversations_members(team.bot_access_token, channel_id)
 
     poll = Poll(
         team_id=message.team_id,
@@ -110,23 +110,21 @@ def _get_default_channel_id(
 
         return None
 
-    channel_id = default_channel["id"]
+    channel_id = default_channel.channel_id
 
-    if message.user_id not in slack_client.list_users(
+    if message.user_id not in slack_client.conversations_members(
         team.bot_access_token, channel_id
     ):
         slack_client.post_message(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
-            text=USER_NOT_IN_DEFAULT_CHANNEL.format(
-                channel_id, default_channel["name"]
-            ),
+            text=USER_NOT_IN_DEFAULT_CHANNEL.format(channel_id, default_channel.name),
         )
 
         return None
 
-    return cast(str, channel_id)
+    return channel_id
 
 
 def _get_uuid() -> uuid.UUID:

@@ -58,7 +58,7 @@ class PollsDao(Dao[Poll]):
         return {
             "team_id": q.team_id,
             "created_at": self._convert_datetime_to_dynamo(q.created_at),
-            "channel_id": q.channel_id,
+            "channel_id": q.channel_id if q.channel_id != "OLD_POLL" else None,
             "created_by_user_id": q.created_by_user_id,
             "callback_id": str(q.callback_id),
             "state": q.state,
@@ -73,7 +73,7 @@ class PollsDao(Dao[Poll]):
             created_at=self._convert_datetime_from_dynamo(q["created_at"]),
             channel_id=str(q["channel_id"])
             if "channel_id" in q and q["channel_id"] is not None
-            else None,
+            else "OLD_POLL",
             created_by_user_id=str(q["created_by_user_id"]),
             callback_id=UUID(str(q["callback_id"])),
             state=str(q["state"]),

@@ -36,9 +36,11 @@ def auth(
         else response["bot"]["bot_access_token"]
     )
 
-    user_name, user_email = service_context.clients.slack.get_user_name_email(
+    user = service_context.clients.slack.get_user_info(
         bot_access_token=bot_access_token, user_id=response["user_id"]
     )
+    user_name = user.name
+    user_email = user.email
 
     stripe_customer_id = None
     if not existing_team or not existing_team.stripe_customer_id:

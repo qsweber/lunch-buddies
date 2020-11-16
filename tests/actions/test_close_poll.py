@@ -4,6 +4,7 @@ from uuid import UUID
 
 import pytest
 
+from lunch_buddies.clients.slack import Channel
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
 from lunch_buddies.models.poll_responses import PollResponse
@@ -63,18 +64,8 @@ def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
 
 
 def test_close_poll_null_channel(
-    mocker, mocked_team, mocked_polls, mocked_poll_responses
+    mocker, mocked_team, mocked_polls, mocked_poll_responses, mocked_slack
 ):
-    mocker.patch.object(
-        service_context.clients.slack,
-        "_channels_list_internal",
-        auto_spec=True,
-        return_value=[
-            {"name": "lunch_buddies", "id": "test_channel_id"},
-            {"name": "foo", "id": "foo"},
-        ],
-    )
-
     result = module.close_poll(
         PollsToCloseMessage(
             team_id="123",
@@ -109,8 +100,8 @@ def test_close_poll_null_channel_no_default_channel(
         "_channels_list_internal",
         auto_spec=True,
         return_value=[
-            {"name": "not_lunch_buddies", "id": "test_channel_id"},
-            {"name": "foo", "id": "foo"},
+            Channel(name="not_lunch_buddies", channel_id="test_channel_id"),
+            Channel(name="foo", channel_id="foo"),
         ],
     )
 

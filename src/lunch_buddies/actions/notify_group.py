@@ -58,7 +58,7 @@ def _notify_private_group(
     )
     slack_client.post_message(
         bot_access_token=team.bot_access_token,
-        channel=conversation["channel"]["id"],
+        channel=conversation.channel_id,
         as_user=True,
         text=text,
     )
@@ -91,5 +91,5 @@ def _notify_in_channel(
         channel=poll.channel_id,
         as_user=True,
         text=text,
-        thread_ts=result["ts"],
+        thread_ts=result.ts,
     )
