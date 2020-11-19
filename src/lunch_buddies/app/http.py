@@ -11,7 +11,6 @@ from raven.transport.requests import RequestsHTTPTransport  # type: ignore
 from werkzeug import Response as WResponse
 
 from lunch_buddies.constants.help import APP_EXPLANATION
-from lunch_buddies.actions.auth import auth as auth_action
 from lunch_buddies.actions.oauth2 import oauth2 as oauth2_action
 from lunch_buddies.actions.bot import bot as bot_action, parse_raw_request
 from lunch_buddies.actions.listen_to_poll import listen_to_poll as listen_to_poll_action
@@ -157,12 +156,7 @@ def auth_http() -> WResponse:
         code=request.args["code"],
     )
 
-    try:
-        logger.info("Oauth2")
-        oauth2_action(request_form, service_context)
-    except Exception:
-        logger.info("Oauth2 failed, so trying v1")
-        auth_action(request_form, service_context)
+    oauth2_action(request_form, service_context)
 
     return redirect("https://www.lunchbuddiesapp.com/registration/")
 
