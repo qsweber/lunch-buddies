@@ -17,13 +17,13 @@ def oauth2(
 ) -> None:
     # While Slack is confirming my new oauth flow, need to prioritize using the dev token
     client_id = (
-        os.environ["CLIENT_ID_DEV"]
-        if "CLIENT_ID_DEV" in os.environ
+        os.environ["CLIENT_ID"]
+        if "CLIENT_ID" in os.environ
         else os.environ["CLIENT_ID"]
     )
     client_secret = (
-        os.environ["CLIENT_SECRET_DEV"]
-        if "CLIENT_SECRET_DEV" in os.environ
+        os.environ["CLIENT_SECRET"]
+        if "CLIENT_SECRET" in os.environ
         else os.environ["CLIENT_SECRET"]
     )
 

@@ -32,7 +32,7 @@ library(data.table)
 teams = data.table(read.csv('~/qsweber/lunch-buddies/.export/teams.csv', stringsAsFactors = F))
 polls = data.table(read.csv('~/qsweber/lunch-buddies/.export/polls.csv', stringsAsFactors = F))
 poll_responses = data.table(read.csv('~/qsweber/lunch-buddies/.export/poll_responses.csv', stringsAsFactors = F))
-merge(
+all_data = merge(
     merge(
         teams[order(created_at),list(name, team_id, team_created_at=created_at)],
         polls[,list(team_id, callback_id, poll_created_at=created_at)],
