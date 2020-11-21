@@ -27,8 +27,7 @@ def close_poll(
     poll = polls_dao.find_latest_by_team_channel(message.team_id, channel_id)
 
     if not poll:
-        # TODO: give the use some more information since they probably just need to find the right poll to close
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
@@ -37,7 +36,7 @@ def close_poll(
         return []
 
     if poll.state != CREATED:
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
@@ -48,7 +47,7 @@ def close_poll(
     poll_responses = poll_responses_dao.read("callback_id", str(poll.callback_id))
 
     if not poll_responses:
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,

@@ -53,7 +53,7 @@ def create_poll(
                 json.dumps(poll._asdict(), default=str)
             )
         )
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
@@ -101,7 +101,7 @@ def _get_default_channel_id(
             team.bot_access_token, slack.LUNCH_BUDDIES_CHANNEL_NAME
         )
     except ChannelDoesNotExist:
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,
@@ -115,7 +115,7 @@ def _get_default_channel_id(
     if message.user_id not in slack_client.conversations_members(
         team.bot_access_token, channel_id
     ):
-        slack_client.post_message(
+        slack_client.post_message_if_channel_exists(
             bot_access_token=team.bot_access_token,
             channel=message.user_id,
             as_user=True,

@@ -30,6 +30,13 @@ def mocked_slack(mocker):
 
     mocker.patch.object(
         service_context.clients.slack,
+        "post_message_if_channel_exists",
+        auto_spec=True,
+        return_value=True,
+    )
+
+    mocker.patch.object(
+        service_context.clients.slack,
         "_channels_list_internal",
         auto_spec=True,
         return_value=[
