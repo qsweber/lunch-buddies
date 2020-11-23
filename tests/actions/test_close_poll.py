@@ -157,7 +157,7 @@ def test_close_poll_messages_creating_user_if_already_closed(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,
@@ -189,7 +189,7 @@ def test_close_poll_messages_creating_user_if_no_responses(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,
@@ -218,7 +218,7 @@ def test_close_poll_messages_creating_user_if_does_not_exist(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,

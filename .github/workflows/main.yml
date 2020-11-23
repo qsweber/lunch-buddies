@@ -9,7 +9,8 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
-
+    env:
+      TEST_SLACK_TOKEN: ${{ secrets.TEST_SLACK_TOKEN }}
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v1
@@ -19,7 +20,7 @@ jobs:
       - run: tox
   deploy:
     needs: [build]
-    runs-on: [ubuntu-latest]
+    runs-on: ubuntu-latest
     env:
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}

@@ -155,7 +155,7 @@ def test_create_poll_messages_creating_user_if_already_created(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
@@ -241,7 +241,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
@@ -277,7 +277,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
