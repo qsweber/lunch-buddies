@@ -60,7 +60,11 @@ class SlackClient(object):
         base_client = self._get_base_client_for_token(bot_access_token)
         try:
             response = base_client.chat_postMessage(
-                channel=channel, as_user=as_user, text=text, thread_ts=thread_ts
+                channel=channel,
+                as_user=as_user,
+                text=text,
+                thread_ts=thread_ts,
+                attachments=attachments,
             )
             return PostMessageResponse(ts=response.get("ts"))
         except SlackApiError as err:
