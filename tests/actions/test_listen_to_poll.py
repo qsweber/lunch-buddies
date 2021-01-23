@@ -51,7 +51,7 @@ def test_listen_to_poll(mocker, mocked_polls):
 
     mocker.patch.object(
         service_context.daos.poll_responses,
-        "_create_internal",
+        "create",
         autospec=True,
         return_value=True,
     )

@@ -1,10 +1,15 @@
+from datetime import datetime
+from uuid import UUID
+
 import pytest
 
 from tests.fixtures import (
-    dynamo_team,
+    team,
     stripe_customer,
-    dynamo_poll,
+    poll,
+    poll_response,
 )
+from lunch_buddies.models.polls import Poll
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.clients.slack import Channel, User
 
@@ -66,9 +71,21 @@ def mocked_slack(mocker):
 def mocked_team(mocker):
     mocker.patch.object(
         service_context.daos.teams,
-        "_read_internal",
+        "read_one",
         auto_spec=True,
-        return_value=[dynamo_team],
+        return_value=team,
+    )
+    mocker.patch.object(
+        service_context.daos.teams,
+        "read_one_or_die",
+        auto_spec=True,
+        return_value=team,
+    )
+    mocker.patch.object(
+        service_context.daos.teams,
+        "read",
+        auto_spec=True,
+        return_value=[team],
     )
 
 
@@ -84,14 +101,22 @@ def mocked_stripe(mocker):
 
 @pytest.fixture
 def mocked_polls(mocker):
-    poll_one = dynamo_poll.copy()
-    poll_one["callback_id"] = "f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb"
-    poll_one["created_at"] = 1522117903.551714  # make it earlier
+    poll_one = Poll(
+        team_id=poll.team_id,
+        created_at=datetime.fromtimestamp(float(1522117903.551714)),  # make it earlier
+        channel_id=poll.channel_id,
+        created_by_user_id=poll.created_by_user_id,
+        callback_id=UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb"),
+        state=poll.state,
+        choices=poll.choices,
+        group_size=poll.group_size,
+        stripe_invoice_id=poll.stripe_invoice_id,
+    )
     mocker.patch.object(
         service_context.daos.polls,
-        "_read_internal",
+        "read",
         auto_spec=True,
-        return_value=[poll_one, dynamo_poll],
+        return_value=[poll_one, poll],
     )
     mocker.patch.object(
         service_context.daos.polls,
@@ -101,7 +126,20 @@ def mocked_polls(mocker):
     )
     mocker.patch.object(
         service_context.daos.polls,
-        "_create_internal",
+        "create",
         auto_spec=True,
         return_value=True,
+    )
+
+
+@pytest.fixture
+def mocked_poll_responses(mocker):
+    mocker.patch.object(
+        service_context.daos.poll_responses,
+        "read",
+        auto_spec=True,
+        return_value=[
+            poll_response,
+            poll_response._replace(user_id="user_id_two"),
+        ],
     )

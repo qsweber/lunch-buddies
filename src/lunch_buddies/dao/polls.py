@@ -2,17 +2,19 @@ import json
 from uuid import UUID
 from typing import List, Optional
 
+from dynamo_dao import Dao, DynamoObject
+
+from lunch_buddies.lib.conversion_helpers import (
+    convert_datetime_from_dynamo,
+    convert_datetime_to_decimal,
+)
 from lunch_buddies.constants.polls import CLOSED
-from lunch_buddies.dao.base import Dao
 from lunch_buddies.models.polls import Poll, Choice
-from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 
 class PollsDao(Dao[Poll]):
-    def __init__(self, dynamo: DynamoClient):
-        super(PollsDao, self).__init__(
-            dynamo, "lunch_buddies_Poll", ["team_id", "created_at"]
-        )
+    table_name = "lunch_buddies_Poll"
+    unique_key = ["team_id", "created_at"]
 
     def find_by_callback_id_or_die(self, team_id: str, callback_id: UUID) -> Poll:
         polls_for_team = self.read("team_id", team_id)
@@ -57,7 +59,7 @@ class PollsDao(Dao[Poll]):
     def convert_to_dynamo(self, q: Poll) -> DynamoObject:
         return {
             "team_id": q.team_id,
-            "created_at": self._convert_datetime_to_dynamo(q.created_at),
+            "created_at": convert_datetime_to_decimal(q.created_at),
             "channel_id": q.channel_id if q.channel_id != "OLD_POLL" else None,
             "created_by_user_id": q.created_by_user_id,
             "callback_id": str(q.callback_id),
@@ -70,7 +72,7 @@ class PollsDao(Dao[Poll]):
     def convert_from_dynamo(self, q: DynamoObject) -> Poll:
         return Poll(
             team_id=str(q["team_id"]),
-            created_at=self._convert_datetime_from_dynamo(q["created_at"]),
+            created_at=convert_datetime_from_dynamo(q["created_at"]),
             channel_id=str(q["channel_id"])
             if "channel_id" in q and q["channel_id"] is not None
             else "OLD_POLL",

@@ -1,6 +1,8 @@
 import json
 import os
 
+from pytest_mock import MockerFixture
+
 import lunch_buddies.actions.oauth2 as module
 from lunch_buddies.types import Auth
 from lunch_buddies.lib.service_context import service_context
@@ -12,16 +14,16 @@ from tests.fixtures import (
 )
 
 
-def test_auth(mocker, mocked_slack):
+def test_auth(mocker: MockerFixture, mocked_slack: MockerFixture) -> None:
     mocker.patch.object(
         service_context.daos.teams,
-        "_create_internal",
+        "create",
         auto_spec=True,
         return_value=True,
     )
     mocker.patch.object(
         service_context.daos.teams,
-        "_read_internal",
+        "read_one",
         auto_spec=True,
         return_value=[],
     )
@@ -78,7 +80,9 @@ def test_auth(mocker, mocked_slack):
     )
 
 
-def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
+def test_auth_team_exists_without_stripe_id(
+    mocker: MockerFixture, mocked_slack: MockerFixture
+) -> None:
     mocker.patch.object(
         service_context.daos.teams.dynamo,
         "update",
@@ -166,7 +170,9 @@ def test_auth_team_exists_without_stripe_id(mocker, mocked_slack):
     )
 
 
-def test_auth_team_exists_with_stripe_id(mocker, mocked_slack):
+def test_auth_team_exists_with_stripe_id(
+    mocker: MockerFixture, mocked_slack: MockerFixture
+) -> None:
     mocker.patch.object(
         service_context.daos.teams.dynamo,
         "update",

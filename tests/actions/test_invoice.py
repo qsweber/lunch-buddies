@@ -1,54 +1,49 @@
 from datetime import datetime, timedelta
-from decimal import Decimal
 from uuid import UUID
+import typing
 
 import pytest
+from pytest_mock import MockerFixture
 
 import lunch_buddies.actions.invoice as module
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.clients.stripe import Invoice, Customer, LineItem
 from tests.fixtures import (
-    dynamo_team,
-    dynamo_poll,
     team,
-    dynamo_poll_response,
     poll,
+    poll_response,
 )
 
 
 @pytest.fixture
-def mocked_data(mocker):
+def mocked_data(mocker: MockerFixture) -> None:
     mocker.patch.object(
         module, "_get_now", auto_spec=True, return_value=datetime(2020, 3, 16, 3, 3, 3)
     )
     mocker.patch.object(
         service_context.daos.teams,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_team, "created_at": Decimal(datetime(2020, 1, 31).timestamp())},
+            team._replace(created_at=datetime(2020, 1, 31)),
         ],
     )
     mocker.patch.object(
         service_context.daos.polls,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[
-            {
-                **dynamo_poll,
-                "state": "CLOSED",
-                "created_at": Decimal(datetime(2020, 3, 15).timestamp()),
-            },
+            poll._replace(
+                state="CLOSED",
+                created_at=datetime(2020, 3, 15),
+            ),
         ],
     )
     mocker.patch.object(
         service_context.daos.poll_responses,
-        "_read_internal",
+        "read",
         auto_spec=True,
-        return_value=[
-            {**dynamo_poll_response, "user_id": str(i), "response": "yes_1145"}
-            for i in range(11)
-        ],
+        return_value=[poll_response._replace(user_id=str(i)) for i in range(11)],
     )
     mocker.patch.object(
         service_context.clients.stripe,
@@ -70,12 +65,12 @@ def mocked_data(mocker):
     )
 
 
-def test_invoice(mocker, mocked_data):
+def test_invoice(mocker: MockerFixture, mocked_data: MockerFixture) -> None:
     module.invoice(service_context, False)
 
-    service_context.clients.stripe.create_invoice.assert_called_with(
+    service_context.clients.stripe.create_invoice.assert_called_with(  # type: ignore
         Customer(
-            id=team.stripe_customer_id,
+            id=team.stripe_customer_id,  # type: ignore
         ),
         [
             LineItem(
@@ -85,38 +80,41 @@ def test_invoice(mocker, mocked_data):
         ],
     )
 
-    service_context.daos.polls.mark_poll_invoiced.assert_called_with(
+    service_context.daos.polls.mark_poll_invoiced.assert_called_with(  # type: ignore
         poll._replace(state="CLOSED", created_at=datetime(2020, 3, 15)),
         "new-stripe-invoice-id",
     )
 
 
-def test_invoice_dry_run(mocker, mocked_data):
+def test_invoice_dry_run(mocker: MockerFixture, mocked_data: MockerFixture) -> None:
     module.invoice(service_context, True)
 
-    service_context.clients.stripe.create_invoice.assert_not_called()
+    service_context.clients.stripe.create_invoice.assert_not_called()  # type: ignore
 
-    service_context.daos.polls.mark_poll_invoiced.assert_not_called()
+    service_context.daos.polls.mark_poll_invoiced.assert_not_called()  # type: ignore
 
 
-def test_invoice_line_item_zero(mocker, mocked_data):
+def test_invoice_line_item_zero(
+    mocker: MockerFixture, mocked_data: MockerFixture
+) -> None:
     mocker.patch.object(
         service_context.daos.poll_responses,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll_response, "user_id": str(i), "response": "no"}
-            for i in range(11)
+            poll_response._replace(user_id=str(i), response="no") for i in range(11)
         ],
     )
     module.invoice(service_context, True)
 
-    service_context.clients.stripe.create_invoice.assert_not_called()
+    service_context.clients.stripe.create_invoice.assert_not_called()  # type: ignore
 
-    service_context.daos.polls.mark_poll_invoiced.assert_not_called()
+    service_context.daos.polls.mark_poll_invoiced.assert_not_called()  # type: ignore
 
 
-def test_invoice_when_not_first_invoice(mocker, mocked_data):
+def test_invoice_when_not_first_invoice(
+    mocker: MockerFixture, mocked_data: MockerFixture
+) -> None:
     mocker.patch.object(
         service_context.clients.stripe,
         "latest_invoice_for_customer",
@@ -129,9 +127,9 @@ def test_invoice_when_not_first_invoice(mocker, mocked_data):
 
     module.invoice(service_context, False)
 
-    service_context.clients.stripe.create_invoice.assert_called_with(
+    service_context.clients.stripe.create_invoice.assert_called_with(  # type: ignore
         Customer(
-            id=team.stripe_customer_id,
+            id=team.stripe_customer_id,  # type: ignore
         ),
         [
             LineItem(
@@ -142,38 +140,32 @@ def test_invoice_when_not_first_invoice(mocker, mocked_data):
     )
 
 
-def test_find_teams_eligible_for_invoicing(mocker):
-    base_team = {
-        **dynamo_team,
-        "created_at": Decimal(datetime(2020, 1, 31).timestamp()),
-    }
+def test_find_teams_eligible_for_invoicing(mocker: MockerFixture) -> None:
+    base_team = team._replace(created_at=datetime(2020, 1, 31))
     mocker.patch.object(
         module, "_get_now", auto_spec=True, return_value=datetime(2020, 3, 16, 3, 3, 3)
     )
 
     mocker.patch.object(
-        service_context.daos.teams.dynamo,
+        service_context.daos.teams,
         "read",
         auto_spec=True,
         return_value=[
-            {**base_team, "team_id": "1"},
-            {
-                **base_team,
-                "team_id": "2",
-                "stripe_customer_id": None,
-                "invoicing_enabled": 1,
-            },
-            {
-                **base_team,
-                "team_id": "3",
-                "stripe_customer_id": "fake-customer-id",
-                "invoicing_enabled": 0,
-            },
-            {
-                **base_team,
-                "team_id": "4",
-                "created_at": Decimal(datetime(2020, 2, 1).timestamp()),
-            },
+            base_team._replace(team_id="1"),
+            base_team._replace(
+                team_id="2",
+                stripe_customer_id=None,
+                invoicing_enabled=True,
+            ),
+            base_team._replace(
+                team_id="3",
+                stripe_customer_id="fake-customer-id",
+                invoicing_enabled=False,
+            ),
+            base_team._replace(
+                team_id="4",
+                created_at=datetime(2020, 2, 1),
+            ),
         ],
     )
     result = module._find_teams_eligible_for_invoicing(service_context)
@@ -190,20 +182,19 @@ def test_find_teams_eligible_for_invoicing(mocker):
     ],
 )
 def test_find_teams_eligible_for_invoicing_created_at(
-    mocker, now, created_ats, expected
-):
+    mocker: MockerFixture,
+    now: datetime,
+    created_ats: typing.List[datetime],
+    expected: typing.List[int],
+) -> None:
     mocker.patch.object(module, "_get_now", auto_spec=True, return_value=now)
 
     mocker.patch.object(
-        service_context.daos.teams.dynamo,
+        service_context.daos.teams,
         "read",
         auto_spec=True,
         return_value=[
-            {
-                **dynamo_team,
-                "team_id": str(index),
-                "created_at": Decimal(created_at.timestamp()),
-            }
+            team._replace(team_id=str(index), created_at=created_at)
             for index, created_at in enumerate(created_ats)
         ],
     )
@@ -213,55 +204,42 @@ def test_find_teams_eligible_for_invoicing_created_at(
     assert [int(t.team_id) for t in result] == expected
 
 
-def test_get_polls_needing_invoice(mocker):
+def test_get_polls_needing_invoice(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll, **variants}
-            for variants in [
-                {
-                    "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1",
-                    "stripe_invoice_id": None,
-                    "state": "CLOSED",
-                    "created_at": Decimal(
-                        (team.created_at + timedelta(days=29)).timestamp()
-                    ),
-                },
-                {
-                    "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2",
-                    "stripe_invoice_id": None,
-                    "state": "CLOSED",
-                    "created_at": Decimal(
-                        (team.created_at + timedelta(days=30)).timestamp()
-                    ),
-                },
-                {
-                    "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3",
-                    "stripe_invoice_id": None,
-                    "state": "CLOSED",
-                    "created_at": Decimal(
-                        (team.created_at + timedelta(days=31)).timestamp()
-                    ),
-                },
-                {
-                    "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4",
-                    "stripe_invoice_id": None,
-                    "state": "CREATED",
-                    "created_at": Decimal(
-                        (team.created_at + timedelta(days=31)).timestamp()
-                    ),
-                },
-                {
-                    "callback_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5",
-                    "stripe_invoice_id": "fake",
-                    "state": "CLOSED",
-                    "created_at": Decimal(
-                        (team.created_at + timedelta(days=31)).timestamp()
-                    ),
-                },
-            ]
+            poll._replace(
+                callback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1"),
+                stripe_invoice_id=None,
+                state="CLOSED",
+                created_at=(team.created_at + timedelta(days=29)),
+            ),
+            poll._replace(
+                callback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2"),
+                stripe_invoice_id=None,
+                state="CLOSED",
+                created_at=(team.created_at + timedelta(days=30)),
+            ),
+            poll._replace(
+                callback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa3"),
+                stripe_invoice_id=None,
+                state="CLOSED",
+                created_at=(team.created_at + timedelta(days=31)),
+            ),
+            poll._replace(
+                callback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4"),
+                stripe_invoice_id=None,
+                state="CREATED",
+                created_at=(team.created_at + timedelta(days=31)),
+            ),
+            poll._replace(
+                callback_id=UUID("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa5"),
+                stripe_invoice_id="fake",
+                state="CLOSED",
+                created_at=(team.created_at + timedelta(days=31)),
+            ),
         ],
     )
 
@@ -272,16 +250,16 @@ def test_get_polls_needing_invoice(mocker):
     ]
 
 
-def test_get_unique_yes_users_from_polls(mocker):
+def test_get_unique_yes_users_from_polls(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.poll_responses.dynamo,
+        service_context.daos.poll_responses,
         "read",
         auto_spec=True,
         return_value=[
-            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145"},
-            {**dynamo_poll_response, "user_id": "2", "response": "no"},
-            {**dynamo_poll_response, "user_id": "3", "response": "yes_1145"},
-            {**dynamo_poll_response, "user_id": "1", "response": "yes_1145"},
+            poll_response._replace(user_id="1", response="yes_1145"),
+            poll_response._replace(user_id="2", response="no"),
+            poll_response._replace(user_id="3", response="yes_1145"),
+            poll_response._replace(user_id="1", response="yes_1145"),
         ],
     )
 

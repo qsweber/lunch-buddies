@@ -43,8 +43,8 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
     first_poll["state"] = "CLOSED"
 
     mocker.patch.object(
-        service_context.daos.polls,
-        "_read_internal",
+        service_context.daos.polls.dynamo,
+        "read",
         auto_spec=True,
         return_value=[first_poll],
     )
@@ -67,7 +67,7 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
     ] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
     expcted_poll["callback_id"] = str(EXPECTED_UUID)
     expcted_poll["created_at"] = 1516117984.234873
-    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
+    service_context.daos.polls.dynamo.create.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(
@@ -90,8 +90,8 @@ def test_create_poll_custom_times(
     first_poll["state"] = "CLOSED"
 
     mocker.patch.object(
-        service_context.daos.polls,
-        "_read_internal",
+        service_context.daos.polls.dynamo,
+        "read",
         auto_spec=True,
         return_value=[first_poll],
     )
@@ -114,7 +114,7 @@ def test_create_poll_custom_times(
     expcted_poll[
         "choices"
     ] = '[{"key": "yes_1213", "is_yes": true, "time": "12:13", "display_text": "Yes (12:13)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
-    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
+    service_context.daos.polls.dynamo.create.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(
@@ -137,8 +137,8 @@ def test_create_poll_messages_creating_user_if_already_created(
     first_poll["created_at"] = datetime.now().timestamp()
 
     mocker.patch.object(
-        service_context.daos.polls,
-        "_read_internal",
+        service_context.daos.polls.dynamo,
+        "read",
         auto_spec=True,
         return_value=[first_poll],
     )
@@ -172,8 +172,8 @@ def test_create_poll_works_if_existing_is_old(
     first_poll["created_at"] = (datetime.now() - timedelta(days=2)).timestamp()
 
     mocker.patch.object(
-        service_context.daos.polls,
-        "_read_internal",
+        service_context.daos.polls.dynamo,
+        "read",
         auto_spec=True,
         return_value=[first_poll],
     )
@@ -196,7 +196,7 @@ def test_create_poll_works_if_existing_is_old(
     ] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
     expcted_poll["callback_id"] = str(EXPECTED_UUID)
     expcted_poll["created_at"] = 1516117984.234873
-    service_context.daos.polls._create_internal.assert_called_with(expcted_poll)
+    service_context.daos.polls.create.assert_called_with(expcted_poll)
 
     assert result == [
         UsersToPollMessage(

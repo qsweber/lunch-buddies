@@ -3,6 +3,7 @@ import random
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockerFixture
 
 from lunch_buddies.clients.slack import Channel
 from lunch_buddies.lib.service_context import service_context
@@ -13,30 +14,12 @@ from lunch_buddies.types import PollsToCloseMessage, GroupsToNotifyMessage
 from tests.fixtures import team, poll, dynamo_poll
 
 
-@pytest.fixture
-def mocked_poll_responses(mocker):
-    mocker.patch.object(
-        service_context.daos.poll_responses,
-        "_read_internal",
-        auto_spec=True,
-        return_value=[
-            {
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "user_id": "user_id_one",
-                "created_at": float("1516117983.234873"),
-                "response": "yes_1130",
-            },
-            {
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "user_id": "user_id_two",
-                "created_at": float("1516117984.234873"),
-                "response": "yes_1130",
-            },
-        ],
-    )
-
-
-def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
+def test_close_poll(
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_poll_responses: MockerFixture,
+) -> None:
     result = module.close_poll(
         PollsToCloseMessage(
             team_id="123",
@@ -139,8 +122,8 @@ def test_close_poll_messages_creating_user_if_already_closed(
     poll_two = dynamo_poll.copy()
     poll_two["state"] = "CLOSED"
     mocker.patch.object(
-        service_context.daos.polls,
-        "_read_internal",
+        service_context.daos.polls.dynamo,
+        "read",
         auto_spec=True,
         return_value=[poll_one, poll_two],
     )
@@ -172,7 +155,7 @@ def test_close_poll_messages_creating_user_if_no_responses(
 ):
     mocker.patch.object(
         service_context.daos.poll_responses,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[],
     )

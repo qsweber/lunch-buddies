@@ -16,9 +16,9 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         return_value=[{**dynamo_team, "feature_notify_in_channel": 0}],
     )
 
-    mocked_groups_dao_create_internal = mocker.patch.object(
+    mocked_groups_dao_create = mocker.patch.object(
         service_context.daos.groups,
-        "_create_internal",
+        "create",
         auto_spec=True,
         return_value=True,
     )
@@ -50,7 +50,7 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         "response_key": "yes_1130",
     }
 
-    mocked_groups_dao_create_internal.assert_called_with(
+    mocked_groups_dao_create.assert_called_with(
         expected_group,
     )
 

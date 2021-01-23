@@ -1,4 +1,7 @@
+import typing
+
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.fixtures import team as test_team
 from lunch_buddies.constants.help import APP_EXPLANATION
@@ -34,7 +37,9 @@ from lunch_buddies.lib.service_context import service_context
         ("summary", "message", ("summary", "")),
     ],
 )
-def test_parse_message(text, message_type, expected):
+def test_parse_message(
+    text: str, message_type: str, expected: typing.Tuple[str, str]
+) -> None:
     message = BotMention(
         team_id="foo",
         channel_id="foo",
@@ -118,7 +123,9 @@ def test_parse_message(text, message_type, expected):
         ),
     ],
 )
-def test_parse_raw_request(raw_request, expected):
+def test_parse_raw_request(
+    raw_request: typing.Dict[str, typing.Any], expected: BotMention
+) -> None:
     actual = module.parse_raw_request(raw_request)
 
     assert actual == expected
@@ -131,13 +138,15 @@ def test_parse_raw_request(raw_request, expected):
         (" hello there today  ", ("hello", "there today")),
     ],
 )
-def test_split_text(text, expected):
+def test_split_text(text: str, expected: typing.Tuple[str, str]) -> None:
     actual = module._split_text(text)
 
     assert actual == expected
 
 
-def test_bot_help(mocker, mocked_slack, mocked_team):
+def test_bot_help(
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     module.bot(
         BotMention(
             team_id="test_team_id",
@@ -149,7 +158,7 @@ def test_bot_help(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(  # type: ignore
         bot_access_token=test_team.bot_access_token,
         channel="foo",
         as_user=True,
@@ -157,7 +166,9 @@ def test_bot_help(mocker, mocked_slack, mocked_team):
     )
 
 
-def test_bot_create(mocker, mocked_slack, mocked_team):
+def test_bot_create(
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     mocker.patch.object(
         module,
         "queue_create_poll",
@@ -176,7 +187,7 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    module.queue_create_poll.assert_called_with(
+    module.queue_create_poll.assert_called_with(  # type: ignore
         CreatePoll(
             text="1130",
             team_id="test_team_id",
@@ -186,7 +197,7 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(  # type: ignore
         bot_access_token=test_team.bot_access_token,
         channel="test_channel_id",
         as_user=True,
@@ -194,7 +205,9 @@ def test_bot_create(mocker, mocked_slack, mocked_team):
     )
 
 
-def test_bot_close(mocker, mocked_slack, mocked_team):
+def test_bot_close(
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     mocker.patch.object(
         module,
         "queue_close_poll",
@@ -213,7 +226,7 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    module.queue_close_poll.assert_called_with(
+    module.queue_close_poll.assert_called_with(  # type: ignore
         ClosePoll(
             text="",
             team_id="test_team_id",
@@ -223,7 +236,7 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(  # type: ignore
         bot_access_token=test_team.bot_access_token,
         channel="test_channel_id",
         as_user=True,
@@ -231,7 +244,9 @@ def test_bot_close(mocker, mocked_slack, mocked_team):
     )
 
 
-def test_bot_nothing(mocker, mocked_slack, mocked_team):
+def test_bot_nothing(
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     module.bot(
         BotMention(
             team_id="test_team_id",
@@ -243,4 +258,4 @@ def test_bot_nothing(mocker, mocked_slack, mocked_team):
         service_context,
     )
 
-    service_context.clients.slack.post_message.assert_not_called()
+    service_context.clients.slack.post_message.assert_not_called()  # type: ignore
