@@ -1,6 +1,6 @@
 from collections import defaultdict
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, TypeVar
 
 from lunch_buddies.clients.slack import SlackClient, ChannelDoesNotExist
 from lunch_buddies.constants.polls import CREATED
@@ -105,12 +105,15 @@ def _get_choice_from_response(poll_response: PollResponse, poll: Poll) -> Choice
     ]
 
 
+T = TypeVar("T")
+
+
 def _get_groups(
-    elements: List[PollResponse],
+    elements: List[T],
     group_size: int,
     min_group_size: int,
     max_group_size: int,
-) -> List[List[PollResponse]]:
+) -> List[List[T]]:
     if len(elements) <= group_size:
         return [elements]
 

@@ -1,16 +1,18 @@
 from collections import defaultdict
+import typing
 
+from lunch_buddies.models.polls import Poll
 from lunch_buddies.dao.polls import PollsDao
 from lunch_buddies.dao.teams import TeamsDao
 
 
-def run():
+def run() -> None:
     polls_dao = PollsDao()
-    polls = polls_dao.read()
+    polls = polls_dao.read(None, None)
     teams_dao = TeamsDao()
-    teams = teams_dao.read()
+    teams = teams_dao.read(None, None)
 
-    polls_by_team: dict = defaultdict(list)
+    polls_by_team: typing.Dict[str, typing.List[Poll]] = defaultdict(list)
 
     for poll in polls:
         polls_by_team[poll.team_id].append(poll)

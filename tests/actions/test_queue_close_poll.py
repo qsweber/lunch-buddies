@@ -1,10 +1,12 @@
+from pytest_mock import MockerFixture
+
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.constants.help import CLOSE_POLL
 from lunch_buddies.types import ClosePoll, PollsToCloseMessage
 import lunch_buddies.actions.queue_close_poll as module
 
 
-def test_queue_close_poll(mocked_sqs_v2):
+def test_queue_close_poll(mocked_sqs_v2: MockerFixture) -> None:
     module.queue_close_poll(
         ClosePoll(
             team_id="test_team_id",
@@ -15,7 +17,7 @@ def test_queue_close_poll(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_called_with(
+    service_context.clients.sqs_v2.send_messages.assert_called_with(  # type: ignore
         "polls_to_close",
         [
             PollsToCloseMessage(
@@ -27,7 +29,7 @@ def test_queue_close_poll(mocked_sqs_v2):
     )
 
 
-def test_queue_close_poll_help(mocked_sqs_v2):
+def test_queue_close_poll_help(mocked_sqs_v2: MockerFixture) -> None:
     result = module.queue_close_poll(
         ClosePoll(
             team_id="test_team_id",
@@ -38,6 +40,6 @@ def test_queue_close_poll_help(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_not_called()
+    service_context.clients.sqs_v2.send_messages.assert_not_called()  # type: ignore
 
     assert result == CLOSE_POLL

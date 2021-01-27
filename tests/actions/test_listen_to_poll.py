@@ -1,11 +1,15 @@
+from datetime import datetime
 from uuid import UUID
 
+from pytest_mock import MockerFixture
+
+from lunch_buddies.models.poll_responses import PollResponse
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.types import ListenToPoll
 import lunch_buddies.actions.listen_to_poll as module
 
 
-def test_listen_to_poll(mocker, mocked_polls):
+def test_listen_to_poll(mocker: MockerFixture, mocked_polls: MockerFixture) -> None:
     original_message = {
         "text": "Are you able to participate in Lunch Buddies today?",
         "username": "Lunch Buddies",
@@ -69,14 +73,14 @@ def test_listen_to_poll(mocker, mocked_polls):
         service_context.daos.poll_responses,
     )
 
-    expected_poll_response = {
-        "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-        "user_id": "fake_user_id",
-        "created_at": float("1516117984.234873"),
-        "response": "yes_1130",
-    }
+    expected_poll_response = PollResponse(
+        callback_id=UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
+        user_id="fake_user_id",
+        created_at=datetime.fromtimestamp(1516117984.234873),
+        response="yes_1130",
+    )
 
-    service_context.daos.poll_responses._create_internal.assert_called_with(
+    service_context.daos.poll_responses.create.assert_called_with(  # type: ignore
         expected_poll_response
     )
 

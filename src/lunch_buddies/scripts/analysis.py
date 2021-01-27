@@ -1,18 +1,21 @@
 from collections import defaultdict
+import typing
 
+from lunch_buddies.models.teams import Team
+from lunch_buddies.models.polls import Poll
 from lunch_buddies.lib.service_context import service_context
 
 
 def run() -> None:
     polls = service_context.daos.polls.read(None, None)
-    polls_by_team: dict = defaultdict(list)
+    polls_by_team: typing.Dict[str, typing.List[Poll]] = defaultdict(list)
 
     for poll in polls:
         polls_by_team[poll.team_id].append(poll)
 
     teams = service_context.daos.teams.read(None, None)
 
-    def team_summary(team):
+    def team_summary(team: Team) -> typing.Dict[str, typing.Any]:
         polls = polls_by_team[team.team_id]
         # print(polls)
         latest_poll = (
@@ -41,6 +44,6 @@ def run() -> None:
     agg = {team: team_summary(team) for team in teams}
 
     # sorted(agg.items(), key=lambda v: v[1]['count'])
-    sorted(agg.items(), key=lambda v: v[1]["team"].created_at)
+    sorted(agg.items(), key=lambda v: v[1]["team"].created_at)  # type: ignore
 
     {v["name"]: v["error"] for k, v in agg.items()}

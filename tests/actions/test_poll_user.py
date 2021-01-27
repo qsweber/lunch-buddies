@@ -1,12 +1,19 @@
 from uuid import UUID
 
+from pytest_mock import MockerFixture
+
 import lunch_buddies.actions.poll_user as module
 from lunch_buddies.types import UsersToPollMessage
 from lunch_buddies.lib.service_context import service_context
 from tests.fixtures import team
 
 
-def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
+def test_poll_user(
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
     module.poll_user(
         UsersToPollMessage(
             team_id="123",
@@ -18,7 +25,7 @@ def test_poll_user(mocker, mocked_team, mocked_polls, mocked_slack):
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         attachments=[
             {

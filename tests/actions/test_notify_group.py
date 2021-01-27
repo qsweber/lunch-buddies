@@ -1,22 +1,27 @@
 import random
 from uuid import UUID
 
+from pytest_mock import MockerFixture
+
+from lunch_buddies.models.groups import Group
 from lunch_buddies.clients.slack import PostMessageResponse, OpenConversationResponse
 from lunch_buddies.lib.service_context import service_context
 import lunch_buddies.actions.notify_group as module
 from lunch_buddies.types import GroupsToNotifyMessage
-from tests.fixtures import team, dynamo_team
+from tests.fixtures import team
 
 
-def test_notify_group(mocker, mocked_polls, mocked_slack):
+def test_notify_group(
+    mocker: MockerFixture, mocked_polls: MockerFixture, mocked_slack: MockerFixture
+) -> None:
     mocker.patch.object(
         service_context.daos.teams,
-        "_read_internal",
+        "read",
         auto_spec=True,
-        return_value=[{**dynamo_team, "feature_notify_in_channel": 0}],
+        return_value=[team._replace(feature_notify_in_channel=False)],
     )
 
-    mocked_groups_dao_create = mocker.patch.object(
+    mocker.patch.object(
         service_context.daos.groups,
         "create",
         auto_spec=True,
@@ -44,19 +49,17 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
         service_context.daos.groups,
     )
 
-    expected_group = {
-        "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-        "user_ids": '["user_id_one", "user_id_two"]',
-        "response_key": "yes_1130",
-    }
-
-    mocked_groups_dao_create.assert_called_with(
-        expected_group,
+    service_context.daos.groups.create.assert_called_with(  # type: ignore
+        Group(
+            callback_id=UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
+            user_ids=["user_id_one", "user_id_two"],
+            response_key="yes_1130",
+        ),
     )
 
-    assert service_context.clients.slack.post_message.call_count == 1
+    assert service_context.clients.slack.post_message.call_count == 1  # type: ignore
 
-    service_context.clients.slack.post_message.assert_called_with(
+    service_context.clients.slack.post_message.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="new_group_message_channel",
         as_user=True,
@@ -65,11 +68,14 @@ def test_notify_group(mocker, mocked_polls, mocked_slack):
 
 
 def test_notify_group_feature_notify_in_channel(
-    mocker, mocked_team, mocked_polls, mocked_slack
-):
-    mocked_groups_dao_create_internal = mocker.patch.object(
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
+    mocker.patch.object(
         service_context.daos.groups,
-        "_create_internal",
+        "create",
         auto_spec=True,
         return_value=True,
     )
@@ -95,17 +101,17 @@ def test_notify_group_feature_notify_in_channel(
         service_context.daos.groups,
     )
 
-    mocked_groups_dao_create_internal.assert_called_with(
-        {
-            "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-            "user_ids": '["user_id_one", "user_id_two"]',
-            "response_key": "yes_1130",
-        }
+    service_context.daos.groups.create.assert_called_with(  # type: ignore
+        Group(
+            callback_id=UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
+            user_ids=["user_id_one", "user_id_two"],
+            response_key="yes_1130",
+        ),
     )
 
-    assert service_context.clients.slack.post_message.call_count == 2
+    assert service_context.clients.slack.post_message.call_count == 2  # type: ignore
 
-    service_context.clients.slack.post_message.assert_has_calls(
+    service_context.clients.slack.post_message.assert_has_calls(  # type: ignore
         [
             mocker.call(
                 bot_access_token=team.bot_access_token,

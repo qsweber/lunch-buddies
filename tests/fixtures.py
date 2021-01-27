@@ -8,16 +8,7 @@ from lunch_buddies.models.poll_responses import PollResponse
 from lunch_buddies.clients.stripe import Customer
 
 
-dynamo_team = {
-    "team_id": "123",
-    "access_token": "DEPRECATED",
-    "name": "fake-team-name",
-    "bot_access_token": "fake-bot-token",
-    "created_at": 1585153363.983078,
-    "feature_notify_in_channel": 1,
-    "stripe_customer_id": "fake-stripe-customer-id",
-    "invoicing_enabled": 1,
-}
+dynamo_team = None
 
 team = Team(
     team_id="123",
@@ -85,17 +76,7 @@ poll = Poll(
     stripe_invoice_id=None,
 )
 
-dynamo_poll = {
-    "team_id": "123",
-    "created_at": 1522117983.551714,
-    "channel_id": "test_channel_id",
-    "created_by_user_id": "456",
-    "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-    "state": "CREATED",
-    "choices": '[{"key": "yes_1130", "is_yes": true, "time": "11:30", "display_text": "Yes (11:30)"}, {"key": "yes_1230", "is_yes": true, "time": "12:30", "display_text": "Yes (12:30)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-    "group_size": 6,
-    "stripe_invoice_id": None,
-}
+dynamo_poll = None
 
 group = Group(
     callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
@@ -103,22 +84,13 @@ group = Group(
     response_key="yes_1145",
 )
 
-dynamo_group = {
-    "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-    "user_ids": '["abc", "def"]',
-    "response_key": "yes_1145",
-}
+dynamo_group = None
 
 poll_response = PollResponse(
     callback_id=uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"),
-    user_id="test_user_id",
+    user_id="user_id_one",
     created_at=datetime.fromtimestamp(1522117983.551714),
-    response="yes_1145",
+    response="yes_1130",
 )
 
-dynamo_poll_response = {
-    "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-    "user_id": "test_user_id",
-    "created_at": 1522117983.551714,
-    "response": "yes_1145",
-}
+dynamo_poll_response = None

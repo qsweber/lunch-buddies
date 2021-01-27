@@ -3,6 +3,7 @@ from uuid import UUID
 
 import pytz
 import pytest
+from pytest_mock import MockerFixture
 
 from lunch_buddies.actions import create_poll as create_poll_module
 from lunch_buddies.clients.slack import Channel
@@ -11,14 +12,17 @@ from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Choice
 import lunch_buddies.actions.create_poll as module
 from lunch_buddies.types import PollsToStartMessage, UsersToPollMessage
-from tests.fixtures import team, dynamo_poll
+from tests.fixtures import team, poll
 
 
 EXPECTED_UUID = UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb07cb")
+d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
+timezone = pytz.timezone("America/Los_Angeles")
+EXPECTED_CREATED_AT = timezone.localize(d_naive)
 
 
 @pytest.fixture
-def mocked_module(mocker):
+def mocked_module(mocker: MockerFixture) -> None:
     mocker.patch.object(
         create_poll_module,
         "_get_uuid",
@@ -26,27 +30,26 @@ def mocked_module(mocker):
         return_value=EXPECTED_UUID,
     )
 
-    d_naive = datetime(2018, 1, 16, 7, 53, 4, 234873)
-    timezone = pytz.timezone("America/Los_Angeles")
-    d_aware = timezone.localize(d_naive)
-
     mocker.patch.object(
         create_poll_module,
         "_get_created_at",
         auto_spec=True,
-        return_value=d_aware,
+        return_value=EXPECTED_CREATED_AT,
     )
 
 
-def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_polls):
-    first_poll = dynamo_poll.copy()
-    first_poll["state"] = "CLOSED"
-
+def test_create_poll(
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_module: MockerFixture,
+    mocked_slack: MockerFixture,
+    mocked_polls: MockerFixture,
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
-        return_value=[first_poll],
+        return_value=[poll._replace(state="CLOSED")],
     )
 
     result = module.create_poll(
@@ -61,13 +64,12 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
         service_context.daos.teams,
     )
 
-    expcted_poll = dynamo_poll.copy()
-    expcted_poll[
-        "choices"
-    ] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
-    expcted_poll["callback_id"] = str(EXPECTED_UUID)
-    expcted_poll["created_at"] = 1516117984.234873
-    service_context.daos.polls.dynamo.create.assert_called_with(expcted_poll)
+    expcted_poll = poll._replace(
+        choices=polls_constants.CHOICES,
+        callback_id=EXPECTED_UUID,
+        created_at=EXPECTED_CREATED_AT,
+    )
+    service_context.daos.polls.create.assert_called_with(expcted_poll)  # type: ignore
 
     assert result == [
         UsersToPollMessage(
@@ -84,16 +86,17 @@ def test_create_poll(mocker, mocked_team, mocked_module, mocked_slack, mocked_po
 
 
 def test_create_poll_custom_times(
-    mocker, mocked_team, mocked_module, mocked_slack, mocked_polls
-):
-    first_poll = dynamo_poll.copy()
-    first_poll["state"] = "CLOSED"
-
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_module: MockerFixture,
+    mocked_slack: MockerFixture,
+    mocked_polls: MockerFixture,
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
-        return_value=[first_poll],
+        return_value=[poll._replace(state="CLOSED")],
     )
 
     result = module.create_poll(
@@ -108,13 +111,25 @@ def test_create_poll_custom_times(
         service_context.daos.teams,
     )
 
-    expcted_poll = dynamo_poll.copy()
-    expcted_poll["callback_id"] = str(EXPECTED_UUID)
-    expcted_poll["created_at"] = 1516117984.234873
-    expcted_poll[
-        "choices"
-    ] = '[{"key": "yes_1213", "is_yes": true, "time": "12:13", "display_text": "Yes (12:13)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
-    service_context.daos.polls.dynamo.create.assert_called_with(expcted_poll)
+    expcted_poll = poll._replace(
+        choices=[
+            Choice(
+                key="yes_1213",
+                is_yes=True,
+                time="12:13",
+                display_text="Yes (12:13)",
+            ),
+            Choice(
+                key="no",
+                is_yes=False,
+                time="",
+                display_text="No",
+            ),
+        ],
+        callback_id=EXPECTED_UUID,
+        created_at=EXPECTED_CREATED_AT,
+    )
+    service_context.daos.polls.create.assert_called_with(expcted_poll)  # type: ignore
 
     assert result == [
         UsersToPollMessage(
@@ -131,16 +146,16 @@ def test_create_poll_custom_times(
 
 
 def test_create_poll_messages_creating_user_if_already_created(
-    mocker, mocked_team, mocked_slack, mocked_polls
-):
-    first_poll = dynamo_poll.copy()
-    first_poll["created_at"] = datetime.now().timestamp()
-
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_slack: MockerFixture,
+    mocked_polls: MockerFixture,
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
-        return_value=[first_poll],
+        return_value=[poll._replace(created_at=datetime.now())],
     )
 
     result = module.create_poll(
@@ -155,7 +170,7 @@ def test_create_poll_messages_creating_user_if_already_created(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
@@ -166,16 +181,17 @@ def test_create_poll_messages_creating_user_if_already_created(
 
 
 def test_create_poll_works_if_existing_is_old(
-    mocker, mocked_team, mocked_module, mocked_slack, mocked_polls
-):
-    first_poll = dynamo_poll.copy()
-    first_poll["created_at"] = (datetime.now() - timedelta(days=2)).timestamp()
-
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_module: MockerFixture,
+    mocked_slack: MockerFixture,
+    mocked_polls: MockerFixture,
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
-        return_value=[first_poll],
+        return_value=[poll._replace(created_at=(datetime.now() - timedelta(days=2)))],
     )
 
     result = module.create_poll(
@@ -190,13 +206,12 @@ def test_create_poll_works_if_existing_is_old(
         service_context.daos.teams,
     )
 
-    expcted_poll = dynamo_poll.copy()
-    expcted_poll[
-        "choices"
-    ] = '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]'
-    expcted_poll["callback_id"] = str(EXPECTED_UUID)
-    expcted_poll["created_at"] = 1516117984.234873
-    service_context.daos.polls.create.assert_called_with(expcted_poll)
+    expcted_poll = poll._replace(
+        choices=polls_constants.CHOICES,
+        callback_id=EXPECTED_UUID,
+        created_at=EXPECTED_CREATED_AT,
+    )
+    service_context.daos.polls.create.assert_called_with(expcted_poll)  # type: ignore
 
     assert result == [
         UsersToPollMessage(
@@ -213,10 +228,10 @@ def test_create_poll_works_if_existing_is_old(
 
 
 def test_create_poll_messages_creating_user_if_default_channel_not_found(
-    mocker, mocked_slack, mocked_team
-):
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls, "_read_internal", auto_spec=True, return_value=[]
+        service_context.daos.polls, "read", auto_spec=True, return_value=[]
     )
 
     mocker.patch.object(
@@ -241,7 +256,7 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
@@ -252,10 +267,10 @@ def test_create_poll_messages_creating_user_if_default_channel_not_found(
 
 
 def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
-    mocker, mocked_slack, mocked_team
-):
+    mocker: MockerFixture, mocked_slack: MockerFixture, mocked_team: MockerFixture
+) -> None:
     mocker.patch.object(
-        service_context.daos.polls, "_read_internal", auto_spec=True, return_value=[]
+        service_context.daos.polls, "read", auto_spec=True, return_value=[]
     )
 
     mocker.patch.object(
@@ -277,7 +292,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="456",
         as_user=True,
@@ -291,7 +306,7 @@ def test_create_poll_messages_creating_user_if_not_member_of_default_channel(
     "text",
     [("1145, 1230"), ("1145,1230"), ("  1145,   1230 ")],
 )
-def test_parse_message_text_two_options(text):
+def test_parse_message_text_two_options(text: str) -> None:
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [
@@ -327,7 +342,7 @@ def test_parse_message_text_two_options(text):
         (" 1200   size=4", 4),
     ],
 )
-def test_parse_message_text(text, expected_group_size):
+def test_parse_message_text(text: str, expected_group_size: int) -> None:
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [
@@ -353,7 +368,9 @@ def test_parse_message_text(text, expected_group_size):
     "text, expected_group_size",
     [("1145,1200 size=3", 3), (" 1145, 1200      size=5", 5)],
 )
-def test_parse_message_text_group_multiple_times(text, expected_group_size):
+def test_parse_message_text_group_multiple_times(
+    text: str, expected_group_size: int
+) -> None:
     actual_choices, actual_group_size = module.parse_message_text(text)
 
     expected = [

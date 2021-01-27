@@ -1,10 +1,11 @@
 import datetime
 import uuid
+import typing
 
 from lunch_buddies.clients.sqs_v2 import SqsMessage, SqsMessageAttributes
 
 
-test_input = {
+test_input: typing.Dict[str, typing.Any] = {
     "Records": [
         {
             "messageId": "8aa50ffc-1df9-4981-9ef1-46a7878f89dd",
@@ -25,7 +26,7 @@ test_input = {
     ],
 }
 
-test_output = [
+test_output: typing.List[SqsMessage] = [
     SqsMessage(
         message_id=uuid.UUID("8aa50ffc-1df9-4981-9ef1-46a7878f89dd"),
         receipt_handle="foo",

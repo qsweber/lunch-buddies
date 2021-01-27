@@ -2,6 +2,7 @@ from datetime import datetime
 from uuid import UUID
 
 import pytest
+from pytest_mock import MockerFixture
 
 from tests.fixtures import (
     team,
@@ -15,7 +16,7 @@ from lunch_buddies.clients.slack import Channel, User
 
 
 @pytest.fixture
-def mocked_sqs_v2(mocker):
+def mocked_sqs_v2(mocker: MockerFixture) -> None:
     mocker.patch.object(
         service_context.clients.sqs_v2,
         "send_messages",
@@ -25,7 +26,7 @@ def mocked_sqs_v2(mocker):
 
 
 @pytest.fixture
-def mocked_slack(mocker):
+def mocked_slack(mocker: MockerFixture) -> None:
     mocker.patch.object(
         service_context.clients.slack,
         "post_message",
@@ -68,7 +69,7 @@ def mocked_slack(mocker):
 
 
 @pytest.fixture
-def mocked_team(mocker):
+def mocked_team(mocker: MockerFixture) -> None:
     mocker.patch.object(
         service_context.daos.teams,
         "read_one",
@@ -90,7 +91,7 @@ def mocked_team(mocker):
 
 
 @pytest.fixture
-def mocked_stripe(mocker):
+def mocked_stripe(mocker: MockerFixture) -> None:
     mocker.patch.object(
         service_context.clients.stripe,
         "create_customer",
@@ -100,7 +101,7 @@ def mocked_stripe(mocker):
 
 
 @pytest.fixture
-def mocked_polls(mocker):
+def mocked_polls(mocker: MockerFixture) -> None:
     poll_one = Poll(
         team_id=poll.team_id,
         created_at=datetime.fromtimestamp(float(1522117903.551714)),  # make it earlier
@@ -133,7 +134,7 @@ def mocked_polls(mocker):
 
 
 @pytest.fixture
-def mocked_poll_responses(mocker):
+def mocked_poll_responses(mocker: MockerFixture) -> None:
     mocker.patch.object(
         service_context.daos.poll_responses,
         "read",
