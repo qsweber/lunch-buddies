@@ -1,13 +1,15 @@
 import os
+import typing
 
 import pytest
+from pytest_mock import MockerFixture
 
 import lunch_buddies.app.http as module
 from lunch_buddies.types import CreatePoll
 from lunch_buddies.lib.service_context import service_context
 
 
-def test_validate_request_token():
+def test_validate_request_token() -> None:
     os.environ["VERIFICATION_TOKEN"] = "fake_verification_token"
 
     result = module._validate_request_token("fake_verification_token")
@@ -15,7 +17,7 @@ def test_validate_request_token():
     assert result is True
 
 
-def test_validate_request_token_finds_dev_token():
+def test_validate_request_token_finds_dev_token() -> None:
     os.environ["VERIFICATION_TOKEN"] = "fake_verification_token"
     os.environ["VERIFICATION_TOKEN_DEV"] = "fake_dev_verification_token"
 
@@ -24,7 +26,7 @@ def test_validate_request_token_finds_dev_token():
     assert result is True
 
 
-def test_validate_request_token_errors_if_does_not_match_either():
+def test_validate_request_token_errors_if_does_not_match_either() -> None:
     os.environ["VERIFICATION_TOKEN"] = "fake_verification_token"
     os.environ["VERIFICATION_TOKEN_DEV"] = "fake_dev_verification_token"
 
@@ -34,15 +36,15 @@ def test_validate_request_token_errors_if_does_not_match_either():
     assert "you are not authorized to call this URL" == str(excinfo.value)
 
 
-def test_validate_team(mocker, mocked_team):
+def test_validate_team(mocker: MockerFixture, mocked_team: MockerFixture) -> None:
     result = module._validate_team("123", service_context.daos.teams)
 
     assert result is True
 
 
-def test_validate_team_fails_if_invalid_team(mocker):
+def test_validate_team_fails_if_invalid_team(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.teams, "_read_internal", auto_spec=True, return_value=[]
+        service_context.daos.teams, "read", auto_spec=True, return_value=[]
     )
 
     with pytest.raises(Exception) as excinfo:
@@ -52,13 +54,13 @@ def test_validate_team_fails_if_invalid_team(mocker):
 
 
 @pytest.fixture
-def client():
+def client() -> typing.Any:
     client = module.app.test_client()
 
     yield client
 
 
-def test_create_poll_http(mocker, client):
+def test_create_poll_http(mocker: MockerFixture, client: MockerFixture) -> None:
     os.environ["VERIFICATION_TOKEN"] = "test_token"
 
     mocked_queue_create_poll = mocker.patch.object(
@@ -75,7 +77,7 @@ def test_create_poll_http(mocker, client):
         auto_spec=True,
     )
 
-    client.post(
+    client.post(  # type: ignore
         "/api/v0/poll/create",
         data={
             "token": "test_token",

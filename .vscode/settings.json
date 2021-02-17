@@ -9,5 +9,16 @@
     "--strict"
   ],
   "editor.formatOnSave": true,
-  "python.formatting.provider": "black"
+  "python.formatting.provider": "black",
+  "files.exclude": {
+    "**/.git": true,
+    "**/.tox": true,
+    "**/.mypy_cache": true,
+    "**/*.egg-info": true,
+    "htmlcov": true,
+    ".coverage": true,
+    ".mypy": true,
+    "dist": true,
+    "build": true
+  }
 }

@@ -1,17 +1,32 @@
 from datetime import datetime
-from decimal import Decimal
 import uuid
+
 import pytest
+from pytest_mock import MockerFixture
+from dynamo_dao import DynamoObject
 
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.models.polls import Poll, Choice
-from tests.fixtures import poll, dynamo_poll
+from tests.fixtures import poll
 
 
 @pytest.mark.parametrize(
     "model, dynamo",
     [
-        (poll, dynamo_poll),
+        (
+            poll,
+            {
+                "team_id": "123",
+                "created_at": 1522117983.551714,
+                "channel_id": "test_channel_id",
+                "created_by_user_id": "456",
+                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
+                "state": "CREATED",
+                "choices": '[{"key": "yes_1130", "is_yes": true, "time": "11:30", "display_text": "Yes (11:30)"}, {"key": "yes_1230", "is_yes": true, "time": "12:30", "display_text": "Yes (12:30)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
+                "group_size": 6,
+                "stripe_invoice_id": None,
+            },
+        ),
         (
             Poll(
                 team_id="123",
@@ -88,7 +103,7 @@ from tests.fixtures import poll, dynamo_poll
         ),
     ],
 )
-def test_roundtrip_convert(model, dynamo):
+def test_roundtrip_convert(model: Poll, dynamo: DynamoObject) -> None:
     to_dynamo = service_context.daos.polls.convert_to_dynamo(model)
 
     assert to_dynamo == dynamo
@@ -259,37 +274,15 @@ def test_roundtrip_convert(model, dynamo):
         ),
     ],
 )
-def test_find_by_callback_id_or_die(mocker, dynamo, expected):
-    mocker.patch.object(
-        service_context.daos.polls.dynamo,
-        "read",
-        auto_spec=True,
-        return_value=[
-            dynamo,
-            # throw in a random one for this team
-            {
-                "team_id": "123",
-                "created_at": 1522117983.551714,
-                "channel_id": "test_channel_id",
-                "created_by_user_id": "456",
-                "callback_id": "aaaaaaaa-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "state": "CREATED",
-                "choices": '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                "group_size": 6,
-            },
-        ],
-    )
-
-    poll = service_context.daos.polls.find_by_callback_id_or_die(
-        "123", expected.callback_id
-    )
+def test_convert_from_dynamo(dynamo: DynamoObject, expected: Poll) -> None:
+    poll = service_context.daos.polls.convert_from_dynamo(dynamo)
 
     assert poll == expected
 
 
-def test_find_by_callback_id_or_die_no_polls(mocker):
+def test_find_by_callback_id_or_die_no_polls(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo, "read", auto_spec=True, return_value=[]
+        service_context.daos.polls, "read", auto_spec=True, return_value=[]
     )
 
     with pytest.raises(Exception) as excinfo:
@@ -300,23 +293,12 @@ def test_find_by_callback_id_or_die_no_polls(mocker):
     assert "no polls found for team 123" == str(excinfo.value)
 
 
-def test_find_by_callback_id_or_die_no_matching_poll(mocker):
+def test_find_by_callback_id_or_die_no_matching_poll(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
-        return_value=[
-            {
-                "team_id": "123",
-                "created_at": 1522117983.551714,
-                "channel_id": "test_channel_id",
-                "created_by_user_id": "456",
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "state": "CREATED",
-                "choices": '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                "group_size": 6,
-            }
-        ],
+        return_value=[poll],
     )
 
     with pytest.raises(Exception) as excinfo:
@@ -330,39 +312,19 @@ def test_find_by_callback_id_or_die_no_matching_poll(mocker):
     )
 
 
-def test_find_by_callback_id_or_die_multiple_matching(mocker):
+def test_find_by_callback_id_or_die_multiple_matching(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "read",
         auto_spec=True,
         return_value=[
-            {
-                "team_id": "123",
-                "created_at": 1522117983.551714,
-                "channel_id": "test_channel_id",
-                "created_by_user_id": "456",
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "state": "CREATED",
-                "choices": '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                "group_size": 6,
-            },
-            {
-                "team_id": "123",
-                "created_at": 1622117983.551714,
-                "channel_id": "test_channel_id",
-                "created_by_user_id": "456",
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "state": "CREATED",
-                "choices": '[{"key": "yes_1200", "is_yes": true, "time": "12:00", "display_text": "Yes (12:00)"}, {"key": "no", "is_yes": false, "time": "", "display_text": "No"}]',
-                "group_size": 6,
-            },
+            poll,
+            poll,
         ],
     )
 
     with pytest.raises(Exception) as excinfo:
-        service_context.daos.polls.find_by_callback_id_or_die(
-            "123", uuid.UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa")
-        )
+        service_context.daos.polls.find_by_callback_id_or_die("123", poll.callback_id)
 
     assert (
         "more than one poll found with callback_id f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa"
@@ -370,9 +332,9 @@ def test_find_by_callback_id_or_die_multiple_matching(mocker):
     )
 
 
-def test_mark_poll_closed(mocker):
+def test_mark_poll_closed(mocker: MockerFixture) -> None:
     mocker.patch.object(
-        service_context.daos.polls.dynamo,
+        service_context.daos.polls,
         "update",
         auto_spec=True,
         return_value=None,
@@ -380,25 +342,6 @@ def test_mark_poll_closed(mocker):
 
     service_context.daos.polls.mark_poll_closed(poll)
 
-    service_context.daos.polls.dynamo.update.assert_called_with(
-        "lunch_buddies_Poll",
-        {"team_id": "123", "created_at": Decimal(float("1522117983.551714"))},
-        "state",
-        "CLOSED",
-    )
-
-
-def test_create(mocker):
-    mocker.patch.object(
-        service_context.daos.polls.dynamo,
-        "create",
-        auto_spec=True,
-        return_value=None,
-    )
-
-    service_context.daos.polls.create(poll)
-
-    service_context.daos.polls.dynamo.create.assert_called_with(
-        "lunch_buddies_Poll",
-        dynamo_poll,
+    service_context.daos.polls.update.assert_called_with(  # type: ignore
+        poll, poll._replace(state="CLOSED")
     )

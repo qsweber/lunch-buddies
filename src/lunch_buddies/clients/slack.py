@@ -1,7 +1,7 @@
 import logging
 from typing import cast, Any, List, NamedTuple, Optional
 
-from slack_sdk import WebClient as BaseSlackClient
+from slack_sdk import WebClient as BaseSlackClient  # type: ignore
 from slack_sdk.errors import SlackApiError
 
 

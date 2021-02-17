@@ -1,16 +1,14 @@
 import json
 from uuid import UUID
 
-from lunch_buddies.dao.base import Dao
+from dynamo_dao import Dao, DynamoObject
+
 from lunch_buddies.models.groups import Group
-from lunch_buddies.clients.dynamo import DynamoClient, DynamoObject
 
 
 class GroupsDao(Dao[Group]):
-    def __init__(self, dynamo: DynamoClient):
-        super(GroupsDao, self).__init__(
-            dynamo, "lunch_buddies_Group", ["callback_id", "user_ids"]
-        )
+    table_name = "lunch_buddies_Group"
+    unique_key = ["callback_id", "user_ids"]
 
     def convert_to_dynamo(self, q: Group) -> DynamoObject:
         return {

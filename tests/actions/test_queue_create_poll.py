@@ -1,10 +1,12 @@
+from pytest_mock import MockerFixture
+
 from lunch_buddies.lib.service_context import service_context
 from lunch_buddies.constants.help import CREATE_POLL
 from lunch_buddies.types import CreatePoll, PollsToStartMessage
 import lunch_buddies.actions.queue_create_poll as module
 
 
-def test_queue_create_poll(mocked_sqs_v2):
+def test_queue_create_poll(mocked_sqs_v2: MockerFixture) -> None:
     module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -15,7 +17,7 @@ def test_queue_create_poll(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_called_with(
+    service_context.clients.sqs_v2.send_messages.assert_called_with(  # type: ignore
         "polls_to_start",
         [
             PollsToStartMessage(
@@ -28,7 +30,7 @@ def test_queue_create_poll(mocked_sqs_v2):
     )
 
 
-def test_queue_create_poll_with_text(mocked_sqs_v2):
+def test_queue_create_poll_with_text(mocked_sqs_v2: MockerFixture) -> None:
     module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -39,7 +41,7 @@ def test_queue_create_poll_with_text(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_called_with(
+    service_context.clients.sqs_v2.send_messages.assert_called_with(  # type: ignore
         "polls_to_start",
         [
             PollsToStartMessage(
@@ -52,7 +54,7 @@ def test_queue_create_poll_with_text(mocked_sqs_v2):
     )
 
 
-def test_queue_create_poll_help(mocked_sqs_v2):
+def test_queue_create_poll_help(mocked_sqs_v2: MockerFixture) -> None:
     result = module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -63,12 +65,12 @@ def test_queue_create_poll_help(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_not_called()
+    service_context.clients.sqs_v2.send_messages.assert_not_called()  # type: ignore
 
     assert result == CREATE_POLL
 
 
-def test_create_poll_fails_with_bad_text(mocked_sqs_v2):
+def test_create_poll_fails_with_bad_text(mocked_sqs_v2: MockerFixture) -> None:
     result = module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -79,12 +81,12 @@ def test_create_poll_fails_with_bad_text(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_not_called()
+    service_context.clients.sqs_v2.send_messages.assert_not_called()  # type: ignore
 
     assert result == 'Failed: Option could not be parsed into a time: "foo bar"'
 
 
-def test_create_poll_fails_with_bad_text_size(mocked_sqs_v2):
+def test_create_poll_fails_with_bad_text_size(mocked_sqs_v2: MockerFixture) -> None:
     result = module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -95,12 +97,14 @@ def test_create_poll_fails_with_bad_text_size(mocked_sqs_v2):
         service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_not_called()
+    service_context.clients.sqs_v2.send_messages.assert_not_called()  # type: ignore
 
     assert result == 'Failed: Size must be between 2 and 6. Received: "a"'
 
 
-def test_create_poll_fails_with_bad_text_size_too_large(mocked_sqs_v2):
+def test_create_poll_fails_with_bad_text_size_too_large(
+    mocked_sqs_v2: MockerFixture,
+) -> None:
     result = module.queue_create_poll(
         CreatePoll(
             team_id="test_team_id",
@@ -108,9 +112,9 @@ def test_create_poll_fails_with_bad_text_size_too_large(mocked_sqs_v2):
             user_id="test_user_id",
             text="foo bar size=7",
         ),
-        service_context.clients,
+        service_context,
     )
 
-    service_context.clients.sqs_v2.send_messages.assert_not_called()
+    service_context.clients.sqs_v2.send_messages.assert_not_called()  # type: ignore
 
     assert result == 'Failed: Size must be between 2 and 6. Received: "7"'

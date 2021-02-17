@@ -1,8 +1,10 @@
 from datetime import datetime
 import random
 from uuid import UUID
+import typing
 
 import pytest
+from pytest_mock import MockerFixture
 
 from lunch_buddies.clients.slack import Channel
 from lunch_buddies.lib.service_context import service_context
@@ -10,46 +12,28 @@ from lunch_buddies.models.polls import Choice
 from lunch_buddies.models.poll_responses import PollResponse
 import lunch_buddies.actions.close_poll as module
 from lunch_buddies.types import PollsToCloseMessage, GroupsToNotifyMessage
-from tests.fixtures import team, poll, dynamo_poll
+from tests.fixtures import team, poll
 
 
-@pytest.fixture
-def mocked_poll_responses(mocker):
-    mocker.patch.object(
-        service_context.daos.poll_responses,
-        "_read_internal",
-        auto_spec=True,
-        return_value=[
-            {
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "user_id": "user_id_one",
-                "created_at": float("1516117983.234873"),
-                "response": "yes_1130",
-            },
-            {
-                "callback_id": "f0d101f9-9aaa-4899-85c8-aa0a2dbb0aaa",
-                "user_id": "user_id_two",
-                "created_at": float("1516117984.234873"),
-                "response": "yes_1130",
-            },
-        ],
-    )
-
-
-def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
+def test_close_poll(
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_poll_responses: MockerFixture,
+) -> None:
     result = module.close_poll(
         PollsToCloseMessage(
             team_id="123",
             channel_id="test_channel_id",
             user_id="abc",
         ),
-        None,
+        service_context.clients.slack,
         service_context.daos.polls,
         service_context.daos.poll_responses,
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(  # type: ignore
         poll=poll,
     )
 
@@ -64,8 +48,12 @@ def test_close_poll(mocker, mocked_team, mocked_polls, mocked_poll_responses):
 
 
 def test_close_poll_null_channel(
-    mocker, mocked_team, mocked_polls, mocked_poll_responses, mocked_slack
-):
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_poll_responses: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
     result = module.close_poll(
         PollsToCloseMessage(
             team_id="123",
@@ -78,7 +66,7 @@ def test_close_poll_null_channel(
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(  # type: ignore
         poll=poll,
     )
 
@@ -93,8 +81,11 @@ def test_close_poll_null_channel(
 
 
 def test_close_poll_null_channel_no_default_channel(
-    mocker, mocked_team, mocked_polls, mocked_poll_responses
-):
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_poll_responses: MockerFixture,
+) -> None:
     mocker.patch.object(
         service_context.clients.slack,
         "_channels_list_internal",
@@ -117,7 +108,7 @@ def test_close_poll_null_channel_no_default_channel(
         service_context.daos.teams,
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(  # type: ignore
         poll=poll,
     )
 
@@ -132,15 +123,15 @@ def test_close_poll_null_channel_no_default_channel(
 
 
 def test_close_poll_messages_creating_user_if_already_closed(
-    mocker, mocked_team, mocked_slack
-):
-    poll_one = dynamo_poll.copy()
-    poll_one["callback_id"] = "f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb"
-    poll_two = dynamo_poll.copy()
-    poll_two["state"] = "CLOSED"
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
+    poll_one = poll._replace(callback_id=UUID("f0d101f9-9aaa-4899-85c8-aa0a2dbb0bbb"))
+    poll_two = poll._replace(state="CLOSED")
     mocker.patch.object(
         service_context.daos.polls,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[poll_one, poll_two],
     )
@@ -153,11 +144,11 @@ def test_close_poll_messages_creating_user_if_already_closed(
         ),
         service_context.clients.slack,
         service_context.daos.polls,
-        None,
+        service_context.daos.poll_responses,
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,
@@ -168,11 +159,14 @@ def test_close_poll_messages_creating_user_if_already_closed(
 
 
 def test_close_poll_messages_creating_user_if_no_responses(
-    mocker, mocked_team, mocked_polls, mocked_slack
-):
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
     mocker.patch.object(
         service_context.daos.poll_responses,
-        "_read_internal",
+        "read",
         auto_spec=True,
         return_value=[],
     )
@@ -189,14 +183,14 @@ def test_close_poll_messages_creating_user_if_no_responses(
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,
         text="No poll responses found",
     )
 
-    service_context.daos.polls.mark_poll_closed.assert_called_with(
+    service_context.daos.polls.mark_poll_closed.assert_called_with(  # type: ignore
         poll=poll,
     )
 
@@ -204,8 +198,11 @@ def test_close_poll_messages_creating_user_if_no_responses(
 
 
 def test_close_poll_messages_creating_user_if_does_not_exist(
-    mocker, mocked_team, mocked_polls, mocked_slack
-):
+    mocker: MockerFixture,
+    mocked_team: MockerFixture,
+    mocked_polls: MockerFixture,
+    mocked_slack: MockerFixture,
+) -> None:
     result = module.close_poll(
         PollsToCloseMessage(
             team_id="123",
@@ -214,11 +211,11 @@ def test_close_poll_messages_creating_user_if_does_not_exist(
         ),
         service_context.clients.slack,
         service_context.daos.polls,
-        None,
+        service_context.daos.poll_responses,
         service_context.daos.teams,
     )
 
-    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(
+    service_context.clients.slack.post_message_if_channel_exists.assert_called_with(  # type: ignore
         bot_access_token=team.bot_access_token,
         channel="closing_user_id",
         as_user=True,
@@ -272,7 +269,13 @@ def test_close_poll_messages_creating_user_if_does_not_exist(
         (list(range(5)), 3, 3, 7, [[2, 1, 0, 3, 4]]),
     ],
 )
-def test_get_groups(elements, group_size, min_group_size, max_group_size, expected):
+def test_get_groups(
+    elements: typing.List[int],
+    group_size: int,
+    min_group_size: int,
+    max_group_size: int,
+    expected: typing.List[typing.List[int]],
+) -> None:
     random.seed(0)
 
     actual = module._get_groups(elements, group_size, min_group_size, max_group_size)
@@ -280,7 +283,7 @@ def test_get_groups(elements, group_size, min_group_size, max_group_size, expect
     assert actual == expected
 
 
-def test_get_groups_large_input():
+def test_get_groups_large_input() -> None:
     elements = list(range(973))
 
     actual = module._get_groups(elements, 10, 10, 10)
@@ -291,14 +294,16 @@ def test_get_groups_large_input():
 
 
 @pytest.mark.parametrize("elements", [(list(range(i))) for i in range(401)])
-def test_get_groups_works_for_all_company_sizes(elements):
+def test_get_groups_works_for_all_company_sizes(
+    elements: typing.List[typing.List[int]],
+) -> None:
     actual = module._get_groups(elements, 6, 5, 7)
 
     assert len(actual) >= 1
     assert max(map(len, actual)) <= 7
 
 
-def test_group_by_answer():
+def test_group_by_answer() -> None:
     choice_1145 = Choice(
         key="yes_1145",
         is_yes=True,

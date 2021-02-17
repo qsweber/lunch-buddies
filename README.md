@@ -1,6 +1,6 @@
 # Lunch Buddies
 
-![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) ![Test Coverage](https://img.shields.io/badge/tests-87%25-green) ![Type Coverage](https://img.shields.io/badge/types-86%25-yellow)
+![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) ![Test Coverage](https://img.shields.io/badge/tests-88%25-green) ![Type Coverage](https://img.shields.io/badge/types-93%25-green)
 
 This is the backend for the Lunch Buddies slack app.
 
