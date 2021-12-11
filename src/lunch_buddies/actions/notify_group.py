@@ -71,8 +71,15 @@ def _notify_in_channel(
     poll: Poll,
     choice: Choice,
 ) -> None:
+    users_still_in_channel = slack_client.conversations_members(
+        team.bot_access_token, poll.channel_id
+    )
+
+    users_to_include = list(set(users_still_in_channel) & set(message.user_ids))
+    users_to_include.sort()
+
     users_formatted = ", ".join(
-        ["<@{}>".format(user_id) for user_id in message.user_ids]
+        ["<@{}>".format(user_id) for user_id in users_to_include]
     )
     text = (
         "Hey {}!".format(users_formatted)
@@ -85,7 +92,7 @@ def _notify_in_channel(
         as_user=True,
         text=text,
     )
-    text = "<@{}> should pick the location.".format(random.choice(message.user_ids))
+    text = "<@{}> should pick the location.".format(random.choice(users_to_include))
     slack_client.post_message(
         bot_access_token=team.bot_access_token,
         channel=poll.channel_id,
