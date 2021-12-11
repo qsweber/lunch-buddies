@@ -8,3 +8,5 @@ pytest-mock
 pytest-cov
 python-coveralls
 zappa
+types-requests
+types-pytz
