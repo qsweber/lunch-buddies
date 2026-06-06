@@ -201,7 +201,7 @@ Fields:
   - Ignore `No` responses.
   - Group per selected `Yes` choice.
   - Use randomized grouping with target `group_size`, minimum `group_size-1` (floored at 1), and maximum 7. Example: with `group_size=6`, produced groups should be between 5 and 7 unless the total participant count forces a smaller final group during recursive fallback.
-  - If final group too small, redistribute or recursively reduce group size.
+  - If final group too small, first try redistributing leftover members across existing groups without exceeding max size; if that is impossible, recursively retry grouping with `group_size-1` until constraints are satisfiable.
 - Mark poll closed immediately before emitting group notifications.
 - Emit one `GroupsToNotifyMessage` per resulting group.
 
@@ -260,8 +260,9 @@ Fields:
   - `state == CLOSED`
   - `stripe_invoice_id` is null
   - created later than `(team.created_at + 30 days)`
-- Bill amount = number of unique users with `yes_*` responses across billable polls, multiplied by 1.0 (USD units currently stored as float in line item).
-- This float-money representation is a legacy behavior to preserve for parity; the Go implementation should either keep it for strict compatibility or explicitly migrate to integer cents with a coordinated data/API transition.
+- Bill amount = number of unique users with `yes_*` responses across billable polls, multiplied by `$1.00 USD per unique user` (stored as float in the current line-item representation).
+- This float-money representation is a legacy behavior and must be preserved in this rewrite for parity; migrating to integer cents is explicitly out of scope for this rewrite and should be a separate follow-up project.
+- Implementation note: preserve existing behavior but avoid introducing additional rounding drift beyond current Python behavior when performing float arithmetic.
 - If amount is zero, skip invoice.
 - If not dry-run and invoice created, mark all included polls with new invoice id.
 
