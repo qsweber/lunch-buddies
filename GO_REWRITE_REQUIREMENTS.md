@@ -37,7 +37,7 @@ The service coordinates “lunch buddy” grouping in Slack workspaces:
 
 ## 4. External Interfaces
 
-## 4.1 HTTP Routes
+### 4.1 HTTP Routes
 
 Implement these routes and semantics:
 
@@ -79,7 +79,7 @@ Implement these routes and semantics:
 
 All JSON responses from Slack-interactive endpoints should include `Access-Control-Allow-Origin: *`.
 
-## 4.2 Queue Handlers
+### 4.2 Queue Handlers
 
 Implement SQS event handlers:
 
@@ -104,7 +104,7 @@ Error handling requirement for queue handlers:
 
 ## 5. Domain Model Requirements
 
-## 5.1 Team
+### 5.1 Team
 
 Fields:
 - `team_id` (PK)
@@ -116,7 +116,7 @@ Fields:
 - `invoicing_enabled` (optional boolean)
 - `stripe_customer_id` (optional string)
 
-## 5.2 Poll
+### 5.2 Poll
 
 Fields:
 - `team_id` (partition key)
@@ -132,7 +132,7 @@ Fields:
 Compatibility requirements:
 - Existing persisted poll rows may have missing `channel_id` and legacy `choices` formats; parser must handle historic variants.
 
-## 5.3 PollResponse
+### 5.3 PollResponse
 
 Fields:
 - `callback_id`
@@ -143,7 +143,7 @@ Fields:
 Uniqueness:
 - `(callback_id, user_id)` unique (later response overwrites/update behavior through DAO uniqueness semantics).
 
-## 5.4 Group
+### 5.4 Group
 
 Fields:
 - `callback_id`
@@ -152,13 +152,13 @@ Fields:
 
 ## 6. Business Rules
 
-## 6.1 Authorization and tenancy
+### 6.1 Authorization and tenancy
 
 - Every Slack request must pass token validation:
   - Allowed if token equals `VERIFICATION_TOKEN` or `VERIFICATION_TOKEN_DEV`.
 - Team must exist in Teams store for operational routes.
 
-## 6.2 Poll creation
+### 6.2 Poll creation
 
 - If command text is exactly `help` (case/whitespace normalized), return create-help text instead of queueing.
 - Custom poll options parsing:
@@ -169,27 +169,27 @@ Fields:
   - Default group size: 6.
 - If no custom text, default choices are `Yes (12:00)` and `No`.
 - Channel selection:
-  - Slash flow (`channel_id` missing): use default channel `lunch_buddies`.
+  - Slash command flow (`channel_id` missing): use default channel `lunch_buddies`.
   - If default channel absent, DM creator with specific error and abort.
   - If creator not in default channel, DM creator with specific error and abort.
 - Prevent duplicate active poll:
-  - If latest poll in same channel is not closed and created within 24 hours, DM creator “There is already an active poll” and abort.
+  - If latest poll in same channel is not closed and its `created_at` is strictly greater than `(now - 24h)`, DM creator “There is already an active poll” and abort.
 - On success:
   - Create poll record.
   - Enqueue one `UsersToPollMessage` per member in target channel.
 
-## 6.3 Polling users
+### 6.3 Polling users
 
 - Only send poll DM if referenced poll state is `CREATED`.
 - Message text: participation question plus button attachment containing all poll choices.
 
-## 6.4 Recording poll responses
+### 6.4 Recording poll responses
 
 - Resolve selected choice from poll definition.
 - Persist response with action timestamp.
 - Return original message with appended acknowledgement attachment.
 
-## 6.5 Closing poll
+### 6.5 Closing poll
 
 - If close text is `help`, return close-help text and do not queue.
 - If no channel passed, attempt default `lunch_buddies` channel.
@@ -200,12 +200,12 @@ Fields:
 - Grouping:
   - Ignore `No` responses.
   - Group per selected `Yes` choice.
-  - Use randomized grouping with target `group_size`, min `group_size-1` (at least 1), max 7.
+  - Use randomized grouping with target `group_size`, minimum `group_size-1` (floored at 1), and maximum 7. Example: with `group_size=6`, produced groups should be between 5 and 7 unless the total participant count forces a smaller final group during recursive fallback.
   - If final group too small, redistribute or recursively reduce group size.
 - Mark poll closed immediately before emitting group notifications.
 - Emit one `GroupsToNotifyMessage` per resulting group.
 
-## 6.6 Group notification
+### 6.6 Group notification
 
 - Persist `Group` row before sending notifications.
 - If `feature_notify_in_channel = true`:
@@ -216,7 +216,7 @@ Fields:
   - Open multi-person DM with all group users.
   - Post intro message with meeting time and random “in charge” user.
 
-## 6.7 Bot command behavior
+### 6.7 Bot command behavior
 
 - Parse mention text and normalize lowercased, trimmed punctuation.
 - Supported first tokens:
@@ -226,7 +226,7 @@ Fields:
   - `help`: return app explanation text
 - Unknown commands are ignored (no reply).
 
-## 6.8 Summary generation
+### 6.8 Summary generation
 
 - Default lookback window: 7 days.
 - If command suffix contains an integer, use as lookback days.
@@ -236,7 +236,7 @@ Fields:
   - Group lines by choice with user mentions.
 - Requires existing groups for summarized polls; missing groups is treated as error.
 
-## 6.9 OAuth installation flow
+### 6.9 OAuth installation flow
 
 - Exchange auth code against `https://slack.com/api/oauth.v2.access`.
 - Read installer user info via Slack API.
@@ -250,17 +250,18 @@ Fields:
   - If customer exists, update it.
 - DM installer with onboarding message (pricing line included only when invoicing enabled).
 
-## 6.10 Invoicing
+### 6.10 Invoicing
 
 - Periodic invoice job processes teams eligible for billing:
   - Team has `stripe_customer_id`.
   - `invoicing_enabled = true`.
-  - Team created before first day of month at least ~1 full month ago (current algorithm: `(first_of_month - 15 days) -> first_of_that_month` cutoff).
+  - Team created before a derived month-start cutoff (current algorithm: take the first day of the current month, subtract 15 days, then take the first day of that resulting month as the cutoff; example: `2026-01-15` run date -> `2026-01-01 - 15d = 2025-12-17` -> cutoff `2025-12-01`).
 - Polls billable if:
   - `state == CLOSED`
   - `stripe_invoice_id` is null
   - created later than `(team.created_at + 30 days)`
 - Bill amount = number of unique users with `yes_*` responses across billable polls, multiplied by 1.0 (USD units currently stored as float in line item).
+- This float-money representation is a legacy behavior to preserve for parity; the Go implementation should either keep it for strict compatibility or explicitly migrate to integer cents with a coordinated data/API transition.
 - If amount is zero, skip invoice.
 - If not dry-run and invoice created, mark all included polls with new invoice id.
 
@@ -319,4 +320,3 @@ Deployment topology currently maps:
   - create -> fanout -> respond -> close -> notify
 - OAuth install/update parity and installer DM behavior.
 - Summary and invoicing outputs match Python behavior for representative fixtures.
-
