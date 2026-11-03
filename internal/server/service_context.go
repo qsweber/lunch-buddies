@@ -15,7 +15,6 @@ import (
 	"github.com/qsweber/lunch-buddies/internal/repositories"
 	"github.com/qsweber/lunch-buddies/internal/slack"
 	"github.com/qsweber/lunch-buddies/internal/slackverify"
-	"github.com/qsweber/lunch-buddies/internal/stripe"
 )
 
 // Config holds deployment settings that come from environment variables.
@@ -32,14 +31,13 @@ type Config struct {
 type ServiceContext struct {
 	Repositories repositories.Repositories
 	Slack        slack.API
-	Stripe       stripe.API
 	Verifier     slackverify.Verifier
 	Config       Config
 	Now          func() time.Time
 	NewID        func() string
 }
 
-// NewServiceContext wires real AWS, Slack and Stripe clients from the environment.
+// NewServiceContext wires real AWS and Slack clients from the environment.
 func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -54,7 +52,6 @@ func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 	sc := ServiceContext{
 		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg)),
 		Slack:        slack.New(),
-		Stripe:       stripe.New(os.Getenv("STRIPE_API_KEY")),
 		Verifier: slackverify.Verifier{
 			SigningSecret: os.Getenv("SLACK_SIGNING_SECRET"),
 			LegacyTokens:  []string{os.Getenv("SLACK_VERIFICATION_TOKEN")},

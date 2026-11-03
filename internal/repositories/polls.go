@@ -69,7 +69,6 @@ type Poll struct {
 	ClosedByUserID  string         `dynamodbav:"closed_by_user_id,omitempty"`
 	ClosedAt        int64          `dynamodbav:"closed_at,omitempty"`
 	GroupCount      *int           `dynamodbav:"group_count,omitempty"`
-	StripeInvoiceID string         `dynamodbav:"stripe_invoice_id,omitempty"`
 }
 
 // WithKeys fills in the key attributes derived from the poll's fields.
@@ -170,8 +169,6 @@ type PollsRepository interface {
 	MarkGroupNotified(ctx context.Context, callbackID, groupSK string, now time.Time) error
 	// ListPollsForTeam returns the team's polls created at or after since, oldest first.
 	ListPollsForTeam(ctx context.Context, teamID string, since time.Time) ([]Poll, error)
-	// SetStripeInvoiceID marks the poll as invoiced.
-	SetStripeInvoiceID(ctx context.Context, callbackID, invoiceID string) error
 }
 
 type PollsRepositoryImpl struct {
@@ -554,17 +551,4 @@ func (r *PollsRepositoryImpl) ListPollsForTeam(ctx context.Context, teamID strin
 		return nil
 	})
 	return result, err
-}
-
-func (r *PollsRepositoryImpl) SetStripeInvoiceID(ctx context.Context, callbackID, invoiceID string) error {
-	_, err := r.client.UpdateItem(ctx, &dynamodb.UpdateItemInput{
-		TableName:           r.table(),
-		Key:                 key(PollPartitionKey(callbackID), PollSortKey),
-		UpdateExpression:    aws.String("SET stripe_invoice_id = :id"),
-		ConditionExpression: aws.String("attribute_exists(pk)"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":id": s(invoiceID),
-		},
-	})
-	return err
 }

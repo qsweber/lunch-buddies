@@ -6,8 +6,11 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${FormGroupsFunctionArn}",
-        "Payload.$": "$"
+        "FunctionName": "${WorkerFunctionArn}",
+        "Payload": {
+          "task": "form-groups",
+          "callback_id.$": "$.callback_id"
+        }
       },
       "OutputPath": "$.Payload",
       "Retry": [
@@ -58,6 +61,7 @@
       "Type": "Map",
       "ItemsPath": "$.group_sks",
       "ItemSelector": {
+        "task": "notify-group",
         "callback_id.$": "$.callback_id",
         "group_sk.$": "$$.Map.Item.Value"
       },
@@ -72,7 +76,7 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${NotifyGroupFunctionArn}",
+              "FunctionName": "${WorkerFunctionArn}",
               "Payload.$": "$"
             },
             "Retry": [
@@ -213,8 +217,9 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${NotifyFailureFunctionArn}",
+        "FunctionName": "${WorkerFunctionArn}",
         "Payload": {
+          "task": "notify-failure",
           "callback_id.$": "$.callback_id",
           "workflow": "close"
         }

@@ -13,15 +13,11 @@ import (
 const (
 	teamPartitionKeyPrefix = "TEAM#"
 	TeamSortKey            = "TEAM"
-	// AllTeamsGSI1PK is the sparse GSI1 partition that lists every team (for invoicing).
-	AllTeamsGSI1PK = "TEAMS"
 )
 
 type Team struct {
 	PK     string `dynamodbav:"pk"`
 	SK     string `dynamodbav:"sk"`
-	GSI1PK string `dynamodbav:"gsi1pk"`
-	GSI1SK string `dynamodbav:"gsi1sk"`
 	TeamID string `dynamodbav:"team_id"`
 	// BotAccessToken is stored in plaintext, as in the Python app. Encrypting it (e.g. with
 	// KMS) is deferred; see the design doc §12.
@@ -29,8 +25,6 @@ type Team struct {
 	Name                   string `dynamodbav:"name"`
 	CreatedAt              int64  `dynamodbav:"created_at"`
 	FeatureNotifyInChannel bool   `dynamodbav:"feature_notify_in_channel"`
-	StripeCustomerID       string `dynamodbav:"stripe_customer_id,omitempty"`
-	InvoicingEnabled       bool   `dynamodbav:"invoicing_enabled"`
 }
 
 func TeamPartitionKey(teamID string) string { return teamPartitionKeyPrefix + teamID }
@@ -39,8 +33,6 @@ func TeamPartitionKey(teamID string) string { return teamPartitionKeyPrefix + te
 func (t Team) WithKeys() Team {
 	t.PK = TeamPartitionKey(t.TeamID)
 	t.SK = TeamSortKey
-	t.GSI1PK = AllTeamsGSI1PK
-	t.GSI1SK = TeamPartitionKey(t.TeamID)
 	return t
 }
 
@@ -49,8 +41,6 @@ type TeamsRepository interface {
 	GetTeam(ctx context.Context, teamID string) (*Team, error)
 	// PutTeam creates or replaces the team record.
 	PutTeam(ctx context.Context, team Team) error
-	// ListTeams returns every installed team.
-	ListTeams(ctx context.Context) ([]Team, error)
 }
 
 type TeamsRepositoryImpl struct {
@@ -90,26 +80,6 @@ func (r *TeamsRepositoryImpl) PutTeam(ctx context.Context, team Team) error {
 	}
 	_, err = r.client.PutItem(ctx, &dynamodb.PutItemInput{TableName: aws.String(r.tableName), Item: av})
 	return err
-}
-
-func (r *TeamsRepositoryImpl) ListTeams(ctx context.Context) ([]Team, error) {
-	var teams []Team
-	err := queryAll(ctx, r.client, &dynamodb.QueryInput{
-		TableName:              aws.String(r.tableName),
-		IndexName:              aws.String(GSI1Name),
-		KeyConditionExpression: aws.String("gsi1pk = :pk"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":pk": s(AllTeamsGSI1PK),
-		},
-	}, func(item map[string]types.AttributeValue) error {
-		var t Team
-		if err := attributevalue.UnmarshalMap(item, &t); err != nil {
-			return err
-		}
-		teams = append(teams, t)
-		return nil
-	})
-	return teams, err
 }
 
 // queryAll pages through a query, calling fn for every item.

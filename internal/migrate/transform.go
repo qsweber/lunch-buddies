@@ -62,8 +62,6 @@ func Team(r Row) (repositories.Team, error) {
 		Name:                   str(r, "name"),
 		CreatedAt:              created,
 		FeatureNotifyInChannel: boolish(r, "feature_notify_in_channel"),
-		StripeCustomerID:       str(r, "stripe_customer_id"),
-		InvoicingEnabled:       boolish(r, "invoicing_enabled"),
 	}, nil
 }
 
@@ -94,7 +92,6 @@ func Poll(r Row, groupCount int) (repositories.Poll, error) {
 		CreatedAt:       created,
 		Choices:         choices,
 		GroupSize:       groupSize,
-		StripeInvoiceID: str(r, "stripe_invoice_id"),
 	}
 	switch state := str(r, "state"); state {
 	case "CREATED":

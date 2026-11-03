@@ -17,7 +17,7 @@ type EnvConfig struct {
 	// infrastructure behind it can change without reconfiguring Slack.
 	ApiDomainName string
 
-	// SecretName is the Secrets Manager secret holding this stack's Slack/Stripe settings as
+	// SecretName is the Secrets Manager secret holding this stack's Slack settings as
 	// a JSON object; see README "Secrets". It must exist before the first deploy.
 	SecretName string
 

@@ -1,9 +1,9 @@
 # Lunch Buddies backend: event-driven, single-table rewrite in Go
 
-Status: **Implemented on this branch, not yet deployed** (rev 3; rev 1 was Python, rev 2 was the Go design before implementation)
+Status: **Implemented on this branch, not yet deployed** (rev 4; rev 1 was Python, rev 2 was the Go design before implementation, rev 3 recorded implementation learnings)
 Base commit: `2aa093f` · Template reference: `qsweber/go-template@8ad5afe`
 
-Changes from rev 2, learned while implementing, are marked **[rev 3]**.
+Changes from rev 2, learned while implementing, are marked **[rev 3]**. Review follow-ups are marked **[rev 4]**.
 
 ## 1. Goals
 
@@ -14,7 +14,9 @@ Changes from rev 2, learned while implementing, are marked **[rev 3]**.
 5. **Fan-out runs in Step Functions**, not by chaining SQS queues. There is one Lambda task per user (send the poll DM) and one per group (send the group message).
 6. Fix the correctness gaps the current design can't handle well (see §2.2).
 
-Non-goals: changing the poll UX, the grouping algorithm, invoicing logic or the OAuth flow. They are **ported as-is**; behaviour parity is the bar.
+Non-goals: changing the poll UX, the grouping algorithm or the OAuth flow. They are **ported as-is**; behaviour parity is the bar.
+
+**[rev 4]** Invoicing and Stripe are **removed**, not ported (never used in practice, see §5.4). The five Step Functions tasks run in **one `worker` Lambda** (§3.1).
 
 ## 2. Current state (summary)
 
@@ -53,11 +55,11 @@ flowchart LR
     DDB[(lunch-buddies-&lt;env&gt;-records)]
     Stream{{DynamoDB Stream<br/>NEW_AND_OLD_IMAGES}}
     Router["cmd/dynamostream<br/>(filtered ESM + DLQ)"]
-    subgraph SFN1["StartPoll"]
-      v[preparepoll] --> m1[[Map: polluser]]
+    subgraph SFN1["StartPoll (tasks run in cmd/worker)"]
+      v[prepare-poll] --> m1[[Map: poll-user]]
     end
-    subgraph SFN2["ClosePoll"]
-      g[formgroups] --> m2[[Map: notifygroup]] --> done[MarkPollComplete<br/>native DynamoDB task]
+    subgraph SFN2["ClosePoll (tasks run in cmd/worker)"]
+      g[form-groups] --> m2[[Map: notify-group]] --> done[MarkPollComplete<br/>native DynamoDB task]
     end
 
     Slack --> create & respond & close
@@ -73,15 +75,21 @@ flowchart LR
 
 ### 3.1 Components
 
-| Lambda (`cmd/…`) | Trigger | Logic lives in |
-|------------------|---------|----------------|
-| `apigateway` | HTTP API v2 `$default` route | `internal/server` |
-| `dynamostream` | DynamoDB stream ESM with filter criteria, DLQ | `internal/workflows/router.go` |
-| `preparepoll`, `polluser` | StartPoll state machine | `internal/workflows/start_poll.go` |
-| `formgroups`, `notifygroup` | ClosePoll state machine | `internal/workflows/close_poll.go` |
-| `notifyfailure` | SFN `Catch` target | `internal/workflows/close_poll.go` |
-| `invoice` | Manual invoke (`{"dry_run": false}` to bill) | `internal/invoice` |
-| `migrate` (CLI, not a Lambda) | Run locally at cutover | `internal/migrate` |
+| `cmd/…` | Lambda function | Trigger | Logic lives in |
+|---------|-----------------|---------|----------------|
+| `apigateway` | `<stack>-api` | HTTP API v2 `$default` route | `internal/server` |
+| `dynamostream` | `<stack>-stream-router` | DynamoDB stream ESM with filter criteria, DLQ | `internal/workflows/router.go` |
+| `worker` | `<stack>-worker` | Every Step Functions task | `internal/workflows` (`worker.go` dispatches) |
+| `migrate` | – (local CLI) | Run by hand at cutover | `internal/migrate` |
+
+**[rev 4] One worker Lambda for all Step Functions tasks.**
+- Every task payload carries a `task` field (`prepare-poll`, `poll-user`, `form-groups`, `notify-group`, `notify-failure`). `workflows.Deps.Handle` unmarshals the input for that task and calls it.
+- Errors are returned unwrapped, so the `RateLimitedError` Retry match still works.
+- Only two Lambdas stay separate, because their trigger, payload shape and IAM genuinely differ:
+  - The API is called by API Gateway. It has reserved concurrency and the Slack secrets.
+  - The router gets stream batches and is the only role allowed `states:StartExecution`.
+- The tasks shared a trigger, role, timeout and environment anyway. Per-task debugging comes from the execution history, which names the failing state. One function also shares warm instances across tasks.
+- This departs from go-template's one-`cmd`-per-Lambda convention.
 
 Infrastructure is CDK in Go under `cdk/`, written in the template's L1 `Cfn*` style. The state machines are `cdk/statemachines/*.asl.json` with `DefinitionSubstitutions`.
 
@@ -97,9 +105,9 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 
 | Entity | pk | sk | gsi1pk | gsi1sk | Other attributes |
 |--------|----|----|--------|--------|------------------|
-| Team | `TEAM#<team_id>` | `TEAM` | `TEAMS` | `TEAM#<team_id>` | `bot_access_token` (plaintext, see §12), `name`, `created_at`, `feature_notify_in_channel`, `stripe_customer_id`, `invoicing_enabled` |
+| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12), `name`, `created_at`, `feature_notify_in_channel` |
 | ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | – | – | `callback_id`, `created_at` |
-| Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]**, `stripe_invoice_id` |
+| Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
 | Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
 | PollResponse | `POLL#<callback_id>` | `RESPONSE#<user_id>` | – | – | `response`, `created_at` |
 | Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` (migrated: `#m<hash>`) | – | – | `user_ids`, `response_key`, `notified_at` |
@@ -117,16 +125,17 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 | A3 | Active poll for channel | `GetItem TEAM#t / ACTIVE_POLL#ch` |
 | A4 | All active polls for team | `Query TEAM#t, begins_with(sk, "ACTIVE_POLL#")` |
 | A5 | Poll + children | `Query POLL#c` (strongly consistent) |
-| A6 | Team's polls since date | `Query gsi1 TEAM#t, gsi1sk BETWEEN …` |
-| A7 | All teams | `Query gsi1 TEAMS` |
+| A6 | Team's polls since date (summary) | `Query gsi1 TEAM#t, gsi1sk BETWEEN …` |
+
+**[rev 4]** The "all teams" GSI partition (`gsi1pk = TEAMS`) existed only for invoicing and was removed. GSI1 now indexes polls only.
 
 ### 4.3 Poll state machine
 
 ```
-            (API)                 (preparepoll)             (API close)          (MarkPollComplete)
+            (API)                 (prepare-poll)             (API close)          (MarkPollComplete)
   ∅ ──► REQUESTED ──────────────► OPEN ────────────────────► CLOSED ────────────► COMPLETE
              │
-             └──(preparepoll)──► REJECTED   (no default channel / user not in channel / active poll exists)
+             └──(prepare-poll)──► REJECTED   (no default channel / user not in channel / active poll exists)
 ```
 
 - `REQUESTED → OPEN`: one transaction that updates the poll (condition `state = REQUESTED`) and puts the pointer (condition `attribute_not_exists(pk) OR created_at < now-24h`). The cancellation reason tells us which condition failed: `ErrInvalidTransition` or `ErrActivePollExists`.
@@ -152,14 +161,14 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 
 1. The API verifies the request and the team, handles `help`, parses the text (`Failed: …` inline on error), and does `PutItem` with `REQUESTED`. It replies `ok!`.
 2. The router starts `StartPoll` with execution name `start-<callback_id>`.
-3. `preparepoll`:
+3. `prepare-poll`:
    - For the slash command (no channel), resolve `#lunch_buddies` and check the creator is a member.
    - Then do `OpenPoll`.
    - On any rejection, DM the creator and mark the poll `REJECTED`.
    - Return the channel members.
-4. Map, `MaxConcurrency` 5: `polluser`.
-   - **[rev 3] `preparepoll` no longer bulk-writes recipient rows.** BatchWriteItem can't be conditional, so a re-run would overwrite `sent_at`.
-   - Instead, `polluser` checks for a recipient row, sends the DM, then writes the row with `sent_at`.
+4. Map, `MaxConcurrency` 5: `poll-user`.
+   - **[rev 3] `prepare-poll` no longer bulk-writes recipient rows.** BatchWriteItem can't be conditional, so a re-run would overwrite `sent_at`.
+   - Instead, `poll-user` checks for a recipient row, sends the DM, then writes the row with `sent_at`.
    - A failed user is caught and skipped, so one deactivated account doesn't fail the poll.
 
 ### 5.2 Respond
@@ -174,10 +183,10 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
    - Then it runs `ClosePoll`. "No poll found" and "already closed" come back inline.
    - **[rev 3]** Because close deletes the pointer, closing an already-closed poll from a channel now says "No poll found" rather than "already closed".
 2. The router starts `ClosePoll` with execution name `close-<callback_id>`.
-3. `formgroups`:
+3. `form-groups`:
    - If `group_count` is already set, return the existing groups.
    - Otherwise group the "yes" answers, `SaveGroups`, and DM the closer "No poll responses found" if nobody answered at all.
-4. Map: `notifygroup` (in-channel or private group DM; skip if `notified_at` is set).
+4. Map: `notify-group` (in-channel or private group DM; skip if `notified_at` is set).
    - **[rev 3]** A failed group doesn't stop the others.
    - After the Map, `MarkPollComplete` runs. If any group failed, the execution then ends in `Fail`, which triggers the alarm.
 
@@ -185,9 +194,9 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 
 | Endpoint | Notes |
 |----------|-------|
-| `/auth` | Logic unchanged. Logs only team id/name (P9). |
+| `/auth` | Exchanges the code, upserts the team, sends the welcome DM. Logs only team id/name (P9). **[rev 4]** No longer looks up the installer or creates/updates a Stripe customer, and the welcome DM no longer links to pricing. |
 | `summary` | **[rev 3]** Skips polls with no groups instead of erroring (Python raised `groups not found`). |
-| `invoice` | **[rev 3]** Ported exactly, including two surprises; see §11 Q6. |
+| Invoicing | **[rev 4] Removed** along with Stripe. The Python job always ran with `dry_run=True`, so it never billed anyone. The legacy `stripe_customer_id`, `invoicing_enabled` and `stripe_invoice_id` columns are not migrated. |
 | `/error` | Dropped. |
 | `scripts/*` | **[rev 3]** Dropped, not ported. `close_all_polls_for_team.py` was a one-off with the team name hard-coded. `generate_app_store_content.py` only printed `AppExplanation` (now `polls.AppExplanation`). `save_to_sql.py` and `analysis.py` were ad-hoc analysis of the old tables; they're in git history if needed. |
 
@@ -204,9 +213,9 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 | HTTP create | `attribute_not_exists` on a fresh UUID. Retried bot events ignored. |
 | Stream → router | Batch size 10. 5 retries. Bisect on error. `ReportBatchItemFailures`. On-failure SQS DLQ (`<stack>-stream-dlq`), with an alarm. |
 | Router → SFN | Deterministic execution names. `ExecutionAlreadyExists` counts as success. |
-| preparepoll | Conditional transitions. Re-runs skip to listing members. |
-| polluser / notifygroup | `sent_at` / `notified_at` markers. A crash between the Slack post and the marker can still double-send once. |
-| formgroups | `group_count` + groups in one transaction (§4.3). |
+| prepare-poll | Conditional transitions. Re-runs skip to listing members. |
+| poll-user / notify-group | `sent_at` / `notified_at` markers. A crash between the Slack post and the marker can still double-send once. |
+| form-groups | `group_count` + groups in one transaction (§4.3). |
 | Slack rate limits | `slack.RateLimitedError` is returned **unwrapped**, so aws-lambda-go reports `errorType: RateLimitedError` and the SFN `Retry` matches it (backoff from 3s, up to 8 attempts, jitter). Wrapping it with `fmt.Errorf` would break the match. |
 | Alarms | An SNS topic `<stack>-alarms`, fed by an EventBridge rule on SFN `FAILED`/`TIMED_OUT`/`ABORTED` and by the DLQ depth alarm. `EnvConfig.AlertEmail` (empty for now) adds an email subscription. |
 
@@ -214,15 +223,15 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 
 ```
 Makefile                         # make build → dist/<lambda>.zip for each cmd; test; vet; fmt-check
-cmd/{apigateway,dynamostream,preparepoll,polluser,formgroups,notifygroup,notifyfailure,invoice}/main.go
-cmd/migrate/main.go              # CLI
+cmd/{apigateway,dynamostream,worker}/main.go   # the three Lambdas
+cmd/migrate/main.go                            # local CLI
 internal/
   polls/          parse.go grouping.go messages.go       # pure domain + parity tests
   repositories/   main.go teams.go polls.go               # single table; recording-fake tests
   repositories/memory/                                    # in-memory impl with the same conditions, for service tests
   server/         main.go polls.go respond.go bot.go auth.go service_context.go
-  workflows/      deps.go router.go start_poll.go close_poll.go
-  slack/ (+ slacktest/)  slackverify/  stripe/  invoice/  migrate/
+  workflows/      deps.go router.go worker.go start_poll.go close_poll.go
+  slack/ (+ slacktest/)  slackverify/  migrate/
 cdk/              main.go stack.go data.go lambdas.go apigateway.go domain.go workflows.go stream.go alarms.go iam.go
 cdk/statemachines/start_poll.asl.json close_poll.asl.json
 .github/workflows/ci.yml pr.yml deploy.yml               # Python main.yml removed
@@ -237,7 +246,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 ## 8. Migration and cutover
 
 **[rev 3] Prerequisites per stack:**
-- **A Secrets Manager secret** named `lunch-buddies/<env>`, holding a JSON object with these keys: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret`, `stripe_api_key`, `auth_url`.
+- **A Secrets Manager secret** named `lunch-buddies/<env>`, holding a JSON object with these keys: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret`, `auth_url`.
   - Every key must exist; use an empty string where not needed. A missing key fails the deploy.
   - CloudFormation resolves the values into the Lambda environment at deploy time, the same exposure as today's Zappa env vars.
 - **The OIDC deploy role** `github-actions-deploy` must trust this repository. Today it may only trust go-template.
@@ -276,10 +285,11 @@ Steps:
 | 1 | Scaffold (go.mod, Makefile, CI, CDK skeleton) | Done |
 | 2 | Domain port + parity tests | Done |
 | 3 | Repositories + in-memory store | Done |
-| 4 | Slack/Stripe clients, request verification | Done |
+| 4 | Slack client, request verification | Done |
 | 5 | Workflow tasks, router, ASL, stream mapping, DLQ, alarms | Done (ASL not yet validated against AWS) |
 | 6 | HTTP endpoints | Done |
-| 7 | Invoice | Done (dry-run by default) |
+| 7 | Invoice | **Removed [rev 4]** |
+| – | Consolidate task Lambdas into `cmd/worker` | Done **[rev 4]** |
 | 8 | Migration tool | Done (not run against real data) |
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
 | 9 | Secrets, dev deploy, dev Slack app, end-to-end test | **Next.** Needs AWS access. |
@@ -292,7 +302,7 @@ Steps:
 - **EventBridge Pipes instead of the router Lambda.** It can't set deterministic execution names.
 - **Synchronous channel resolution in the API.** The slash-command path needs Slack pagination inside the 3s budget.
 - **Step Functions HTTP Task calling Slack.** Bot tokens are per-team.
-- **[rev 3] Recipient rows written in bulk by preparepoll.** Rejected because BatchWrite can't be conditional (§5.1).
+- **[rev 3] Recipient rows written in bulk by prepare-poll.** Rejected because BatchWrite can't be conditional (§5.1).
 
 ## 11. Open questions
 
@@ -301,19 +311,14 @@ Steps:
 3. **The dev Slack app.** Does the one behind `VERIFICATION_TOKEN_DEV` still exist?
 4. **OIDC role trust.** Does `github-actions-deploy` trust `qsweber/lunch-buddies`?
 5. **Alert email.** Where should `EnvConfig.AlertEmail` send alerts?
-6. **Invoicing (found while porting).**
-   - The Python handler always ran with `dry_run=True`, so it has never billed anyone.
-   - It also sent `amount = <number of yes users>` to Stripe, which is in cents, so it would have charged **1¢ per user**.
-   - The Go port keeps both behaviours: dry-run by default and `PricePerYesUserCents = 1`.
-   - What's the intended price, and should it run on a schedule?
-7. **Other readers.** Does `lunch-buddies-web`, or anything else, read the old `lunch_buddies_*` tables? (The Python analysis scripts were dropped; see §5.4.)
-8. **Group size.** Keep the parity quirk that allows groups of 1 (§5.5)?
+6. **Other readers.** Does `lunch-buddies-web`, or anything else, read the old `lunch_buddies_*` tables? (The Python analysis scripts were dropped; see §5.4.)
+7. **Group size.** Keep the parity quirk that allows groups of 1 (§5.5)?
 
 ## 12. Deferred: encrypting bot tokens
 
 Bot tokens remain plaintext in DynamoDB, as today, by decision on this PR. Anyone who can read the table, its exports or backups, or the stream can use them. If we revisit this:
 
-- **Approach.** Encrypt the token in the application with a dedicated KMS key, using `team_id` as encryption context. Do it in `TeamsRepository.PutTeam`/`GetTeam`, cache decrypted tokens per Lambda instance, and grant `kms:Decrypt` only to the API and task roles.
+- **Approach.** Encrypt the token in the application with a dedicated KMS key, using `team_id` as encryption context. Do it in `TeamsRepository.PutTeam`/`GetTeam`, cache decrypted tokens per Lambda instance, and grant `kms:Decrypt` only to the API and worker roles.
 - **Cost.** About $1/month per key. At this volume, requests stay within the 20k/month free tier.
 - **Migration.** Encrypt in `cmd/migrate`, plus a one-off re-encrypt of existing rows.
 - **Optional.** Slack token rotation, so leaked tokens expire after 12 hours.

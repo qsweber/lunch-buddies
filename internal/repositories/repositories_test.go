@@ -215,7 +215,7 @@ func TestTeamsRepository(t *testing.T) {
 	if err := repo.PutTeam(context.Background(), Team{TeamID: "T1", BotAccessToken: "xoxb-123"}); err != nil {
 		t.Fatal(err)
 	}
-	if str(t, db.putInput.Item, "pk") != "TEAM#T1" || str(t, db.putInput.Item, "gsi1pk") != AllTeamsGSI1PK {
+	if str(t, db.putInput.Item, "pk") != "TEAM#T1" || str(t, db.putInput.Item, "sk") != TeamSortKey {
 		t.Errorf("team keys = %+v", db.putInput.Item)
 	}
 	if got := str(t, db.putInput.Item, "bot_access_token"); got != "xoxb-123" {

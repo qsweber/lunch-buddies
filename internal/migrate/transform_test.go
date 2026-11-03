@@ -67,8 +67,8 @@ func TestActivePointersKeepsNewestOpenPollPerChannel(t *testing.T) {
 }
 
 func TestTeamBooleans(t *testing.T) {
-	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "created_at": "1600000000", "feature_notify_in_channel": "1", "invoicing_enabled": "0"})
-	if err != nil || !team.FeatureNotifyInChannel || team.InvoicingEnabled || team.CreatedAt != 1600000000000 {
+	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "created_at": "1600000000", "feature_notify_in_channel": "1"})
+	if err != nil || !team.FeatureNotifyInChannel || team.CreatedAt != 1600000000000 {
 		t.Errorf("team = %+v, %v", team, err)
 	}
 }

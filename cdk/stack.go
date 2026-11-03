@@ -13,7 +13,7 @@ func NewLunchBuddiesStack(scope constructs.Construct, id string, cfg EnvConfig, 
 	projectStackName := "lunch-buddies-" + cfg.Env
 
 	data := createDataResources(stack, projectStackName, cfg)
-	workflows := createWorkflowResources(stack, projectStackName, cfg, data)
+	workflows := createWorkflowResources(stack, projectStackName, data)
 	stream := createStreamResources(stack, projectStackName, data, workflows)
 	createAlarms(stack, projectStackName, cfg, workflows, stream)
 	api := createAPIGatewayResources(stack, projectStackName, cfg, data)
@@ -23,7 +23,6 @@ func NewLunchBuddiesStack(scope constructs.Construct, id string, cfg EnvConfig, 
 		awscdk.NewCfnOutput(stack, jsii.String("Output"+name), &awscdk.CfnOutputProps{Value: value})
 	}
 	output("RecordsTable", data.Table.Ref())
-	output("InvoiceFunction", workflows.Invoice.Ref())
 	output("InvocationURL", jsii.String(fmt.Sprintf("https://%s.execute-api.%s.amazonaws.com", *api.Api.Ref(), cfg.Region)))
 	output("CustomDomainURL", jsii.String(fmt.Sprintf("https://%s", cfg.ApiDomainName)))
 

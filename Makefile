@@ -1,6 +1,6 @@
 # Each Lambda is cmd/<name>/main.go, built to a "bootstrap" binary and zipped to dist/<name>.zip
 # (the CDK app packages the zips from there).
-LAMBDAS := apigateway dynamostream preparepoll polluser formgroups notifygroup notifyfailure invoice
+LAMBDAS := apigateway dynamostream worker
 
 .PHONY: build test vet fmt-check $(addprefix build-,$(LAMBDAS))
 

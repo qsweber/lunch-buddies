@@ -6,20 +6,30 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${PreparePollFunctionArn}",
-        "Payload.$": "$"
+        "FunctionName": "${WorkerFunctionArn}",
+        "Payload": {
+          "task": "prepare-poll",
+          "callback_id.$": "$.callback_id"
+        }
       },
       "OutputPath": "$.Payload",
       "Retry": [
         {
-          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
           "IntervalSeconds": 2,
           "MaxAttempts": 6,
           "BackoffRate": 2,
           "JitterStrategy": "FULL"
         },
         {
-          "ErrorEquals": ["RateLimitedError"],
+          "ErrorEquals": [
+            "RateLimitedError"
+          ],
           "IntervalSeconds": 3,
           "MaxAttempts": 8,
           "BackoffRate": 2,
@@ -27,7 +37,9 @@
           "JitterStrategy": "FULL"
         },
         {
-          "ErrorEquals": ["States.ALL"],
+          "ErrorEquals": [
+            "States.ALL"
+          ],
           "IntervalSeconds": 5,
           "MaxAttempts": 2,
           "BackoffRate": 2
@@ -35,7 +47,9 @@
       ],
       "Catch": [
         {
-          "ErrorEquals": ["States.ALL"],
+          "ErrorEquals": [
+            "States.ALL"
+          ],
           "ResultPath": "$.error",
           "Next": "NotifyFailure"
         }
@@ -57,6 +71,7 @@
       "Type": "Map",
       "ItemsPath": "$.user_ids",
       "ItemSelector": {
+        "task": "poll-user",
         "callback_id.$": "$.callback_id",
         "user_id.$": "$$.Map.Item.Value"
       },
@@ -71,20 +86,27 @@
             "Type": "Task",
             "Resource": "arn:aws:states:::lambda:invoke",
             "Parameters": {
-              "FunctionName": "${PollUserFunctionArn}",
+              "FunctionName": "${WorkerFunctionArn}",
               "Payload.$": "$"
             },
             "ResultPath": null,
             "Retry": [
               {
-                "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
                 "IntervalSeconds": 2,
                 "MaxAttempts": 6,
                 "BackoffRate": 2,
                 "JitterStrategy": "FULL"
               },
               {
-                "ErrorEquals": ["RateLimitedError"],
+                "ErrorEquals": [
+                  "RateLimitedError"
+                ],
                 "IntervalSeconds": 3,
                 "MaxAttempts": 8,
                 "BackoffRate": 2,
@@ -92,7 +114,9 @@
                 "JitterStrategy": "FULL"
               },
               {
-                "ErrorEquals": ["States.ALL"],
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
                 "IntervalSeconds": 5,
                 "MaxAttempts": 2,
                 "BackoffRate": 2
@@ -101,7 +125,9 @@
             "Catch": [
               {
                 "Comment": "One user we can't DM must not stop the rest of the poll. The failure stays visible in the execution history.",
-                "ErrorEquals": ["States.ALL"],
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
                 "ResultPath": "$.error",
                 "Next": "UserFailed"
               }
@@ -121,8 +147,9 @@
       "Type": "Task",
       "Resource": "arn:aws:states:::lambda:invoke",
       "Parameters": {
-        "FunctionName": "${NotifyFailureFunctionArn}",
+        "FunctionName": "${WorkerFunctionArn}",
         "Payload": {
+          "task": "notify-failure",
           "callback_id.$": "$.callback_id",
           "workflow": "start"
         }

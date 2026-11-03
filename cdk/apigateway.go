@@ -44,7 +44,6 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 			"SLACK_VERIFICATION_TOKEN": secretRef(cfg, "slack_verification_token"),
 			"SLACK_CLIENT_ID":          secretRef(cfg, "slack_client_id"),
 			"SLACK_CLIENT_SECRET":      secretRef(cfg, "slack_client_secret"),
-			"STRIPE_API_KEY":           secretRef(cfg, "stripe_api_key"),
 			"AUTH_URL":                 secretRef(cfg, "auth_url"),
 		},
 		TimeoutSecs:         15,

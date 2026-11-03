@@ -18,13 +18,14 @@ In short:
    and `OPEN → CLOSED` on close.
 2. A DynamoDB stream consumer (`cmd/dynamostream`) sees those two poll transitions and starts a
    Step Functions workflow.
-3. **StartPoll** resolves the channel, opens the poll, and DMs each member (one `polluser`
+3. **StartPoll** resolves the channel, opens the poll, and DMs each member (one `poll-user`
    task per user). **ClosePoll** forms the groups, saves them, and notifies each group (one
-   `notifygroup` task per group).
+   `notify-group` task per group). Every task runs in the single `worker` Lambda, which
+   dispatches on the payload's `task` field.
 
 | Path | What |
 | ---- | ---- |
-| `cmd/<lambda>/main.go` | One Lambda each: `apigateway`, `dynamostream`, `preparepoll`, `polluser`, `formgroups`, `notifygroup`, `notifyfailure`, `invoice` |
+| `cmd/apigateway`, `cmd/dynamostream`, `cmd/worker` | The three Lambdas: HTTP API, stream router, Step Functions tasks |
 | `cmd/migrate` | One-off CLI that copies the legacy tables into the new table |
 | `internal/polls` | Pure domain logic: parsing poll options, grouping, message text |
 | `internal/repositories` | Single-table DynamoDB access (+ `memory/` for tests) |
@@ -60,7 +61,7 @@ make build       # builds every Lambda into dist/<name>.zip
 
 Each stack needs a Secrets Manager secret named `lunch-buddies/<env>`. It holds a JSON object
 with these keys: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`,
-`slack_client_secret`, `stripe_api_key` and `auth_url`. Use an empty string for any value you
+`slack_client_secret` and `auth_url`. Use an empty string for any value you
 don't need.
 
 ```bash

@@ -14,44 +14,26 @@ import (
 	"github.com/qsweber/lunch-buddies/internal/slack"
 	"github.com/qsweber/lunch-buddies/internal/slack/slacktest"
 	"github.com/qsweber/lunch-buddies/internal/slackverify"
-	"github.com/qsweber/lunch-buddies/internal/stripe"
 )
 
 const token = "legacy-token"
 
 var now = time.Date(2026, 11, 3, 18, 0, 0, 0, time.UTC)
 
-type fakeStripe struct{ created, updated int }
-
-func (f *fakeStripe) CreateCustomer(context.Context, string, string, string) (*stripe.Customer, error) {
-	f.created++
-	return &stripe.Customer{ID: "cus_new"}, nil
-}
-func (f *fakeStripe) UpdateCustomer(context.Context, string, string, string, string) error {
-	f.updated++
-	return nil
-}
-func (f *fakeStripe) LatestInvoice(context.Context, string) (*stripe.Invoice, error) { return nil, nil }
-func (f *fakeStripe) CreateInvoice(context.Context, string, []stripe.LineItem) (*stripe.Invoice, error) {
-	return nil, nil
-}
-
 type harness struct {
-	srv    Server
-	store  *memory.Store
-	slack  *slacktest.Fake
-	stripe *fakeStripe
-	ids    int
+	srv   Server
+	store *memory.Store
+	slack *slacktest.Fake
+	ids   int
 }
 
 func newHarness(t *testing.T) *harness {
 	t.Helper()
-	h := &harness{store: memory.New(), slack: slacktest.New(), stripe: &fakeStripe{}}
+	h := &harness{store: memory.New(), slack: slacktest.New()}
 	_ = h.store.PutTeam(context.Background(), repositories.Team{TeamID: "T1", BotAccessToken: "xoxb-1", Name: "Acme"})
 	h.srv = New(ServiceContext{
 		Repositories: h.store.Repositories(),
 		Slack:        h.slack,
-		Stripe:       h.stripe,
 		Verifier:     slackverify.Verifier{LegacyTokens: []string{token}},
 		Config:       Config{AuthURL: "https://slack.com/oauth", RegistrationURL: "https://example.com/registered"},
 		Now:          func() time.Time { return now },
@@ -305,17 +287,16 @@ func TestSummary(t *testing.T) {
 func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 	h := newHarness(t)
 	h.slack.OAuth = &slack.OAuthAccess{AccessToken: "xoxb-new", TeamID: "T2", TeamName: "Globex", UserID: "U9"}
-	h.slack.Users["U9"] = slack.User{Name: "Pat", Email: "pat@example.com"}
 
 	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathAuth, QueryParams: map[string]string{"code": "c"}})
 	if r.StatusCode != 302 || r.Headers["Location"] != "https://example.com/registered" {
 		t.Fatalf("resp = %+v", r)
 	}
 	team := h.store.Teams["T2"]
-	if team.BotAccessToken != "xoxb-new" || team.StripeCustomerID != "cus_new" || !team.FeatureNotifyInChannel || !team.InvoicingEnabled {
+	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" || !team.FeatureNotifyInChannel {
 		t.Errorf("team = %+v", team)
 	}
-	if got := h.slack.PostedTo("U9"); len(got) != 1 || !strings.Contains(got[0], "pricing") {
+	if got := h.slack.PostedTo("U9"); len(got) != 1 || got[0] != welcomeMessage {
 		t.Errorf("welcome = %v", got)
 	}
 }

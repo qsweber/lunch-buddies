@@ -59,17 +59,6 @@ func (s *Store) PutTeam(_ context.Context, team repositories.Team) error {
 	return nil
 }
 
-func (s *Store) ListTeams(context.Context) ([]repositories.Team, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var out []repositories.Team
-	for _, t := range s.Teams {
-		out = append(out, t)
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].TeamID < out[j].TeamID })
-	return out, nil
-}
-
 func (s *Store) CreateRequestedPoll(_ context.Context, poll repositories.Poll) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -276,18 +265,6 @@ func (s *Store) ListPollsForTeam(_ context.Context, teamID string, since time.Ti
 	}
 	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt < out[j].CreatedAt })
 	return out, nil
-}
-
-func (s *Store) SetStripeInvoiceID(_ context.Context, id, invoiceID string) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	p, ok := s.Polls[id]
-	if !ok {
-		return repositories.ErrInvalidTransition
-	}
-	p.StripeInvoiceID = invoiceID
-	s.Polls[id] = p
-	return nil
 }
 
 func sortedKeys[V any](m map[string]V) []string {

@@ -312,3 +312,34 @@ func TestRouterStartsNamedExecutionsAndReportsFailures(t *testing.T) {
 		t.Errorf("failures = %+v (only the throttled record should be retried)", resp.BatchItemFailures)
 	}
 }
+
+func TestWorkerDispatchesByTask(t *testing.T) {
+	ctx := context.Background()
+	h := newHarness(t, true)
+	h.slack.Members["C1"] = []string{"U1", "U2"}
+	h.request(t, "cb", "C1")
+
+	out, err := h.Handle(ctx, []byte(`{"task":"prepare-poll","callback_id":"cb"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if prep := out.(PrepareOutput); len(prep.UserIDs) != 2 {
+		t.Fatalf("prepare output = %+v", out)
+	}
+	if _, err := h.Handle(ctx, []byte(`{"task":"poll-user","callback_id":"cb","user_id":"U2"}`)); err != nil {
+		t.Fatal(err)
+	}
+	if got := h.slack.PostedTo("U2"); len(got) != 1 {
+		t.Errorf("U2 DMs = %v", got)
+	}
+
+	if _, err := h.Handle(ctx, []byte(`{"task":"bogus"}`)); err == nil {
+		t.Error("unknown task should fail")
+	}
+
+	h.slack.PostErrors = []error{&slack.RateLimitedError{Method: "chat.postMessage"}}
+	_, err = h.Handle(ctx, []byte(`{"task":"poll-user","callback_id":"cb","user_id":"U1"}`))
+	if _, ok := err.(*slack.RateLimitedError); !ok {
+		t.Errorf("err = %T, want an unwrapped *slack.RateLimitedError so Step Functions Retry matches it", err)
+	}
+}

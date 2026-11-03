@@ -1,4 +1,5 @@
-// Command preparepoll is the Step Functions task Lambda for workflows.Deps.PreparePoll.
+// Command worker is the single Lambda behind every Step Functions task. The state machines
+// name the task in the payload's "task" field; see workflows.Deps.Handle.
 package main
 
 import (
@@ -15,5 +16,5 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to initialize: %v", err)
 	}
-	lambda.Start(deps.PreparePoll)
+	lambda.Start(deps.Handle)
 }
