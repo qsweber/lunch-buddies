@@ -7,7 +7,7 @@ Changes from rev 2, learned while implementing, are marked **[rev 3]**.
 
 ## 1. Goals
 
-1. **Rewrite the backend in Go**, following the patterns in [`go-template`](https://github.com/qsweber/go-template). Flask, Zappa and the Python codebase are retired.
+1. **Rewrite the backend in Go**, following the patterns in [`go-template`](https://github.com/qsweber/go-template). Flask, Zappa and the Python codebase are retired. **[rev 3]** All Python is removed in this PR rather than at decommission (§8).
 2. **The HTTP layer only writes state.** Each Slack request does a small number of DynamoDB reads/writes and returns right away. It never fans out and never calls Slack, except to reply inline.
 3. **One DynamoDB table** (single-table design, template conventions) replaces `lunch_buddies_Team`, `_Poll`, `_PollResponse` and `_Group`.
 4. **State changes drive the work.** A DynamoDB Streams consumer watches for poll state *transitions* and starts a Step Functions workflow for each one.
@@ -189,6 +189,7 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 | `summary` | **[rev 3]** Skips polls with no groups instead of erroring (Python raised `groups not found`). |
 | `invoice` | **[rev 3]** Ported exactly, including two surprises; see §11 Q6. |
 | `/error` | Dropped. |
+| `scripts/*` | **[rev 3]** Dropped, not ported. `close_all_polls_for_team.py` was a one-off with the team name hard-coded. `generate_app_store_content.py` only printed `AppExplanation` (now `polls.AppExplanation`). `save_to_sql.py` and `analysis.py` were ad-hoc analysis of the old tables; they're in git history if needed. |
 
 ### 5.5 Behaviour quirks kept for parity [rev 3]
 
@@ -224,7 +225,7 @@ internal/
   slack/ (+ slacktest/)  slackverify/  stripe/  invoice/  migrate/
 cdk/              main.go stack.go data.go lambdas.go apigateway.go domain.go workflows.go stream.go alarms.go iam.go
 cdk/statemachines/start_poll.asl.json close_poll.asl.json
-.github/workflows/go-ci.yml go-pr.yml go-deploy.yml      # alongside the existing Python main.yml
+.github/workflows/ci.yml pr.yml deploy.yml               # Python main.yml removed
 ```
 
 **Testing:**
@@ -241,6 +242,11 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
   - CloudFormation resolves the values into the Lambda environment at deploy time, the same exposure as today's Zappa env vars.
 - **The OIDC deploy role** `github-actions-deploy` must trust this repository. Today it may only trust go-template.
 
+**[rev 3] Why removing the Python in this PR is safe.**
+- The Zappa deployment (Lambda, API Gateway, SQS queues, tables) lives in AWS, not in the repo, so it keeps serving Slack until the URLs are switched. Rollback still works.
+- `main.yml` could no longer deploy anyway: GitHub's runners no longer provide Python 3.8, and its `build` job fails at setup.
+- `zappa_settings.json` is in git history (`git show 2aa093f:zappa_settings.json`) for the final `zappa undeploy`.
+
 Steps:
 1. **Deploy dev** with the manual *Go Deploy* workflow. Point the dev Slack app at `https://dev-lunch-buddies-api.quinnweber.com/api/v0/...` and run a full create → respond → close cycle.
 2. **`cmd/migrate`**: `go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. **[rev 3]** Mapping as built:
@@ -250,19 +256,18 @@ Steps:
    - **Groups** get key `GROUP#<key>#m<hash of members>`, stable across re-runs, and are marked notified.
    - **Every write** is `attribute_not_exists(pk)`, so re-runs never clobber newer data. Nothing is inserted as `REQUESTED`, so **no workflows fire**.
 3. **Prod cutover (evening PT):**
-   1. Deploy prod.
+   1. Deploy prod (manual **Deploy** workflow).
    2. Migrate.
    3. Switch the Slack app URLs (slash commands, interactivity, events, OAuth redirect) to `https://lunch-buddies-api.quinnweber.com`.
    4. Drain the SQS queues.
    5. Re-run `migrate` to pick up stragglers.
    6. Smoke test.
-   7. Flip `go-deploy.yml` to deploy on push.
+   7. Flip `deploy.yml` to deploy on push, and update the README's "Add to Slack" link to the new domain.
 4. **Rollback:** point the Slack URLs back.
 5. **Decommission** after ~2 weeks:
-   - `zappa undeploy`, then delete the queues.
+   - `zappa undeploy` (restore `zappa_settings.json` from history first), then delete the queues.
    - Export and then delete the old tables.
    - **Delete the old Zappa log groups (P9): they contain bot tokens.**
-   - Remove the Python code and `main.yml`.
 
 ## 9. Implementation status
 
@@ -276,13 +281,14 @@ Steps:
 | 6 | HTTP endpoints | Done |
 | 7 | Invoice | Done (dry-run by default) |
 | 8 | Migration tool | Done (not run against real data) |
+| – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
 | 9 | Secrets, dev deploy, dev Slack app, end-to-end test | **Next.** Needs AWS access. |
 | 10 | Prod cutover, then decommission | After 9 |
 
 ## 10. Alternatives considered
 
 - **Keep Python, only move to single table + SFN** (rev 1). Superseded.
-- **A fresh repo from go-template.** We rewrote in place instead (Go at the root alongside Python until decommission) to keep history.
+- **A fresh repo from go-template.** We rewrote in place instead to keep history; the Python is removed in the same PR.
 - **EventBridge Pipes instead of the router Lambda.** It can't set deterministic execution names.
 - **Synchronous channel resolution in the API.** The slash-command path needs Slack pagination inside the 3s budget.
 - **Step Functions HTTP Task calling Slack.** Bot tokens are per-team.
@@ -300,7 +306,7 @@ Steps:
    - It also sent `amount = <number of yes users>` to Stripe, which is in cents, so it would have charged **1¢ per user**.
    - The Go port keeps both behaviours: dry-run by default and `PricePerYesUserCents = 1`.
    - What's the intended price, and should it run on a schedule?
-7. **Scripts.** Are `save_to_sql.py` / `analysis.py` still used? Does `lunch-buddies-web` read the old tables?
+7. **Other readers.** Does `lunch-buddies-web`, or anything else, read the old `lunch_buddies_*` tables? (The Python analysis scripts were dropped; see §5.4.)
 8. **Group size.** Keep the parity quirk that allows groups of 1 (§5.5)?
 
 ## 12. Deferred: encrypting bot tokens

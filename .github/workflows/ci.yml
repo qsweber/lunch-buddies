@@ -1,4 +1,4 @@
-name: Go CI Workflow
+name: CI Workflow
 
 on:
   workflow_call:

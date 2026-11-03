@@ -1,4 +1,4 @@
-name: Go Pull Request
+name: Pull Request
 
 on:
   pull_request:
@@ -10,10 +10,10 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/go-ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
       stack: dev
       environment: dev
       # Flip to true once the dev stack's secret exists and the dev Slack app points at it
-      # (design doc §8). Until then use the manual "Go Deploy" workflow.
+      # (design doc §8). Until then use the manual "Deploy" workflow.
       run-deploy: false

@@ -1,4 +1,4 @@
-name: Go Deploy
+name: Deploy
 
 # Push-to-master deploys stay off until the prod cutover (design doc §8). Until then, deploy
 # a stack by hand from the Actions tab.
@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   ci:
-    uses: ./.github/workflows/go-ci.yml
+    uses: ./.github/workflows/ci.yml
     with:
       stack: ${{ inputs.stack || 'prod' }}
       environment: ${{ inputs.stack || 'prod' }}
