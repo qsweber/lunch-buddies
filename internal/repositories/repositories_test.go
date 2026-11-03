@@ -211,18 +211,15 @@ func TestGetPollCollectionSplitsItemsBySortKey(t *testing.T) {
 
 func TestTeamsRepository(t *testing.T) {
 	db := &fakeDynamoDB{}
-	repo := NewTeamsRepository(testTable, db, reverseCipher{})
+	repo := NewTeamsRepository(testTable, db)
 	if err := repo.PutTeam(context.Background(), Team{TeamID: "T1", BotAccessToken: "xoxb-123"}); err != nil {
 		t.Fatal(err)
 	}
 	if str(t, db.putInput.Item, "pk") != "TEAM#T1" || str(t, db.putInput.Item, "gsi1pk") != AllTeamsGSI1PK {
 		t.Errorf("team keys = %+v", db.putInput.Item)
 	}
-	if _, ok := db.putInput.Item["bot_access_token"]; ok {
-		t.Error("plaintext bot_access_token must never be written")
-	}
-	if got := str(t, db.putInput.Item, "bot_access_token_enc"); got != "321-bxox" {
-		t.Errorf("bot_access_token_enc = %q", got)
+	if got := str(t, db.putInput.Item, "bot_access_token"); got != "xoxb-123" {
+		t.Errorf("bot_access_token = %q", got)
 	}
 
 	db.getOutput = &dynamodb.GetItemOutput{Item: db.putInput.Item}
@@ -239,17 +236,3 @@ func TestTeamsRepository(t *testing.T) {
 		t.Errorf("GetTeam(missing) = %v, %v", team, err)
 	}
 }
-
-// reverseCipher "encrypts" by reversing the string, so tests can tell ciphertext from plaintext.
-type reverseCipher struct{}
-
-func reverse(v string) string {
-	r := []rune(v)
-	for i, j := 0, len(r)-1; i < j; i, j = i+1, j-1 {
-		r[i], r[j] = r[j], r[i]
-	}
-	return string(r)
-}
-
-func (reverseCipher) Encrypt(_ context.Context, _, p string) (string, error) { return reverse(p), nil }
-func (reverseCipher) Decrypt(_ context.Context, _, c string) (string, error) { return reverse(c), nil }

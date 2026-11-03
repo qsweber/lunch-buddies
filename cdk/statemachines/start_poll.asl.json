@@ -1,0 +1,142 @@
+{
+  "Comment": "Started by the stream router when a poll is inserted in state REQUESTED. Input: {\"callback_id\": ...}",
+  "StartAt": "PreparePoll",
+  "States": {
+    "PreparePoll": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${PreparePollFunctionArn}",
+        "Payload.$": "$"
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        },
+        {
+          "ErrorEquals": ["RateLimitedError"],
+          "IntervalSeconds": 3,
+          "MaxAttempts": 8,
+          "BackoffRate": 2,
+          "MaxDelaySeconds": 60,
+          "JitterStrategy": "FULL"
+        },
+        {
+          "ErrorEquals": ["States.ALL"],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 2,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": ["States.ALL"],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "AnyUsers"
+    },
+    "AnyUsers": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.user_ids[0]",
+          "IsPresent": true,
+          "Next": "PollUsers"
+        }
+      ],
+      "Default": "Done"
+    },
+    "PollUsers": {
+      "Type": "Map",
+      "ItemsPath": "$.user_ids",
+      "ItemSelector": {
+        "callback_id.$": "$.callback_id",
+        "user_id.$": "$$.Map.Item.Value"
+      },
+      "MaxConcurrency": 5,
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "PollUser",
+        "States": {
+          "PollUser": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${PollUserFunctionArn}",
+              "Payload.$": "$"
+            },
+            "ResultPath": null,
+            "Retry": [
+              {
+                "ErrorEquals": ["Lambda.ServiceException", "Lambda.AWSLambdaException", "Lambda.SdkClientException", "Lambda.TooManyRequestsException"],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 6,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              },
+              {
+                "ErrorEquals": ["RateLimitedError"],
+                "IntervalSeconds": 3,
+                "MaxAttempts": 8,
+                "BackoffRate": 2,
+                "MaxDelaySeconds": 60,
+                "JitterStrategy": "FULL"
+              },
+              {
+                "ErrorEquals": ["States.ALL"],
+                "IntervalSeconds": 5,
+                "MaxAttempts": 2,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "Comment": "One user we can't DM must not stop the rest of the poll. The failure stays visible in the execution history.",
+                "ErrorEquals": ["States.ALL"],
+                "ResultPath": "$.error",
+                "Next": "UserFailed"
+              }
+            ],
+            "End": true
+          },
+          "UserFailed": {
+            "Type": "Pass",
+            "End": true
+          }
+        }
+      },
+      "ResultPath": null,
+      "Next": "Done"
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${NotifyFailureFunctionArn}",
+        "Payload": {
+          "callback_id.$": "$.callback_id",
+          "workflow": "start"
+        }
+      },
+      "ResultPath": null,
+      "Next": "Failed"
+    },
+    "Failed": {
+      "Type": "Fail",
+      "Error": "PreparePollFailed",
+      "Cause": "PreparePoll failed after retries; the poll creator was notified."
+    },
+    "Done": {
+      "Type": "Succeed"
+    }
+  }
+}

@@ -16,11 +16,9 @@ import (
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
 
 	"github.com/qsweber/lunch-buddies/internal/repositories"
 	"github.com/qsweber/lunch-buddies/internal/slack"
-	"github.com/qsweber/lunch-buddies/internal/tokencipher"
 )
 
 // Deps are the dependencies shared by the task Lambdas.
@@ -38,12 +36,11 @@ func NewDepsFromEnv(ctx context.Context) (Deps, error) {
 		return Deps{}, fmt.Errorf("failed to load AWS config: %w", err)
 	}
 	table := os.Getenv("RECORDS_TABLE")
-	keyID := os.Getenv("TOKEN_KMS_KEY_ID")
-	if table == "" || keyID == "" {
-		return Deps{}, errors.New("RECORDS_TABLE and TOKEN_KMS_KEY_ID must be set")
+	if table == "" {
+		return Deps{}, errors.New("RECORDS_TABLE must be set")
 	}
 	return Deps{
-		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg), tokencipher.NewKMS(kms.NewFromConfig(cfg), keyID)),
+		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg)),
 		Slack:        slack.New(),
 		Now:          time.Now,
 		Rand:         NewRand(),

@@ -3,7 +3,7 @@
 // overwritten. Nothing it writes triggers a workflow (polls are inserted as OPEN or
 // COMPLETE, never REQUESTED).
 //
-//	go run ./cmd/migrate -target lunch-buddies-prod-records -kms-key alias/lunch-buddies-prod-tokens -dry-run
+//	go run ./cmd/migrate -target lunch-buddies-prod-records -dry-run
 package main
 
 import (
@@ -19,11 +19,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
 
 	"github.com/qsweber/lunch-buddies/internal/migrate"
 	"github.com/qsweber/lunch-buddies/internal/repositories"
-	"github.com/qsweber/lunch-buddies/internal/tokencipher"
 )
 
 func main() {
@@ -33,12 +31,11 @@ func main() {
 		responsesTable = flag.String("responses-table", "lunch_buddies_PollResponse", "legacy responses table")
 		groupsTable    = flag.String("groups-table", "lunch_buddies_Group", "legacy groups table")
 		target         = flag.String("target", "", "single records table to write (required)")
-		kmsKey         = flag.String("kms-key", "", "KMS key id/alias for bot tokens (required)")
 		dryRun         = flag.Bool("dry-run", true, "only read and transform; print counts")
 	)
 	flag.Parse()
-	if *target == "" || *kmsKey == "" {
-		log.Fatal("-target and -kms-key are required")
+	if *target == "" {
+		log.Fatal("-target is required")
 	}
 
 	ctx := context.Background()
@@ -47,7 +44,7 @@ func main() {
 		log.Fatal(err)
 	}
 	db := dynamodb.NewFromConfig(cfg)
-	teamsRepo := repositories.NewTeamsRepository(*target, db, tokencipher.NewKMS(kms.NewFromConfig(cfg), *kmsKey))
+	teamsRepo := repositories.NewTeamsRepository(*target, db)
 	w := writer{db: db, table: *target, dryRun: *dryRun, counts: map[string][2]int{}}
 
 	// Groups first, so each closed poll can record its group count.

@@ -3,14 +3,11 @@ package repositories
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
-	"github.com/qsweber/lunch-buddies/internal/tokencipher"
 )
 
 const (
@@ -26,15 +23,14 @@ type Team struct {
 	GSI1PK string `dynamodbav:"gsi1pk"`
 	GSI1SK string `dynamodbav:"gsi1sk"`
 	TeamID string `dynamodbav:"team_id"`
-	// BotAccessToken is never stored in plaintext: PutTeam encrypts it into
-	// EncryptedBotAccessToken and GetTeam decrypts it back.
-	BotAccessToken          string `dynamodbav:"-"`
-	EncryptedBotAccessToken string `dynamodbav:"bot_access_token_enc"`
-	Name                    string `dynamodbav:"name"`
-	CreatedAt               int64  `dynamodbav:"created_at"`
-	FeatureNotifyInChannel  bool   `dynamodbav:"feature_notify_in_channel"`
-	StripeCustomerID        string `dynamodbav:"stripe_customer_id,omitempty"`
-	InvoicingEnabled        bool   `dynamodbav:"invoicing_enabled"`
+	// BotAccessToken is stored in plaintext, as in the Python app. Encrypting it (e.g. with
+	// KMS) is deferred; see the design doc §12.
+	BotAccessToken         string `dynamodbav:"bot_access_token"`
+	Name                   string `dynamodbav:"name"`
+	CreatedAt              int64  `dynamodbav:"created_at"`
+	FeatureNotifyInChannel bool   `dynamodbav:"feature_notify_in_channel"`
+	StripeCustomerID       string `dynamodbav:"stripe_customer_id,omitempty"`
+	InvoicingEnabled       bool   `dynamodbav:"invoicing_enabled"`
 }
 
 func TeamPartitionKey(teamID string) string { return teamPartitionKeyPrefix + teamID }
@@ -49,23 +45,21 @@ func (t Team) WithKeys() Team {
 }
 
 type TeamsRepository interface {
-	// GetTeam returns the team with its bot token decrypted, or nil if it isn't installed.
+	// GetTeam returns the team, or nil if it isn't installed.
 	GetTeam(ctx context.Context, teamID string) (*Team, error)
 	// PutTeam creates or replaces the team record.
 	PutTeam(ctx context.Context, team Team) error
-	// ListTeams returns every installed team. Bot tokens are NOT decrypted (BotAccessToken is
-	// empty); call GetTeam for a team whose token you need.
+	// ListTeams returns every installed team.
 	ListTeams(ctx context.Context) ([]Team, error)
 }
 
 type TeamsRepositoryImpl struct {
 	tableName string
 	client    DynamoDBAPI
-	cipher    tokencipher.Cipher
 }
 
-func NewTeamsRepository(tableName string, client DynamoDBAPI, cipher tokencipher.Cipher) TeamsRepository {
-	return &TeamsRepositoryImpl{tableName: tableName, client: client, cipher: cipher}
+func NewTeamsRepository(tableName string, client DynamoDBAPI) TeamsRepository {
+	return &TeamsRepositoryImpl{tableName: tableName, client: client}
 }
 
 func (r *TeamsRepositoryImpl) GetTeam(ctx context.Context, teamID string) (*Team, error) {
@@ -83,13 +77,6 @@ func (r *TeamsRepositoryImpl) GetTeam(ctx context.Context, teamID string) (*Team
 	if err := attributevalue.UnmarshalMap(out.Item, &team); err != nil {
 		return nil, err
 	}
-	if team.EncryptedBotAccessToken != "" {
-		token, err := r.cipher.Decrypt(ctx, team.TeamID, team.EncryptedBotAccessToken)
-		if err != nil {
-			return nil, fmt.Errorf("decrypting bot token for team %s: %w", team.TeamID, err)
-		}
-		team.BotAccessToken = token
-	}
 	return &team, nil
 }
 
@@ -97,11 +84,6 @@ func (r *TeamsRepositoryImpl) PutTeam(ctx context.Context, team Team) error {
 	if team.BotAccessToken == "" {
 		return errors.New("PutTeam: BotAccessToken is required")
 	}
-	encrypted, err := r.cipher.Encrypt(ctx, team.TeamID, team.BotAccessToken)
-	if err != nil {
-		return fmt.Errorf("encrypting bot token for team %s: %w", team.TeamID, err)
-	}
-	team.EncryptedBotAccessToken = encrypted
 	av, err := attributevalue.MarshalMap(team.WithKeys())
 	if err != nil {
 		return err

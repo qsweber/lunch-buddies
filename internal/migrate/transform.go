@@ -50,8 +50,7 @@ func boolish(r Row, k string) bool {
 	return false
 }
 
-// Team converts a legacy team. The bot token is still plaintext here; the teams repository
-// encrypts it on write.
+// Team converts a legacy team.
 func Team(r Row) (repositories.Team, error) {
 	created, err := epochMillis(r, "created_at")
 	if err != nil {

@@ -11,13 +11,11 @@ import (
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
-	"github.com/aws/aws-sdk-go-v2/service/kms"
 
 	"github.com/qsweber/lunch-buddies/internal/repositories"
 	"github.com/qsweber/lunch-buddies/internal/slack"
 	"github.com/qsweber/lunch-buddies/internal/slackverify"
 	"github.com/qsweber/lunch-buddies/internal/stripe"
-	"github.com/qsweber/lunch-buddies/internal/tokencipher"
 )
 
 // Config holds deployment settings that come from environment variables.
@@ -52,13 +50,9 @@ func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 	if table == "" {
 		return ServiceContext{}, errors.New("RECORDS_TABLE environment variable is not set")
 	}
-	keyID := os.Getenv("TOKEN_KMS_KEY_ID")
-	if keyID == "" {
-		return ServiceContext{}, errors.New("TOKEN_KMS_KEY_ID environment variable is not set")
-	}
 
 	sc := ServiceContext{
-		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg), tokencipher.NewKMS(kms.NewFromConfig(cfg), keyID)),
+		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg)),
 		Slack:        slack.New(),
 		Stripe:       stripe.New(os.Getenv("STRIPE_API_KEY")),
 		Verifier: slackverify.Verifier{

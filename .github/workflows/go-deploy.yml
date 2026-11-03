@@ -1,0 +1,26 @@
+name: Go Deploy
+
+# Push-to-master deploys stay off until the prod cutover (design doc §8). Until then, deploy
+# a stack by hand from the Actions tab.
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+    inputs:
+      stack:
+        description: "Stack to deploy"
+        type: choice
+        options: [dev, prod]
+        default: dev
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  ci:
+    uses: ./.github/workflows/go-ci.yml
+    with:
+      stack: ${{ inputs.stack || 'prod' }}
+      environment: ${{ inputs.stack || 'prod' }}
+      run-deploy: ${{ github.event_name == 'workflow_dispatch' }}

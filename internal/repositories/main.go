@@ -10,8 +10,6 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
-
-	"github.com/qsweber/lunch-buddies/internal/tokencipher"
 )
 
 const (
@@ -40,9 +38,9 @@ type Repositories struct {
 }
 
 // New builds both repositories against one table.
-func New(tableName string, client DynamoDBAPI, cipher tokencipher.Cipher) Repositories {
+func New(tableName string, client DynamoDBAPI) Repositories {
 	return Repositories{
-		Teams: NewTeamsRepository(tableName, client, cipher),
+		Teams: NewTeamsRepository(tableName, client),
 		Polls: NewPollsRepository(tableName, client),
 	}
 }
