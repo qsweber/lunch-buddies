@@ -89,7 +89,7 @@ flowchart LR
   - The API is called by API Gateway. It has reserved concurrency and the Slack secrets.
   - The router gets stream batches and is the only role allowed `states:StartExecution`.
 - The tasks shared a trigger, role, timeout and environment anyway. Per-task debugging comes from the execution history, which names the failing state. One function also shares warm instances across tasks.
-- This departs from go-template's one-`cmd`-per-Lambda convention.
+- This still follows go-template's one-`cmd`-per-Lambda convention. What changed is how many Lambdas there are: one function now handles several Step Functions tasks, where the template's Lambdas each do one job.
 
 Infrastructure is CDK in Go under `cdk/`, written in the template's L1 `Cfn*` style. The state machines are `cdk/statemachines/*.asl.json` with `DefinitionSubstitutions`.
 
