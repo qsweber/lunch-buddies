@@ -59,10 +59,18 @@ make build       # builds every Lambda into dist/<name>.zip
 
 ## Deploy
 
-Each stack needs a Secrets Manager secret named `lunch-buddies/<env>`. It holds a JSON object
-with these keys: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`,
-`slack_client_secret` and `auth_url`. Use an empty string for any value you
-don't need.
+Each stack reads its Slack settings from SSM Parameter Store String parameters at
+`/lunch-buddies/<env>/<key>`. The keys are `slack_signing_secret`, `slack_verification_token`,
+`slack_client_id`, `slack_client_secret` and `auth_url`. All five must exist before a deploy;
+SSM can't store an empty value. To set them without echoing values or saving them to shell
+history (use AWS CLI v2: v1 tries to download values that start with `https://`):
+
+```bash
+ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rsp "$key: " VALUE; echo; aws ssm put-parameter --region us-west-2 --type String --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
+```
+
+CloudFormation resolves these only when it updates the Lambda, so after changing a value,
+redeploy with a change to the function for it to take effect.
 
 ```bash
 make build

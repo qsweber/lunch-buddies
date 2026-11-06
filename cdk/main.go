@@ -17,9 +17,9 @@ type EnvConfig struct {
 	// infrastructure behind it can change without reconfiguring Slack.
 	ApiDomainName string
 
-	// SecretName is the Secrets Manager secret holding this stack's Slack settings as
-	// a JSON object; see README "Secrets". It must exist before the first deploy.
-	SecretName string
+	// ParameterPrefix is the SSM Parameter Store path holding this stack's Slack settings,
+	// one String parameter per key (see README "Deploy"). They must exist before a deploy.
+	ParameterPrefix string
 
 	// AlertEmail, if set, is subscribed to the alarms topic.
 	AlertEmail string
@@ -33,23 +33,23 @@ func main() {
 	zoneID := "Z07290422T6PHN4TKVNW0" // quinnweber.com, shared with go-template
 
 	NewLunchBuddiesStack(app, "lunch-buddies-dev", EnvConfig{
-		Env:           "dev",
-		Account:       account,
-		Region:        region,
-		ZoneID:        zoneID,
-		ApiDomainName: "dev-lunch-buddies-api.quinnweber.com",
-		SecretName:    "lunch-buddies/dev",
+		Env:             "dev",
+		Account:         account,
+		Region:          region,
+		ZoneID:          zoneID,
+		ApiDomainName:   "dev-lunch-buddies-api.quinnweber.com",
+		ParameterPrefix: "/lunch-buddies/dev",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
 	})
 
 	NewLunchBuddiesStack(app, "lunch-buddies-prod", EnvConfig{
-		Env:           "prod",
-		Account:       account,
-		Region:        region,
-		ZoneID:        zoneID,
-		ApiDomainName: "lunch-buddies-api.quinnweber.com",
-		SecretName:    "lunch-buddies/prod",
+		Env:             "prod",
+		Account:         account,
+		Region:          region,
+		ZoneID:          zoneID,
+		ApiDomainName:   "lunch-buddies-api.quinnweber.com",
+		ParameterPrefix: "/lunch-buddies/prod",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
 	})

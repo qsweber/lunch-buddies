@@ -67,8 +67,9 @@ func newFunction(scope constructs.Construct, projectStackName string, p function
 	return fn
 }
 
-// secretRef is a CloudFormation dynamic reference to one key of the stack's secret. The
-// value is resolved at deploy time into the function's environment.
-func secretRef(cfg EnvConfig, key string) *string {
-	return jsii.String(fmt.Sprintf("{{resolve:secretsmanager:%s:SecretString:%s}}", cfg.SecretName, key))
+// paramRef is a CloudFormation dynamic reference to the SSM Parameter Store String parameter
+// "<ParameterPrefix>/<key>". CloudFormation resolves it at deploy time into the function's
+// environment; the value never appears in the repo or the synthesized template.
+func paramRef(cfg EnvConfig, key string) *string {
+	return jsii.String(fmt.Sprintf("{{resolve:ssm:%s/%s}}", cfg.ParameterPrefix, key))
 }

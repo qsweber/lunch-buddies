@@ -247,7 +247,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 ## 8. Migration and cutover
 
 **[rev 3] Prerequisites per stack:**
-- **A Secrets Manager secret** named `lunch-buddies/<env>`, holding a JSON object with these keys: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret`, `auth_url`.
+- **[rev 4] SSM Parameter Store String parameters** at `/lunch-buddies/<env>/<key>` for `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` and `auth_url` (the README has a command to set them). This replaces the Secrets Manager secret from rev 3: it's free, and the exposure is the same because the values become Lambda env vars either way, as with Zappa today. SecureString isn't supported in Lambda env dynamic references, so these are plain String parameters. SSM can't store an empty value, and the verification token must never be a placeholder, because the code would accept it as valid.
   - Every key must exist; use an empty string where not needed. A missing key fails the deploy.
   - CloudFormation resolves the values into the Lambda environment at deploy time, the same exposure as today's Zappa env vars.
 - **The OIDC deploy role** `github-actions-deploy` must trust this repository. Today it may only trust go-template.
