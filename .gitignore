@@ -1,5 +1,6 @@
-.mypy/*
-htmlcov/*
-.coverage
-.export/*
-src/lunch_buddies.egg-info/*
+# Go / CDK build output
+/dist/
+bootstrap
+cdk/node_modules/
+cdk/cdk.out/
+cdk/cdk

@@ -1,8 +1,0 @@
-Boto3
-dynamo-dao
-Flask
-pytz
-slack_sdk
-stripe
-raven[flask]
-werkzeug
