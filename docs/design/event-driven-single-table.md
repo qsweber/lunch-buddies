@@ -154,7 +154,7 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 
 ### 5.0 HTTP handling
 
-- Paths are unchanged (`/api/v0/...`), so the Slack app only needs a host change. `/api/v0/ping` is new.
+- **[rev 4]** Routes are under `/v1/` (`/v1/poll/create`, `/v1/poll`, `/v1/poll/close`, `/v1/help`, `/v1/install`, `/v1/auth`, `/v1/bot`, `/v1/ping`), matching go-template. The Python app's `/api/v0/...` paths weren't kept: the host changes at cutover anyway, so every Slack URL is re-entered regardless.
 - **Verification** (`internal/slackverify`): the v0 HMAC signature with the signing secret, with a 5-minute clock skew window. A request without a signature is accepted if it carries the legacy verification token. A request *with* a signature must pass the signature check; a valid legacy token doesn't rescue a bad signature.
 - `/bot` answers `url_verification` and ignores `X-Slack-Retry-Num` retries.
 
@@ -258,7 +258,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 - `zappa_settings.json` is in git history (`git show 2aa093f:zappa_settings.json`) for the final `zappa undeploy`.
 
 Steps:
-1. **Deploy dev** with the manual *Deploy* workflow. Point the dev Slack app at `https://dev-api.lunchbuddiesapp.com/api/v0/...` and run a full create → respond → close cycle.
+1. **Deploy dev** with the manual *Deploy* workflow. Point the dev Slack app at `https://dev-api.lunchbuddiesapp.com/v1/...` and run a full create → respond → close cycle.
 2. **`cmd/migrate`**: `go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. **[rev 3]** Mapping as built:
    - **Teams** are copied as they are. A team already present in the new table is left alone, for example one that reinstalled during the window.
    - **Polls:** `CREATED` → `OPEN`. `CLOSED` → `COMPLETE`, with `group_count`, because the old system already notified those groups.
@@ -294,7 +294,7 @@ Steps:
 | – | Consolidate task Lambdas into `cmd/worker` | Done **[rev 4]** |
 | 8 | Migration tool | Done (not run against real data) |
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
-| 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; `/api/v0/ping` OK on `dev-api.lunchbuddiesapp.com` |
+| 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; ping OK on `dev-api.lunchbuddiesapp.com` |
 | 9b | Point dev Slack app at the dev domain, end-to-end test | **Next** |
 | 10 | Prod cutover, then decommission | After 9 |
 

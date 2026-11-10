@@ -20,7 +20,7 @@ func (f *fakeServer) Handle(_ context.Context, req server.Request) server.Respon
 func TestHandlerDecodesBodyAndLowercasesHeaders(t *testing.T) {
 	f := &fakeServer{}
 	req := events.APIGatewayV2HTTPRequest{
-		RawPath:         "/api/v0/poll",
+		RawPath:         "/v1/poll",
 		Headers:         map[string]string{"X-Slack-Signature": "v0=abc"},
 		Body:            base64.StdEncoding.EncodeToString([]byte("payload=%7B%7D")),
 		IsBase64Encoded: true,

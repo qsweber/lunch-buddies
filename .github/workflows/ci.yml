@@ -91,10 +91,10 @@ jobs:
         run: cd cdk && npm ci
       - name: Deploy stack
         run: cd cdk && npx cdk deploy lunch-buddies-${{ inputs.stack }} --require-approval never
-      - name: Verify deployed API (/api/v0/ping)
+      - name: Verify deployed API (/v1/ping)
         run: |
           STACK_NAME=lunch-buddies-${{ inputs.stack }}
           BASE_URL=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='OutputCustomDomainURL'].OutputValue" --output text)
-          PING_URL="${BASE_URL}/api/v0/ping?cb=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          PING_URL="${BASE_URL}/v1/ping?cb=${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           echo "Calling $PING_URL"
           curl --fail --show-error --silent --retry 10 --retry-delay 6 --retry-all-errors "$PING_URL"

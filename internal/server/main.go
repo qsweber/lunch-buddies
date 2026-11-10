@@ -40,16 +40,17 @@ func New(sc ServiceContext) Server {
 	return &ServerImpl{sc: sc}
 }
 
-// Paths are unchanged from the Python app so the Slack app only needs a host change.
+// Routes, versioned under /v1 as in go-template. (The Python app used /api/v0/...; the Slack
+// app config is re-entered at cutover anyway because the host changes.)
 const (
-	PathPing       = "/api/v0/ping"
-	PathCreatePoll = "/api/v0/poll/create"
-	PathRespond    = "/api/v0/poll"
-	PathClosePoll  = "/api/v0/poll/close"
-	PathHelp       = "/api/v0/help"
-	PathInstall    = "/api/v0/install"
-	PathAuth       = "/api/v0/auth"
-	PathBot        = "/api/v0/bot"
+	PathPing       = "/v1/ping"
+	PathCreatePoll = "/v1/poll/create"
+	PathRespond    = "/v1/poll"
+	PathClosePoll  = "/v1/poll/close"
+	PathHelp       = "/v1/help"
+	PathInstall    = "/v1/install"
+	PathAuth       = "/v1/auth"
+	PathBot        = "/v1/bot"
 )
 
 func (s *ServerImpl) Handle(ctx context.Context, req Request) Response {

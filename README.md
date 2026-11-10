@@ -5,7 +5,7 @@
 This is the backend for the Lunch Buddies Slack app. It's written in Go and follows the
 patterns of [go-template](https://github.com/qsweber/go-template).
 
-<!-- Points at the legacy Zappa API until cutover; switch to https://api.lunchbuddiesapp.com/api/v0/install afterwards. -->
+<!-- Points at the legacy Zappa API until cutover; switch to https://api.lunchbuddiesapp.com/v1/install afterwards. -->
 [![Add to Slack](https://platform.slack-edge.com/img/add_to_slack.png)](https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production/api/v0/install)
 
 ## Architecture
