@@ -66,8 +66,11 @@ SSM can't store an empty value. To set them without echoing values or saving the
 history (use AWS CLI v2: v1 tries to download values that start with `https://`):
 
 ```bash
-ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rsp "$key: " VALUE; echo; aws ssm put-parameter --region us-west-2 --type String --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
+# zsh (macOS default)
+ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type String --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
 ```
+
+In bash, use `read -rsp "$key: " VALUE` instead of `read -rs "VALUE?$key: "`.
 
 CloudFormation resolves these only when it updates the Lambda, so after changing a value,
 redeploy with a change to the function for it to take effect.
