@@ -14,6 +14,5 @@ jobs:
     with:
       stack: dev
       environment: dev
-      # Flip to true once the dev stack's secret exists and the dev Slack app points at it
-      # (design doc §8). Until then use the manual "Deploy" workflow.
-      run-deploy: false
+      # Every PR deploys the dev stack, as in go-template.
+      run-deploy: true
