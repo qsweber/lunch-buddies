@@ -86,8 +86,20 @@ npx cdk diff lunch-buddies-dev
 npx cdk deploy lunch-buddies-dev
 ```
 
-CI (`.github/workflows`) runs tests and `cdk synth` on every pull request. Until the
-production cutover, deploys only run by hand from the **Deploy** workflow.
+CI (`.github/workflows`) runs tests and `cdk synth` on every pull request and deploys the dev
+stack; every push to `master` deploys prod. Either can also be deployed by hand from the
+**Deploy** workflow. Deploys refuse to update a stack this app didn't create.
+
+During the production cutover, the API can forward every Slack request to the legacy Zappa
+API: set `/lunch-buddies/<env>/legacy_forward_url` to its base URL, then recycle the Lambda
+(command above). Delete the parameter and recycle again to serve requests directly. See the
+design doc §8.3 and §8.5.
+
+To check for open polls in the legacy table before cutting over:
+
+```bash
+aws dynamodb scan --region us-west-2 --table-name lunch_buddies_Poll --filter-expression "#s = :c" --expression-attribute-names '{"#s":"state"}' --expression-attribute-values '{":c":{"S":"CREATED"}}' --projection-expression "team_id, created_at, channel_id" --output json | jq -r '.Items | sort_by(.created_at.N | tonumber) | reverse | .[] | "\(.created_at.N | tonumber | floor | todate)  \(.team_id.S)  \(.channel_id.S // "-")"'
+```
 
 ## Why DynamoDB?
 

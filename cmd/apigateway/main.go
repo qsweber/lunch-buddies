@@ -39,6 +39,7 @@ func newHandler(srv server.Server) apiGatewayHandler {
 			Path:        request.RawPath,
 			Headers:     headers,
 			QueryParams: request.QueryStringParameters,
+			RawQuery:    request.RawQueryString,
 			Body:        body,
 		})
 

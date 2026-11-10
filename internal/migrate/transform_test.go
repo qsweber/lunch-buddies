@@ -1,8 +1,13 @@
 package migrate
 
 import (
+	"context"
 	"reflect"
 	"testing"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
 	"github.com/qsweber/lunch-buddies/internal/polls"
 	"github.com/qsweber/lunch-buddies/internal/repositories"
@@ -70,5 +75,46 @@ func TestTeamBooleans(t *testing.T) {
 	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "created_at": "1600000000", "feature_notify_in_channel": "1"})
 	if err != nil || !team.FeatureNotifyInChannel || team.CreatedAt != 1600000000000 {
 		t.Errorf("team = %+v, %v", team, err)
+	}
+}
+
+type fakeWriter struct {
+	updateErr error
+	deleteErr error
+	updates   []dynamodb.UpdateItemInput
+	deletes   []dynamodb.DeleteItemInput
+}
+
+func (f *fakeWriter) UpdateItem(_ context.Context, p *dynamodb.UpdateItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
+	f.updates = append(f.updates, *p)
+	return &dynamodb.UpdateItemOutput{}, f.updateErr
+}
+
+func (f *fakeWriter) DeleteItem(_ context.Context, p *dynamodb.DeleteItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error) {
+	f.deletes = append(f.deletes, *p)
+	return &dynamodb.DeleteItemOutput{}, f.deleteErr
+}
+
+func TestCompleteIfOpen(t *testing.T) {
+	two := 2
+	poll := repositories.Poll{CallbackID: "cb", TeamID: "T", ChannelID: "C", State: repositories.StateComplete, GroupCount: &two}
+
+	f := &fakeWriter{deleteErr: &types.ConditionalCheckFailedException{}}
+	done, err := CompleteIfOpen(context.Background(), f, "tbl", poll)
+	if err != nil || !done {
+		t.Fatalf("done = %v, err = %v (a pointer now owned by another poll is fine)", done, err)
+	}
+	u := f.updates[0]
+	if aws.ToString(u.ConditionExpression) != "#state = :open" || u.ExpressionAttributeValues[":complete"].(*types.AttributeValueMemberS).Value != repositories.StateComplete {
+		t.Errorf("update = %+v", u)
+	}
+	if sk := f.deletes[0].Key["sk"].(*types.AttributeValueMemberS).Value; sk != "ACTIVE_POLL#C" {
+		t.Errorf("deleted sk = %s", sk)
+	}
+
+	f = &fakeWriter{updateErr: &types.ConditionalCheckFailedException{}}
+	done, err = CompleteIfOpen(context.Background(), f, "tbl", poll)
+	if err != nil || done || len(f.deletes) != 0 {
+		t.Errorf("a poll the new system moved on must be left alone: done=%v err=%v deletes=%d", done, err, len(f.deletes))
 	}
 }

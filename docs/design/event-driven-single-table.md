@@ -246,39 +246,66 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 
 ## 8. Migration and cutover
 
-**[rev 3] Prerequisites per stack:**
-- **[rev 4] SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>` for `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` and `auth_url` (the README has a command to set them). This replaces the Secrets Manager secret from rev 3, because it's free. The API Lambda reads them at cold start (`internal/params`, `ssm:GetParametersByPath` on its prefix only) rather than having CloudFormation copy them into env vars. That's because the deploy-time approach only picked up a changed value on a deploy that also changed the function: a stale `auth_url` broke the first dev install. Values now take effect on the next cold start, never sit in the Lambda's configuration, and can be SecureString (AWS-managed `aws/ssm` key, no KMS key of ours). SSM can't store an empty value, and the verification token must never be a placeholder, because the code would accept it as valid.
-  - Every key must exist; use an empty string where not needed. A missing key fails the deploy.
-  - CloudFormation resolves the values into the Lambda environment at deploy time, the same exposure as today's Zappa env vars.
-- **The OIDC deploy role** `github-actions-deploy` must trust this repository. Today it may only trust go-template.
+### 8.1 Prerequisites per stack
 
-**[rev 3] Why removing the Python in this PR is safe.**
-- The Zappa deployment (Lambda, API Gateway, SQS queues, tables) lives in AWS, not in the repo, so it keeps serving Slack until the URLs are switched. Rollback still works.
-- `main.yml` could no longer deploy anyway: GitHub's runners no longer provide Python 3.8, and its `build` job fails at setup.
+- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret`, `auth_url` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3).
+  - **[rev 4]** These replace rev 3's Secrets Manager secret because they're free.
+  - The API Lambda reads them at cold start (`internal/params`, `ssm:GetParametersByPath` on its own prefix only) rather than having CloudFormation copy them into env vars. The deploy-time approach only picked up a changed value on a deploy that also changed the function, and a stale `auth_url` broke the first dev install.
+  - Values now take effect on the next cold start, never sit in the Lambda's configuration, and can be SecureString (AWS-managed `aws/ssm` key).
+  - A missing required parameter makes the API fail to start, which the deploy's ping check catches. SSM can't store an empty value, and the verification token must never be a placeholder, because the code would accept it as valid.
+- **The OIDC deploy role** `github-actions-deploy` must trust this repository for both the `dev` and `prod` GitHub environments. Dev deploys from PRs already work.
+
+### 8.2 Why removing the Python in this PR is safe [rev 3]
+
+- The Zappa deployment (Lambda, API Gateway, SQS queues, tables) lives in AWS, not in the repo, so it keeps serving Slack until cutover.
+- `main.yml` could no longer deploy anyway: GitHub's runners no longer provide Python 3.8.
 - `zappa_settings.json` is in git history (`git show 2aa093f:zappa_settings.json`) for the final `zappa undeploy`.
 
-Steps:
-1. **Deploy dev** with the manual *Deploy* workflow. Point the dev Slack app at `https://dev-api.lunchbuddiesapp.com/v1/...` and run a full create → respond → close cycle.
-2. **`cmd/migrate`**: `go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. **[rev 3]** Mapping as built:
-   - **Teams** are copied as they are. A team already present in the new table is left alone, for example one that reinstalled during the window.
-   - **Polls:** `CREATED` → `OPEN`. `CLOSED` → `COMPLETE`, with `group_count`, because the old system already notified those groups.
-   - **Pointers:** an `ACTIVE_POLL` pointer for the **newest open poll in each channel, whatever its age**. Python's close found the latest poll in a channel regardless of age, so this keeps old open polls closable.
-   - **Groups** get key `GROUP#<key>#m<hash of members>`, stable across re-runs, and are marked notified.
-   - **Every write** is `attribute_not_exists(pk)`, so re-runs never clobber newer data. Nothing is inserted as `REQUESTED`, so **no workflows fire**.
-3. **Prod cutover (evening PT):**
-   1. Deploy prod (manual **Deploy** workflow).
-   2. Migrate.
-   3. Switch the Slack app URLs (slash commands, interactivity, events, OAuth redirect) to `https://api.lunchbuddiesapp.com`.
-   4. Drain the SQS queues.
-   5. Re-run `migrate` to pick up stragglers.
-   6. Smoke test.
-   7. Flip `deploy.yml` to deploy on push, and update the README's "Add to Slack" link to the new domain.
-4. **Rollback:** point the Slack URLs back.
-5. **Decommission** after ~2 weeks:
-   - **Prod:** `zappa undeploy production` (restore `zappa_settings.json` from history first), then delete the queues.
-   - **Dev: do NOT run `zappa undeploy dev` or `zappa update dev`.** **[rev 4]** Zappa names its CloudFormation stack `<project>-<stage>`, so its dev stack was also called `lunch-buddies-dev`. The first CDK dev deploy updated that 2018 stack in place: it deleted Zappa's dev REST API (4 resources) and added ours. Zappa now acts on our stack, and undeploy would delete it. Delete the old dev Lambda (`lunch-buddies-dev`), its SQS event source mappings and the `dev_*` queues by hand. Prod doesn't collide: Zappa's stack there is `lunch-buddies-production`. Confirm `lunch-buddies-prod` doesn't exist before the first prod deploy.
-   - Export and then delete the old tables.
-   - **Delete the old Zappa log groups (P9): they contain bot tokens.**
+### 8.3 Forwarding mode [rev 4]
+
+Changing the prod Slack app's URLs needs Slack's review, so **traffic moves to the new API whenever Slack approves, not when we choose**. To keep that from also being the data cutover, the API has a temporary forwarding mode (`internal/server/forward.go`):
+- **When it's on:** while `/lunch-buddies/<env>/legacy_forward_url` is set (prod: `https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production`).
+- **What it does:** every Slack route is passed through to the Zappa API (`/v1/poll/create` → `/api/v0/poll/create`, and so on), with the body, Slack headers and query string unchanged. Status, body, `Content-Type` and `Location` (the `/install` and `/auth` redirects, unfollowed) come back to Slack. The Python app authenticates with the verification token in the body, so the body has to be untouched.
+- **What stays local:** `/v1/ping`, so deploy health checks keep working.
+- **What it doesn't touch:** the new table. Nothing is written there, so no workflows start.
+
+Turning it off is the cutover. Turning it back on is the rollback, with no Slack review needed.
+
+### 8.4 Migration tool
+
+`go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. The legacy table names default to `lunch_buddies_*`. **[rev 4]** Dev and prod Zappa shared those tables (`dynamo-dao` adds no stage prefix), so **migrate into prod only**. Dev starts empty, so real workspaces' bot tokens never end up in dev.
+
+Mapping:
+- **Teams** are copied as they are. A team already in the new table is left alone.
+- **Polls:** `CREATED` → `OPEN`. `CLOSED` → `COMPLETE` with `group_count`, because the old system already notified those groups.
+- **[rev 4] Polls closed since they were copied:** if a poll was copied while open and has since closed in Zappa, `migrate.CompleteIfOpen` moves the copy `OPEN` → `COMPLETE` and releases its pointer. Without this, closing it again in the new system would notify its groups twice. Both writes are conditional, so a poll the new system already moved on, or a pointer that now belongs to a newer poll, is left alone. `OPEN` → `COMPLETE` doesn't match the stream filter.
+- **Pointers:** an `ACTIVE_POLL` pointer for the newest open poll in each channel, whatever its age, so old open polls stay closable.
+- **Groups** get key `GROUP#<key>#m<hash of members>`, stable across re-runs, and are marked notified.
+- **Every other write** is `attribute_not_exists(pk)`, so re-runs never clobber newer data. Nothing is inserted as `REQUESTED`, so no workflows fire.
+
+### 8.5 Production rollout [rev 4]
+
+1. **Before merging:**
+   1. Create the five prod parameters with the **prod** Slack app's values, plus `legacy_forward_url`.
+   2. Confirm the deploy role trusts the `prod` environment.
+   3. The first prod deploy creates `lunch-buddies-prod`. CI's "Refuse to deploy over a stack this app didn't create" step fails the deploy if a stack with that name already exists without this app's outputs. That's the guard against a repeat of the dev collision (§8.6).
+2. **Merge.** `deploy.yml` deploys prod on every push to `master`. Because of `legacy_forward_url`, prod's API is in forwarding mode, and Slack still calls Zappa directly, so nothing user-visible changes. The ping check confirms the domain, the certificate and that all parameters loaded. The API's log shows `FORWARDING MODE` on each cold start.
+3. **Submit the prod Slack app changes:** the same `/v1` URL table as dev, on `api.lunchbuddiesapp.com`. Keep the old Redirect URL listed too, because installs still complete through Zappa's OAuth flow until cutover.
+4. **When Slack approves,** traffic flows Slack → new API → Zappa. Confirm with `forwarded to legacy API` lines in `/aws/lambda/lunch-buddies-prod-api`. The website's "Add to Slack" button can now point at `https://api.lunchbuddiesapp.com/v1/install`.
+5. **Cut over on a quiet evening** (check for open polls first; the README has a scan for `CREATED` polls):
+   1. Run `migrate` with `-dry-run`, check the counts, then run it with `-dry-run=false`.
+   2. Delete `/lunch-buddies/prod/legacy_forward_url` and recycle the API Lambda (`aws lambda update-function-configuration ... --description ...`, see the README).
+   3. Re-run `migrate` to pick up anything Zappa wrote in the seconds between, including any `CREATED` → `CLOSED`.
+   4. Watch one real create → respond → close cycle in the logs and Step Functions.
+6. **Rollback:** put `legacy_forward_url` back and recycle the Lambda. Anything created in the new system after cutover won't exist in Zappa's tables, so roll back early or not at all.
+
+### 8.6 Decommission (about 2 weeks after cutover)
+
+- Remove forwarding mode (`forward.go`, the `legacy_forward_url` key) and the old Redirect URL from the Slack app.
+- **Prod:** `zappa undeploy production` (restore `zappa_settings.json` from history first), then delete the `polls_to_start` / `users_to_poll` / `polls_to_close` / `groups_to_notify` / `error` queues.
+- **Dev: do NOT run `zappa undeploy dev` or `zappa update dev`.** **[rev 4]** Zappa names its CloudFormation stack `<project>-<stage>`, so its dev stack was also called `lunch-buddies-dev`. The first CDK dev deploy updated that 2018 stack in place: it deleted Zappa's dev REST API (4 resources) and added ours, and Zappa would now act on our stack. Delete the old dev Lambda (`lunch-buddies-dev`), its SQS event source mappings and the `dev_*` queues by hand. Prod doesn't collide (Zappa's is `lunch-buddies-production`), and CI now refuses to deploy over a stack it didn't create.
+- Export, then delete the old `lunch_buddies_*` tables.
+- **Delete the old Zappa log groups (P9): they contain bot tokens.**
 
 ## 9. Implementation status
 
@@ -295,7 +322,9 @@ Steps:
 | 8 | Migration tool | Done (not run against real data) |
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
 | 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; ping OK on `dev-api.lunchbuddiesapp.com` |
-| 9b | Point dev Slack app at the dev domain, end-to-end test | **Next** |
+| 9b | Point dev Slack app at the dev domain, install | Done |
+| 10 | Forwarding mode, `CompleteIfOpen`, prod deploy on merge with stack-ownership guard | Done **[rev 4]** |
+| 11 | Production rollout (§8.5) | **Next** |
 | 10 | Prod cutover, then decommission | After 9 |
 
 ## 10. Alternatives considered

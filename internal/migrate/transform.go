@@ -4,13 +4,19 @@
 package migrate
 
 import (
+	"context"
 	"crypto/sha1"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"math/big"
 	"sort"
 	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
 	"github.com/qsweber/lunch-buddies/internal/polls"
 	"github.com/qsweber/lunch-buddies/internal/repositories"
@@ -217,4 +223,66 @@ func ActivePointers(pollsList []repositories.Poll) []repositories.ActivePoll {
 		out = append(out, repositories.ActivePoll{TeamID: p.TeamID, ChannelID: p.ChannelID, CallbackID: p.CallbackID, CreatedAt: p.CreatedAt}.WithKeys())
 	}
 	return out
+}
+
+// DynamoWriter is the subset of the DynamoDB client CompleteIfOpen uses.
+type DynamoWriter interface {
+	UpdateItem(ctx context.Context, params *dynamodb.UpdateItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error)
+	DeleteItem(ctx context.Context, params *dynamodb.DeleteItemInput, optFns ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
+}
+
+// CompleteIfOpen handles a poll that was copied while open and has since been closed in the
+// legacy system (which already notified its groups). It moves the copy OPEN → COMPLETE and
+// releases its ACTIVE_POLL pointer. Without this, a re-run of the migration would leave the
+// copy open, and closing it again in the new system would notify the groups twice.
+//
+// OPEN → COMPLETE doesn't match the stream router's filter, so no workflow starts. Both
+// writes are conditional: a poll the new system has already moved on, or a pointer that now
+// belongs to a newer poll, is left alone. Returns whether the poll was updated.
+func CompleteIfOpen(ctx context.Context, db DynamoWriter, table string, p repositories.Poll) (bool, error) {
+	key := func(pk, sk string) map[string]types.AttributeValue {
+		return map[string]types.AttributeValue{
+			repositories.PartitionKeyAttribute: &types.AttributeValueMemberS{Value: pk},
+			repositories.SortKeyAttribute:      &types.AttributeValueMemberS{Value: sk},
+		}
+	}
+	groupCount := 0
+	if p.GroupCount != nil {
+		groupCount = *p.GroupCount
+	}
+
+	_, err := db.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName:                aws.String(table),
+		Key:                      key(repositories.PollPartitionKey(p.CallbackID), repositories.PollSortKey),
+		UpdateExpression:         aws.String("SET #state = :complete, group_count = :count"),
+		ConditionExpression:      aws.String("#state = :open"),
+		ExpressionAttributeNames: map[string]string{"#state": "state"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":complete": &types.AttributeValueMemberS{Value: repositories.StateComplete},
+			":open":     &types.AttributeValueMemberS{Value: repositories.StateOpen},
+			":count":    &types.AttributeValueMemberN{Value: fmt.Sprint(groupCount)},
+		},
+	})
+	var ccf *types.ConditionalCheckFailedException
+	if errors.As(err, &ccf) {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+
+	if p.ChannelID != "" {
+		_, err = db.DeleteItem(ctx, &dynamodb.DeleteItemInput{
+			TableName:           aws.String(table),
+			Key:                 key(repositories.TeamPartitionKey(p.TeamID), repositories.ActivePollSortKey(p.ChannelID)),
+			ConditionExpression: aws.String("callback_id = :id"),
+			ExpressionAttributeValues: map[string]types.AttributeValue{
+				":id": &types.AttributeValueMemberS{Value: p.CallbackID},
+			},
+		})
+		if err != nil && !errors.As(err, &ccf) {
+			return true, err
+		}
+	}
+	return true, nil
 }

@@ -19,6 +19,7 @@ type Request struct {
 	Path        string
 	Headers     map[string]string // lowercase names
 	QueryParams map[string]string
+	RawQuery    string // the query string as received, for forwarding
 	Body        string
 }
 
@@ -54,6 +55,12 @@ const (
 )
 
 func (s *ServerImpl) Handle(ctx context.Context, req Request) Response {
+	if s.sc.Forwarder != nil {
+		if resp, ok := s.sc.Forwarder.forward(ctx, req); ok {
+			return resp
+		}
+	}
+
 	route := req.Method + " " + req.Path
 	var resp Response
 	switch route {

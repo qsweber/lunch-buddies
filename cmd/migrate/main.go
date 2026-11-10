@@ -88,11 +88,20 @@ func main() {
 			return err
 		}
 		allPolls = append(allPolls, p)
-		return w.put(ctx, "poll", p.WithKeys())
+		created, err := w.put(ctx, "poll", p.WithKeys())
+		if err != nil || created || p.State != repositories.StateComplete || *dryRun {
+			return err
+		}
+		// Copied earlier while open, closed in the legacy system since.
+		completed, err := migrate.CompleteIfOpen(ctx, db, *target, p)
+		if completed {
+			w.count("poll_completed", true)
+		}
+		return err
 	}))
 
 	for _, a := range migrate.ActivePointers(allPolls) {
-		must(w.put(ctx, "active_poll", a))
+		must(w.putAll(ctx, "active_poll", a))
 	}
 
 	must(scan(ctx, db, *responsesTable, func(r migrate.Row) error {
@@ -100,11 +109,11 @@ func main() {
 		if err != nil {
 			return err
 		}
-		return w.put(ctx, "response", resp)
+		return w.putAll(ctx, "response", resp)
 	}))
 
 	for _, g := range groups {
-		must(w.put(ctx, "group", g))
+		must(w.putAll(ctx, "group", g))
 	}
 
 	mode := "WROTE"
@@ -112,7 +121,7 @@ func main() {
 		mode = "DRY RUN (would write)"
 	}
 	fmt.Printf("%s to %s:\n", mode, *target)
-	for _, kind := range []string{"team", "poll", "active_poll", "response", "group"} {
+	for _, kind := range []string{"team", "poll", "poll_completed", "active_poll", "response", "group"} {
 		c := w.counts[kind]
 		fmt.Printf("  %-12s new=%d already-present=%d\n", kind, c[0], c[1])
 	}
@@ -135,14 +144,15 @@ func (w *writer) count(kind string, isNew bool) {
 	w.counts[kind] = c
 }
 
-func (w *writer) put(ctx context.Context, kind string, item any) error {
+// put writes item if its key doesn't exist yet and reports whether it was new.
+func (w *writer) put(ctx context.Context, kind string, item any) (bool, error) {
 	if w.dryRun {
 		w.count(kind, true)
-		return nil
+		return true, nil
 	}
 	av, err := attributevalue.MarshalMap(item)
 	if err != nil {
-		return err
+		return false, err
 	}
 	_, err = w.db.PutItem(ctx, &dynamodb.PutItemInput{
 		TableName:           aws.String(w.table),
@@ -152,11 +162,18 @@ func (w *writer) put(ctx context.Context, kind string, item any) error {
 	var ccf *types.ConditionalCheckFailedException
 	if errors.As(err, &ccf) {
 		w.count(kind, false)
-		return nil
+		return false, nil
 	}
-	if err == nil {
-		w.count(kind, true)
+	if err != nil {
+		return false, err
 	}
+	w.count(kind, true)
+	return true, nil
+}
+
+// putAll is put for callers that don't care whether the item was new.
+func (w *writer) putAll(ctx context.Context, kind string, item any) error {
+	_, err := w.put(ctx, kind, item)
 	return err
 }
 

@@ -1,7 +1,8 @@
 name: Deploy
 
-# Push-to-master deploys stay off until the prod cutover (design doc §8). Until then, deploy
-# a stack by hand from the Actions tab.
+# Every push to master deploys the prod stack. A stack can also be deployed by hand from the
+# Actions tab. Prod's API runs in forwarding mode until cutover (design doc §8), so deploying
+# it doesn't change what serves Slack traffic.
 on:
   push:
     branches: [master]
@@ -23,4 +24,4 @@ jobs:
     with:
       stack: ${{ inputs.stack || 'prod' }}
       environment: ${{ inputs.stack || 'prod' }}
-      run-deploy: ${{ github.event_name == 'workflow_dispatch' }}
+      run-deploy: true

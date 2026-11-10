@@ -38,6 +38,9 @@ type ServiceContext struct {
 	Config       Config
 	Now          func() time.Time
 	NewID        func() string
+	// Forwarder, when set, passes Slack requests through to the legacy Zappa API instead of
+	// handling them (cutover forwarding mode; see forward.go).
+	Forwarder *Forwarder
 }
 
 // NewServiceContext wires real AWS and Slack clients. When PARAMETER_PREFIX is set (as it is
@@ -80,6 +83,10 @@ func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 		},
 		Now:   time.Now,
 		NewID: NewUUID,
+	}
+	if legacy := setting(params.LegacyForwardURL); legacy != "" {
+		sc.Forwarder = NewForwarder(legacy)
+		slog.Warn("FORWARDING MODE: passing Slack requests through to the legacy API", "legacy_url", legacy)
 	}
 	slog.Info("initialized service context", "table", table)
 	return sc, nil

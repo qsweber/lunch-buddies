@@ -89,6 +89,22 @@ jobs:
           aws-region: us-west-2
       - name: Install CDK CLI
         run: cd cdk && npm ci
+      - name: Refuse to deploy over a stack this app didn't create
+        # Zappa named its CloudFormation stacks <project>-<stage>, and the first dev deploy
+        # silently took over Zappa's lunch-buddies-dev stack (design doc §8). If the target
+        # stack exists, it must carry this app's RecordsTable output.
+        run: |
+          STACK_NAME=lunch-buddies-${{ inputs.stack }}
+          if aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" > /dev/null 2>&1; then
+            OURS=$(aws cloudformation describe-stacks --stack-name "$STACK_NAME" --region "$AWS_REGION" --query "Stacks[0].Outputs[?OutputKey=='OutputRecordsTable'].OutputValue" --output text)
+            if [ -z "$OURS" ] || [ "$OURS" = "None" ]; then
+              echo "::error::Stack $STACK_NAME exists but wasn't created by this app; refusing to deploy over it."
+              exit 1
+            fi
+            echo "Stack $STACK_NAME exists and is ours ($OURS); updating."
+          else
+            echo "Stack $STACK_NAME doesn't exist yet; it will be created."
+          fi
       - name: Deploy stack
         run: cd cdk && npx cdk deploy lunch-buddies-${{ inputs.stack }} --require-approval never
       - name: Verify deployed API (/v1/ping)

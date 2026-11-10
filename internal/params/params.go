@@ -23,6 +23,9 @@ const (
 	SlackClientID          = "slack_client_id"
 	SlackClientSecret      = "slack_client_secret"
 	AuthURL                = "auth_url"
+	// LegacyForwardURL is optional. While set, the API forwards every Slack request to the
+	// legacy Zappa API at this base URL (production cutover; design doc §8).
+	LegacyForwardURL = "legacy_forward_url"
 )
 
 // Required lists every key the API needs.
