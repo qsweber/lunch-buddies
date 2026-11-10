@@ -7,17 +7,20 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 	"time"
 
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
+	"github.com/aws/aws-sdk-go-v2/service/ssm"
 
+	"github.com/qsweber/lunch-buddies/internal/params"
 	"github.com/qsweber/lunch-buddies/internal/repositories"
 	"github.com/qsweber/lunch-buddies/internal/slack"
 	"github.com/qsweber/lunch-buddies/internal/slackverify"
 )
 
-// Config holds deployment settings that come from environment variables.
+// Config holds deployment settings (from SSM Parameter Store, or env vars when running locally).
 type Config struct {
 	// AuthURL is the Slack "Add to Slack" authorize URL that /install redirects to.
 	AuthURL string
@@ -37,7 +40,10 @@ type ServiceContext struct {
 	NewID        func() string
 }
 
-// NewServiceContext wires real AWS and Slack clients from the environment.
+// NewServiceContext wires real AWS and Slack clients. When PARAMETER_PREFIX is set (as it is
+// in the deployed Lambda), Slack settings are read from SSM Parameter Store under that prefix
+// at cold start; otherwise they come from env vars of the same name in upper case, for local
+// runs.
 func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 	cfg, err := awsconfig.LoadDefaultConfig(ctx)
 	if err != nil {
@@ -49,18 +55,28 @@ func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 		return ServiceContext{}, errors.New("RECORDS_TABLE environment variable is not set")
 	}
 
+	setting := func(key string) string { return os.Getenv(strings.ToUpper(key)) }
+	if prefix := os.Getenv("PARAMETER_PREFIX"); prefix != "" {
+		values, err := params.Load(ctx, ssm.NewFromConfig(cfg), prefix, params.Required)
+		if err != nil {
+			return ServiceContext{}, err
+		}
+		setting = func(key string) string { return values[key] }
+		slog.Info("loaded settings from SSM", "prefix", prefix)
+	}
+
 	sc := ServiceContext{
 		Repositories: repositories.New(table, dynamodb.NewFromConfig(cfg)),
 		Slack:        slack.New(),
 		Verifier: slackverify.Verifier{
-			SigningSecret: os.Getenv("SLACK_SIGNING_SECRET"),
-			LegacyTokens:  []string{os.Getenv("SLACK_VERIFICATION_TOKEN")},
+			SigningSecret: setting(params.SlackSigningSecret),
+			LegacyTokens:  []string{setting(params.SlackVerificationToken)},
 		},
 		Config: Config{
-			AuthURL:         os.Getenv("AUTH_URL"),
+			AuthURL:         setting(params.AuthURL),
 			RegistrationURL: envOr("REGISTRATION_URL", "https://www.lunchbuddiesapp.com/registration/"),
-			ClientID:        os.Getenv("SLACK_CLIENT_ID"),
-			ClientSecret:    os.Getenv("SLACK_CLIENT_SECRET"),
+			ClientID:        setting(params.SlackClientID),
+			ClientSecret:    setting(params.SlackClientSecret),
 		},
 		Now:   time.Now,
 		NewID: NewUUID,

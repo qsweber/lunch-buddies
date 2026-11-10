@@ -30,6 +30,9 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 				"dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem",
 				"dynamodb:ConditionCheckItem", "dynamodb:Query",
 			}, data.TableArn(), data.TableIndexArn()),
+			// Slack settings are read at cold start (internal/params). SecureString values use
+			// the AWS-managed aws/ssm key, whose key policy already allows decryption via SSM.
+			statement([]string{"ssm:GetParametersByPath"}, parameterPathArn(cfg)),
 		),
 	})
 
@@ -39,12 +42,8 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 		Zip:  "apigateway.zip",
 		Role: role,
 		Env: map[string]*string{
-			"RECORDS_TABLE":            data.Table.Ref(),
-			"SLACK_SIGNING_SECRET":     paramRef(cfg, "slack_signing_secret"),
-			"SLACK_VERIFICATION_TOKEN": paramRef(cfg, "slack_verification_token"),
-			"SLACK_CLIENT_ID":          paramRef(cfg, "slack_client_id"),
-			"SLACK_CLIENT_SECRET":      paramRef(cfg, "slack_client_secret"),
-			"AUTH_URL":                 paramRef(cfg, "auth_url"),
+			"RECORDS_TABLE":    data.Table.Ref(),
+			"PARAMETER_PREFIX": jsii.String(cfg.ParameterPrefix),
 		},
 		TimeoutSecs:         15,
 		ReservedConcurrency: apiReservedConcurrency,

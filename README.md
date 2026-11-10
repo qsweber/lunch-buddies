@@ -59,21 +59,25 @@ make build       # builds every Lambda into dist/<name>.zip
 
 ## Deploy
 
-Each stack reads its Slack settings from SSM Parameter Store String parameters at
-`/lunch-buddies/<env>/<key>`. The keys are `slack_signing_secret`, `slack_verification_token`,
-`slack_client_id`, `slack_client_secret` and `auth_url`. All five must exist before a deploy;
-SSM can't store an empty value. To set them without echoing values or saving them to shell
+The API Lambda reads its Slack settings from SSM Parameter Store at
+`/lunch-buddies/<env>/<key>` when it cold-starts (String or SecureString both work). The keys are `slack_signing_secret`, `slack_verification_token`,
+`slack_client_id`, `slack_client_secret` and `auth_url`. All five must exist, or the API
+fails to start (the deploy's ping check catches this); SSM can't store an empty value. To set them without echoing values or saving them to shell
 history (use AWS CLI v2: v1 tries to download values that start with `https://`):
 
 ```bash
 # zsh (macOS default)
-ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type String --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
+ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type SecureString --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
 ```
 
 In bash, use `read -rsp "$key: " VALUE` instead of `read -rs "VALUE?$key: "`.
 
-CloudFormation resolves these only when it updates the Lambda, so after changing a value,
-redeploy with a change to the function for it to take effect.
+A changed value takes effect when the API Lambda next cold-starts; no redeploy is needed.
+To make it take effect immediately, recycle the running instances:
+
+```bash
+aws lambda update-function-configuration --region us-west-2 --function-name lunch-buddies-dev-api --description "settings reloaded $(date -u +%FT%TZ)"
+```
 
 ```bash
 make build
