@@ -258,7 +258,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 - `zappa_settings.json` is in git history (`git show 2aa093f:zappa_settings.json`) for the final `zappa undeploy`.
 
 Steps:
-1. **Deploy dev** with the manual *Go Deploy* workflow. Point the dev Slack app at `https://dev-lunch-buddies-api.quinnweber.com/api/v0/...` and run a full create → respond → close cycle.
+1. **Deploy dev** with the manual *Deploy* workflow. Point the dev Slack app at `https://dev-api.lunchbuddiesapp.com/api/v0/...` and run a full create → respond → close cycle.
 2. **`cmd/migrate`**: `go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. **[rev 3]** Mapping as built:
    - **Teams** are copied as they are. A team already present in the new table is left alone, for example one that reinstalled during the window.
    - **Polls:** `CREATED` → `OPEN`. `CLOSED` → `COMPLETE`, with `group_count`, because the old system already notified those groups.
@@ -268,7 +268,7 @@ Steps:
 3. **Prod cutover (evening PT):**
    1. Deploy prod (manual **Deploy** workflow).
    2. Migrate.
-   3. Switch the Slack app URLs (slash commands, interactivity, events, OAuth redirect) to `https://lunch-buddies-api.quinnweber.com`.
+   3. Switch the Slack app URLs (slash commands, interactivity, events, OAuth redirect) to `https://api.lunchbuddiesapp.com`.
    4. Drain the SQS queues.
    5. Re-run `migrate` to pick up stragglers.
    6. Smoke test.
@@ -307,7 +307,7 @@ Steps:
 
 ## 11. Open questions
 
-1. **Custom domains.** I used `lunch-buddies-api.quinnweber.com` (prod) and `dev-lunch-buddies-api.quinnweber.com` (dev) in go-template's `quinnweber.com` zone. Would you prefer `api.lunchbuddiesapp.com`? That needs its hosted zone in this account.
+1. ~~**Custom domains.**~~ **Resolved [rev 4]:** `api.lunchbuddiesapp.com` (prod) and `dev-api.lunchbuddiesapp.com` (dev), in the `lunchbuddiesapp.com` hosted zone (`Z06652991WJMIVK3Y60MY`) in this account.
 2. **Old table names.** The Python DAOs hard-code `lunch_buddies_*` with no stage prefix. Do dev and prod Zappa share the same tables, or does `dynamo_dao` add a prefix? This decides which tables `migrate` reads for each env; they're configurable with `-teams-table` etc.
 3. **The dev Slack app.** Does the one behind `VERIFICATION_TOKEN_DEV` still exist?
 4. **OIDC role trust.** Does `github-actions-deploy` trust `qsweber/lunch-buddies`?

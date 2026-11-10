@@ -30,14 +30,14 @@ func main() {
 
 	account := "120356305272"
 	region := "us-west-2"
-	zoneID := "Z07290422T6PHN4TKVNW0" // quinnweber.com, shared with go-template
+	zoneID := "Z06652991WJMIVK3Y60MY" // lunchbuddiesapp.com
 
 	NewLunchBuddiesStack(app, "lunch-buddies-dev", EnvConfig{
 		Env:             "dev",
 		Account:         account,
 		Region:          region,
 		ZoneID:          zoneID,
-		ApiDomainName:   "dev-lunch-buddies-api.quinnweber.com",
+		ApiDomainName:   "dev-api.lunchbuddiesapp.com",
 		ParameterPrefix: "/lunch-buddies/dev",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
@@ -48,7 +48,7 @@ func main() {
 		Account:         account,
 		Region:          region,
 		ZoneID:          zoneID,
-		ApiDomainName:   "lunch-buddies-api.quinnweber.com",
+		ApiDomainName:   "api.lunchbuddiesapp.com",
 		ParameterPrefix: "/lunch-buddies/prod",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
