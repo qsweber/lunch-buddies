@@ -275,7 +275,8 @@ Steps:
    7. Flip `deploy.yml` to deploy on push, and update the README's "Add to Slack" link to the new domain.
 4. **Rollback:** point the Slack URLs back.
 5. **Decommission** after ~2 weeks:
-   - `zappa undeploy` (restore `zappa_settings.json` from history first), then delete the queues.
+   - **Prod:** `zappa undeploy production` (restore `zappa_settings.json` from history first), then delete the queues.
+   - **Dev: do NOT run `zappa undeploy dev` or `zappa update dev`.** **[rev 4]** Zappa names its CloudFormation stack `<project>-<stage>`, so its dev stack was also called `lunch-buddies-dev`. The first CDK dev deploy updated that 2018 stack in place: it deleted Zappa's dev REST API (4 resources) and added ours. Zappa now acts on our stack, and undeploy would delete it. Delete the old dev Lambda (`lunch-buddies-dev`), its SQS event source mappings and the `dev_*` queues by hand. Prod doesn't collide: Zappa's stack there is `lunch-buddies-production`. Confirm `lunch-buddies-prod` doesn't exist before the first prod deploy.
    - Export and then delete the old tables.
    - **Delete the old Zappa log groups (P9): they contain bot tokens.**
 
@@ -293,7 +294,8 @@ Steps:
 | – | Consolidate task Lambdas into `cmd/worker` | Done **[rev 4]** |
 | 8 | Migration tool | Done (not run against real data) |
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
-| 9 | Secrets, dev deploy, dev Slack app, end-to-end test | **Next.** Needs AWS access. |
+| 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; `/api/v0/ping` OK on `dev-api.lunchbuddiesapp.com` |
+| 9b | Point dev Slack app at the dev domain, end-to-end test | **Next** |
 | 10 | Prod cutover, then decommission | After 9 |
 
 ## 10. Alternatives considered
