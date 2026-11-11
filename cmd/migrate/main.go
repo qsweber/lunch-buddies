@@ -1,22 +1,29 @@
-// Command migrate copies the legacy Python tables into the single records table. It is
-// safe to re-run: every write is conditional on the item not existing, so newer data is never
-// overwritten. Nothing it writes triggers a workflow (polls are inserted as OPEN or
-// COMPLETE, never REQUESTED).
+// Command migrate copies teams (and their bot tokens) from the legacy Python app's
+// lunch_buddies_Team table into the single records table, for the production cutover. Old
+// polls, responses and groups are deliberately not copied.
 //
-//	go run ./cmd/migrate -target lunch-buddies-prod-records -dry-run
+// It first refuses to run if any legacy poll is in flight (still CREATED and created within
+// -in-flight-window), because that poll's buttons and close would then reach a new system
+// that has never heard of it. The check runs in dry-run mode too, so a dry run tells you
+// whether now is a good time to cut over.
+//
+// Re-running is safe: a team already in the target table is left alone.
+//
+//	go run ./cmd/migrate -target lunch-buddies-prod-records                 # dry run
+//	go run ./cmd/migrate -target lunch-buddies-prod-records -dry-run=false  # copy teams
 package main
 
 import (
 	"context"
-	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"os"
 	"strconv"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb/types"
 
@@ -26,12 +33,11 @@ import (
 
 func main() {
 	var (
-		teamsTable     = flag.String("teams-table", "lunch_buddies_Team", "legacy teams table")
-		pollsTable     = flag.String("polls-table", "lunch_buddies_Poll", "legacy polls table")
-		responsesTable = flag.String("responses-table", "lunch_buddies_PollResponse", "legacy responses table")
-		groupsTable    = flag.String("groups-table", "lunch_buddies_Group", "legacy groups table")
-		target         = flag.String("target", "", "single records table to write (required)")
-		dryRun         = flag.Bool("dry-run", true, "only read and transform; print counts")
+		teamsTable = flag.String("teams-table", "lunch_buddies_Team", "legacy teams table")
+		pollsTable = flag.String("polls-table", "lunch_buddies_Poll", "legacy polls table, checked for polls in flight")
+		target     = flag.String("target", "", "single records table to write teams into (required)")
+		window     = flag.Duration("in-flight-window", 24*time.Hour, "a CREATED legacy poll newer than this counts as in flight")
+		dryRun     = flag.Bool("dry-run", true, "check and count only; write nothing")
 	)
 	flag.Parse()
 	if *target == "" {
@@ -44,142 +50,55 @@ func main() {
 		log.Fatal(err)
 	}
 	db := dynamodb.NewFromConfig(cfg)
-	teamsRepo := repositories.NewTeamsRepository(*target, db)
-	w := writer{db: db, table: *target, dryRun: *dryRun, counts: map[string][2]int{}}
 
-	// Groups first, so each closed poll can record its group count.
-	groupCounts := map[string]int{}
-	var groups []repositories.Group
-	must(scan(ctx, db, *groupsTable, func(r migrate.Row) error {
-		g, err := migrate.Group(r)
-		if err != nil {
-			return err
+	// 1. Refuse to cut over while a legacy poll is in flight.
+	var pollRows []migrate.Row
+	must(scan(ctx, db, *pollsTable, func(r migrate.Row) { pollRows = append(pollRows, r) }))
+	inFlight, stale, err := migrate.InFlight(pollRows, time.Now(), *window)
+	must(err)
+	if len(stale) > 0 {
+		fmt.Printf("Ignoring %d abandoned CREATED poll(s) older than %s (they won't be closable after cutover):\n", len(stale), *window)
+		for _, p := range stale {
+			fmt.Println("  ", p)
 		}
-		groups = append(groups, g)
-		groupCounts[g.CallbackID]++
-		return nil
-	}))
+	}
+	if len(inFlight) > 0 {
+		fmt.Fprintf(os.Stderr, "REFUSING: %d legacy poll(s) in flight (CREATED within the last %s). Wait until they're closed, then try again:\n", len(inFlight), *window)
+		for _, p := range inFlight {
+			fmt.Fprintln(os.Stderr, "  ", p)
+		}
+		os.Exit(1)
+	}
+	fmt.Printf("No legacy polls in flight (checked %d polls).\n", len(pollRows))
 
-	must(scan(ctx, db, *teamsTable, func(r migrate.Row) error {
+	// 2. Copy teams that aren't in the target table yet.
+	teams := repositories.NewTeamsRepository(*target, db)
+	var copied, present int
+	must(scan(ctx, db, *teamsTable, func(r migrate.Row) {
 		team, err := migrate.Team(r)
-		if err != nil {
-			return err
-		}
-		if *dryRun {
-			w.count("team", true)
-			return nil
-		}
-		existing, err := teamsRepo.GetTeam(ctx, team.TeamID)
-		if err != nil {
-			return err
-		}
+		must(err)
+		existing, err := teams.GetTeam(ctx, team.TeamID)
+		must(err)
 		if existing != nil {
-			w.count("team", false)
-			return nil
+			present++
+			return
 		}
-		w.count("team", true)
-		return teamsRepo.PutTeam(ctx, team)
+		copied++
+		if !*dryRun {
+			must(teams.PutTeam(ctx, team))
+		}
 	}))
 
-	var allPolls []repositories.Poll
-	must(scan(ctx, db, *pollsTable, func(r migrate.Row) error {
-		p, err := migrate.Poll(r, groupCounts[fmt.Sprint(r["callback_id"])])
-		if err != nil {
-			return err
-		}
-		allPolls = append(allPolls, p)
-		created, err := w.put(ctx, "poll", p.WithKeys())
-		if err != nil || created || p.State != repositories.StateComplete || *dryRun {
-			return err
-		}
-		// Copied earlier while open, closed in the legacy system since.
-		completed, err := migrate.CompleteIfOpen(ctx, db, *target, p)
-		if completed {
-			w.count("poll_completed", true)
-		}
-		return err
-	}))
-
-	for _, a := range migrate.ActivePointers(allPolls) {
-		must(w.putAll(ctx, "active_poll", a))
-	}
-
-	must(scan(ctx, db, *responsesTable, func(r migrate.Row) error {
-		resp, err := migrate.Response(r)
-		if err != nil {
-			return err
-		}
-		return w.putAll(ctx, "response", resp)
-	}))
-
-	for _, g := range groups {
-		must(w.putAll(ctx, "group", g))
-	}
-
-	mode := "WROTE"
 	if *dryRun {
-		mode = "DRY RUN (would write)"
-	}
-	fmt.Printf("%s to %s:\n", mode, *target)
-	for _, kind := range []string{"team", "poll", "poll_completed", "active_poll", "response", "group"} {
-		c := w.counts[kind]
-		fmt.Printf("  %-12s new=%d already-present=%d\n", kind, c[0], c[1])
-	}
-}
-
-type writer struct {
-	db     *dynamodb.Client
-	table  string
-	dryRun bool
-	counts map[string][2]int
-}
-
-func (w *writer) count(kind string, isNew bool) {
-	c := w.counts[kind]
-	if isNew {
-		c[0]++
+		fmt.Printf("DRY RUN: would copy %d team(s) into %s; %d already there.\n", copied, *target, present)
 	} else {
-		c[1]++
+		fmt.Printf("Copied %d team(s) into %s; %d already there.\n", copied, *target, present)
 	}
-	w.counts[kind] = c
 }
 
-// put writes item if its key doesn't exist yet and reports whether it was new.
-func (w *writer) put(ctx context.Context, kind string, item any) (bool, error) {
-	if w.dryRun {
-		w.count(kind, true)
-		return true, nil
-	}
-	av, err := attributevalue.MarshalMap(item)
-	if err != nil {
-		return false, err
-	}
-	_, err = w.db.PutItem(ctx, &dynamodb.PutItemInput{
-		TableName:           aws.String(w.table),
-		Item:                av,
-		ConditionExpression: aws.String("attribute_not_exists(pk)"),
-	})
-	var ccf *types.ConditionalCheckFailedException
-	if errors.As(err, &ccf) {
-		w.count(kind, false)
-		return false, nil
-	}
-	if err != nil {
-		return false, err
-	}
-	w.count(kind, true)
-	return true, nil
-}
-
-// putAll is put for callers that don't care whether the item was new.
-func (w *writer) putAll(ctx context.Context, kind string, item any) error {
-	_, err := w.put(ctx, kind, item)
-	return err
-}
-
-// scan reads every item of a legacy table. Numbers are converted to their decimal string
-// form so timestamps keep full precision.
-func scan(ctx context.Context, db *dynamodb.Client, table string, fn func(migrate.Row) error) error {
+// scan reads every item of a legacy table. Numbers keep their decimal text so timestamps
+// keep full precision.
+func scan(ctx context.Context, db *dynamodb.Client, table string, fn func(migrate.Row)) error {
 	p := dynamodb.NewScanPaginator(db, &dynamodb.ScanInput{TableName: aws.String(table), ConsistentRead: aws.Bool(true)})
 	for p.HasMorePages() {
 		page, err := p.NextPage(ctx)
@@ -189,29 +108,19 @@ func scan(ctx context.Context, db *dynamodb.Client, table string, fn func(migrat
 		for _, item := range page.Items {
 			row := migrate.Row{}
 			for k, v := range item {
-				row[k] = plain(v)
+				switch t := v.(type) {
+				case *types.AttributeValueMemberS:
+					row[k] = t.Value
+				case *types.AttributeValueMemberN:
+					row[k] = t.Value
+				case *types.AttributeValueMemberBOOL:
+					row[k] = strconv.FormatBool(t.Value)
+				}
 			}
-			if err := fn(row); err != nil {
-				return fmt.Errorf("%s: %w", table, err)
-			}
+			fn(row)
 		}
 	}
 	return nil
-}
-
-func plain(v types.AttributeValue) any {
-	switch t := v.(type) {
-	case *types.AttributeValueMemberS:
-		return t.Value
-	case *types.AttributeValueMemberN:
-		return t.Value
-	case *types.AttributeValueMemberBOOL:
-		return strconv.FormatBool(t.Value)
-	case *types.AttributeValueMemberNULL:
-		return nil
-	default:
-		return fmt.Sprint(t)
-	}
 }
 
 func must(err error) {

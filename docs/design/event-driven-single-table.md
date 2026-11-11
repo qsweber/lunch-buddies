@@ -111,7 +111,7 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 | Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
 | Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
 | PollResponse | `POLL#<callback_id>` | `RESPONSE#<user_id>` | – | – | `response`, `created_at` |
-| Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` (migrated: `#m<hash>`) | – | – | `user_ids`, `response_key`, `notified_at` |
+| Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` | – | – | `user_ids`, `response_key`, `notified_at` |
 
 **Why the ActivePoll pointer is its own row:** DynamoDB conditions only apply to the item being written. "At most one open poll per channel" is a rule across items, and the only way to enforce it atomically is a row keyed by the rule itself. The pointer also makes "the open poll in this channel" a single strongly consistent `GetItem` for close.
 
@@ -271,17 +271,17 @@ Changing the prod Slack app's URLs needs Slack's review, so **traffic moves to t
 
 Turning it off is the cutover. Turning it back on is the rollback, with no Slack review needed.
 
-### 8.4 Migration tool
+### 8.4 Migration tool [rev 4: teams only]
 
-`go run ./cmd/migrate -target lunch-buddies-<env>-records` defaults to `-dry-run=true` and prints counts. Pass `-dry-run=false` to write. The legacy table names default to `lunch_buddies_*`. **[rev 4]** Dev and prod Zappa shared those tables (`dynamo-dao` adds no stage prefix), so **migrate into prod only**. Dev starts empty, so real workspaces' bot tokens never end up in dev.
+**Only teams are carried over.** Old polls, responses and groups have no value to the new system, so they're left behind in the legacy tables, which are exported and then deleted at decommission (§8.6). That makes the new system start clean, with nothing to convert: no legacy choice formats, no synthetic group keys, no state mapping.
 
-Mapping:
-- **Teams** are copied as they are. A team already in the new table is left alone.
-- **Polls:** `CREATED` → `OPEN`. `CLOSED` → `COMPLETE` with `group_count`, because the old system already notified those groups.
-- **[rev 4] Polls closed since they were copied:** if a poll was copied while open and has since closed in Zappa, `migrate.CompleteIfOpen` moves the copy `OPEN` → `COMPLETE` and releases its pointer. Without this, closing it again in the new system would notify its groups twice. Both writes are conditional, so a poll the new system already moved on, or a pointer that now belongs to a newer poll, is left alone. `OPEN` → `COMPLETE` doesn't match the stream filter.
-- **Pointers:** an `ACTIVE_POLL` pointer for the newest open poll in each channel, whatever its age, so old open polls stay closable.
-- **Groups** get key `GROUP#<key>#m<hash of members>`, stable across re-runs, and are marked notified.
-- **Every other write** is `attribute_not_exists(pk)`, so re-runs never clobber newer data. Nothing is inserted as `REQUESTED`, so no workflows fire.
+The catch is polls that are still in flight at cutover. Their buttons and `close` would reach a new system that has never heard of them. So `cmd/migrate`:
+1. **Refuses to run while a legacy poll is in flight.** It scans `lunch_buddies_Poll`; any poll still `CREATED` and created within `-in-flight-window` (default 24h, the same window the old app used for "already an active poll") is listed and the command exits non-zero before writing anything. Older `CREATED` polls are abandoned; they're listed as ignored and won't be closable after cutover.
+2. **Copies teams** from `lunch_buddies_Team` (id, name, bot token, created_at, `feature_notify_in_channel`) that aren't in the target table yet. Existing teams are left alone, so re-running is safe.
+
+`go run ./cmd/migrate -target lunch-buddies-prod-records` is a dry run (`-dry-run=true` is the default): it does the in-flight check and prints how many teams it would copy. Pass `-dry-run=false` to write. The check runs either way, so a dry run tells you whether now is a good time to cut over.
+
+Dev and prod Zappa shared the legacy tables (`dynamo-dao` adds no stage prefix), so **migrate into prod only**. Dev starts empty, so real workspaces' bot tokens never end up in dev.
 
 ### 8.5 Production rollout [rev 4]
 
@@ -292,12 +292,13 @@ Mapping:
 2. **Merge.** `production.yml` deploys prod on every push to `master`. Because of `legacy_forward_url`, prod's API is in forwarding mode, and Slack still calls Zappa directly, so nothing user-visible changes. The ping check confirms the domain, the certificate and that all parameters loaded. The API's log shows `FORWARDING MODE` on each cold start.
 3. **Submit the prod Slack app changes:** the same `/v1` URL table as dev, on `api.lunchbuddiesapp.com`. Keep the old Redirect URL listed too, because installs still complete through Zappa's OAuth flow until cutover.
 4. **When Slack approves,** traffic flows Slack → new API → Zappa. Confirm with `forwarded to legacy API` lines in `/aws/lambda/lunch-buddies-prod-api`. The website's "Add to Slack" button can now point at `https://api.lunchbuddiesapp.com/v1/install`.
-5. **Cut over on a quiet evening** (check for open polls first; the README has a scan for `CREATED` polls):
-   1. Run `migrate` with `-dry-run`, check the counts, then run it with `-dry-run=false`.
-   2. Delete `/lunch-buddies/prod/legacy_forward_url` and recycle the API Lambda (`aws lambda update-function-configuration ... --description ...`, see the README).
-   3. Re-run `migrate` to pick up anything Zappa wrote in the seconds between, including any `CREATED` → `CLOSED`.
-   4. Watch one real create → respond → close cycle in the logs and Step Functions.
-6. **Rollback:** put `legacy_forward_url` back and recycle the Lambda. Anything created in the new system after cutover won't exist in Zappa's tables, so roll back early or not at all.
+5. **Cut over when nothing is in flight:**
+   1. Run `migrate` as a dry run. If it refuses because polls are in flight, wait until they're closed and try again.
+   2. Run it with `-dry-run=false` to copy the teams.
+   3. Delete `/lunch-buddies/prod/legacy_forward_url` and recycle the API Lambda (`aws lambda update-function-configuration ... --description ...`, see the README).
+   4. Re-run `migrate -dry-run=false` to pick up a team that installed in the seconds between. Expect "0 team(s)" copied.
+   5. Watch one real create → respond → close cycle in the logs and Step Functions.
+6. **Rollback:** put `legacy_forward_url` back and recycle the Lambda. Polls created in the new system after cutover don't exist in Zappa's tables, and teams that install after cutover exist only in the new table, so roll back early or not at all.
 
 ### 8.6 Decommission (about 2 weeks after cutover)
 
@@ -323,7 +324,7 @@ Mapping:
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
 | 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; ping OK on `dev-api.lunchbuddiesapp.com` |
 | 9b | Point dev Slack app at the dev domain, install | Done |
-| 10 | Forwarding mode, `CompleteIfOpen`, prod deploy on merge with stack-ownership guard | Done **[rev 4]** |
+| 10 | Forwarding mode, prod deploy on merge with stack-ownership guard, teams-only `migrate` with in-flight check | Done **[rev 4]** |
 | 11 | Production rollout (§8.5) | **Next** |
 | 10 | Prod cutover, then decommission | After 9 |
 

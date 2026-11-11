@@ -26,7 +26,7 @@ In short:
 | Path | What |
 | ---- | ---- |
 | `cmd/apigateway`, `cmd/dynamostream`, `cmd/worker` | The three Lambdas: HTTP API, stream router, Step Functions tasks |
-| `cmd/migrate` | One-off CLI that copies the legacy tables into the new table |
+| `cmd/migrate` | One-off cutover CLI: copies teams from the legacy table, and refuses to run while a legacy poll is in flight |
 | `internal/polls` | Pure domain logic: parsing poll options, grouping, message text |
 | `internal/repositories` | Single-table DynamoDB access (+ `memory/` for tests) |
 | `internal/server` | HTTP routes |
@@ -95,11 +95,8 @@ API: set `/lunch-buddies/<env>/legacy_forward_url` to its base URL, then recycle
 (command above). Delete the parameter and recycle again to serve requests directly. See the
 design doc §8.3 and §8.5.
 
-To check for open polls in the legacy table before cutting over:
-
-```bash
-aws dynamodb scan --region us-west-2 --table-name lunch_buddies_Poll --filter-expression "#s = :c" --expression-attribute-names '{"#s":"state"}' --expression-attribute-values '{":c":{"S":"CREATED"}}' --projection-expression "team_id, created_at, channel_id" --output json | jq -r '.Items | sort_by(.created_at.N | tonumber) | reverse | .[] | "\(.created_at.N | tonumber | floor | todate)  \(.team_id.S)  \(.channel_id.S // "-")"'
-```
+`go run ./cmd/migrate -target lunch-buddies-prod-records` (a dry run by default) checks the
+legacy table for polls in flight and reports how many teams it would copy; see design doc §8.4.
 
 ## Why DynamoDB?
 
