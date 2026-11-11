@@ -316,17 +316,17 @@ Dev and prod Zappa shared the legacy tables (`dynamo-dao` adds no stage prefix),
 | 2 | Domain port + parity tests | Done |
 | 3 | Repositories + in-memory store | Done |
 | 4 | Slack client, request verification | Done |
-| 5 | Workflow tasks, router, ASL, stream mapping, DLQ, alarms | Done (ASL not yet validated against AWS) |
+| 5 | Workflow tasks, router, ASL, stream mapping, DLQ, alarms | Done (deployed to dev) |
 | 6 | HTTP endpoints | Done |
 | 7 | Invoice | **Removed [rev 4]** |
 | – | Consolidate task Lambdas into `cmd/worker` | Done **[rev 4]** |
-| 8 | Migration tool | Done (not run against real data) |
+| 8 | Migration tool | Done; teams only with in-flight check **[rev 4]** (not yet run against prod) |
 | – | Remove Python, Zappa config and `main.yml`; Go README | Done **[rev 3]** |
 | 9 | SSM parameters, dev deploy | **Done [rev 4]**: dev stack deployed from PR CI; ping OK on `dev-api.lunchbuddiesapp.com` |
 | 9b | Point dev Slack app at the dev domain, install | Done |
 | 10 | Forwarding mode, prod deploy on merge with stack-ownership guard, teams-only `migrate` with in-flight check | Done **[rev 4]** |
-| 11 | Production rollout (§8.5) | **Next** |
-| 10 | Prod cutover, then decommission | After 9 |
+| 11 | Production rollout and cutover (§8.5) | **Next** |
+| 12 | Decommission (§8.6) | About 2 weeks after cutover |
 
 ## 10. Alternatives considered
 
