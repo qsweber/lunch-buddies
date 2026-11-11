@@ -41,6 +41,8 @@ jobs:
         with:
           name: build
           path: ./dist/*.zip
+          # Only the later jobs in this run read it.
+          retention-days: 1
 
   cdk-checks:
     runs-on: ubuntu-latest
