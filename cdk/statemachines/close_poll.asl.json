@@ -1,0 +1,251 @@
+{
+  "Comment": "Started by the stream router when a poll moves OPEN -> CLOSED. Input: {\"callback_id\": ...}",
+  "StartAt": "FormGroups",
+  "States": {
+    "FormGroups": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${WorkerFunctionArn}",
+        "Payload": {
+          "task": "form-groups",
+          "callback_id.$": "$.callback_id"
+        }
+      },
+      "OutputPath": "$.Payload",
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "Lambda.ServiceException",
+            "Lambda.AWSLambdaException",
+            "Lambda.SdkClientException",
+            "Lambda.TooManyRequestsException"
+          ],
+          "IntervalSeconds": 2,
+          "MaxAttempts": 6,
+          "BackoffRate": 2,
+          "JitterStrategy": "FULL"
+        },
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "IntervalSeconds": 5,
+          "MaxAttempts": 3,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "ErrorEquals": [
+            "States.ALL"
+          ],
+          "ResultPath": "$.error",
+          "Next": "NotifyFailure"
+        }
+      ],
+      "Next": "AnyGroups"
+    },
+    "AnyGroups": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.group_sks[0]",
+          "IsPresent": true,
+          "Next": "NotifyGroups"
+        }
+      ],
+      "Default": "MarkPollComplete"
+    },
+    "NotifyGroups": {
+      "Type": "Map",
+      "ItemsPath": "$.group_sks",
+      "ItemSelector": {
+        "task": "notify-group",
+        "callback_id.$": "$.callback_id",
+        "group_sk.$": "$$.Map.Item.Value"
+      },
+      "MaxConcurrency": 5,
+      "ItemProcessor": {
+        "ProcessorConfig": {
+          "Mode": "INLINE"
+        },
+        "StartAt": "NotifyGroup",
+        "States": {
+          "NotifyGroup": {
+            "Type": "Task",
+            "Resource": "arn:aws:states:::lambda:invoke",
+            "Parameters": {
+              "FunctionName": "${WorkerFunctionArn}",
+              "Payload.$": "$"
+            },
+            "Retry": [
+              {
+                "ErrorEquals": [
+                  "Lambda.ServiceException",
+                  "Lambda.AWSLambdaException",
+                  "Lambda.SdkClientException",
+                  "Lambda.TooManyRequestsException"
+                ],
+                "IntervalSeconds": 2,
+                "MaxAttempts": 6,
+                "BackoffRate": 2,
+                "JitterStrategy": "FULL"
+              },
+              {
+                "ErrorEquals": [
+                  "RateLimitedError"
+                ],
+                "IntervalSeconds": 3,
+                "MaxAttempts": 8,
+                "BackoffRate": 2,
+                "MaxDelaySeconds": 60,
+                "JitterStrategy": "FULL"
+              },
+              {
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "IntervalSeconds": 5,
+                "MaxAttempts": 2,
+                "BackoffRate": 2
+              }
+            ],
+            "Catch": [
+              {
+                "Comment": "Keep notifying the other groups; the failure is reported after the Map.",
+                "ErrorEquals": [
+                  "States.ALL"
+                ],
+                "Next": "GroupFailed"
+              }
+            ],
+            "Next": "GroupSent"
+          },
+          "GroupSent": {
+            "Type": "Pass",
+            "Result": true,
+            "End": true
+          },
+          "GroupFailed": {
+            "Type": "Pass",
+            "Result": false,
+            "End": true
+          }
+        }
+      },
+      "ResultPath": "$.sent",
+      "Next": "MarkPollComplete"
+    },
+    "MarkPollComplete": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::dynamodb:updateItem",
+      "Parameters": {
+        "TableName": "${TableName}",
+        "Key": {
+          "pk": {
+            "S.$": "States.Format('POLL#{}', $.callback_id)"
+          },
+          "sk": {
+            "S": "POLL"
+          }
+        },
+        "UpdateExpression": "SET #state = :complete",
+        "ConditionExpression": "#state = :closed",
+        "ExpressionAttributeNames": {
+          "#state": "state"
+        },
+        "ExpressionAttributeValues": {
+          ":complete": {
+            "S": "COMPLETE"
+          },
+          ":closed": {
+            "S": "CLOSED"
+          }
+        }
+      },
+      "ResultPath": null,
+      "Retry": [
+        {
+          "ErrorEquals": [
+            "DynamoDB.ProvisionedThroughputExceededException",
+            "DynamoDB.RequestLimitExceeded",
+            "DynamoDB.InternalServerErrorException",
+            "DynamoDB.ThrottlingException"
+          ],
+          "IntervalSeconds": 1,
+          "MaxAttempts": 5,
+          "BackoffRate": 2
+        }
+      ],
+      "Catch": [
+        {
+          "Comment": "Already COMPLETE (a re-run); nothing to do.",
+          "ErrorEquals": [
+            "DynamoDB.ConditionalCheckFailedException"
+          ],
+          "ResultPath": null,
+          "Next": "AnyGroupsNotified"
+        }
+      ],
+      "Next": "AnyGroupsNotified"
+    },
+    "SummarizeSent": {
+      "Type": "Pass",
+      "Parameters": {
+        "has_failure.$": "States.ArrayContains($.sent, false)"
+      },
+      "Next": "AnyGroupFailed"
+    },
+    "AnyGroupFailed": {
+      "Type": "Choice",
+      "Choices": [
+        {
+          "Variable": "$.has_failure",
+          "BooleanEquals": true,
+          "Next": "GroupsFailed"
+        }
+      ],
+      "Default": "Done"
+    },
+    "GroupsFailed": {
+      "Type": "Fail",
+      "Error": "GroupNotificationFailed",
+      "Cause": "At least one group could not be notified after retries; see the NotifyGroups iterations."
+    },
+    "NotifyFailure": {
+      "Type": "Task",
+      "Resource": "arn:aws:states:::lambda:invoke",
+      "Parameters": {
+        "FunctionName": "${WorkerFunctionArn}",
+        "Payload": {
+          "task": "notify-failure",
+          "callback_id.$": "$.callback_id",
+          "workflow": "close"
+        }
+      },
+      "ResultPath": null,
+      "Next": "Failed"
+    },
+    "Failed": {
+      "Type": "Fail",
+      "Error": "FormGroupsFailed",
+      "Cause": "FormGroups failed after retries; the user who closed the poll was notified."
+    },
+    "Done": {
+      "Type": "Succeed"
+    },
+    "AnyGroupsNotified": {
+      "Type": "Choice",
+      "Comment": "$.sent only exists if NotifyGroups ran.",
+      "Choices": [
+        {
+          "Variable": "$.sent",
+          "IsPresent": true,
+          "Next": "SummarizeSent"
+        }
+      ],
+      "Default": "Done"
+    }
+  }
+}

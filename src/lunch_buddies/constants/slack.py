@@ -1,1 +1,0 @@
-LUNCH_BUDDIES_CHANNEL_NAME = "lunch_buddies"

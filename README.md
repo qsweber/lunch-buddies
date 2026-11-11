@@ -1,51 +1,108 @@
 # Lunch Buddies
 
-![CI](https://github.com/qsweber/lunch-buddies/workflows/CI/badge.svg) ![Test Coverage](https://img.shields.io/badge/tests-88%25-green) ![Type Coverage](https://img.shields.io/badge/types-93%25-green)
+![CI](https://github.com/qsweber/lunch-buddies/actions/workflows/pr.yml/badge.svg)
 
-This is the backend for the Lunch Buddies slack app.
+This is the backend for the Lunch Buddies Slack app. It's written in Go and follows the
+patterns of [go-template](https://github.com/qsweber/go-template).
 
+<!-- Points at the legacy Zappa API until cutover; switch to https://api.lunchbuddiesapp.com/v1/install afterwards. -->
 [![Add to Slack](https://platform.slack-edge.com/img/add_to_slack.png)](https://ahlfhssbq3.execute-api.us-west-2.amazonaws.com/production/api/v0/install)
 
-## Basic Architecture
+## Architecture
 
-### Flow of information
+The full design is in [docs/design/event-driven-single-table.md](docs/design/event-driven-single-table.md).
+In short:
 
-![Architecture Diagram](https://github.com/qsweber/lunch-buddies/blob/readme-media/media/architecture.png)
+1. Slack calls the HTTP API (`cmd/apigateway`). Handlers only verify the request and write a
+   row to a single DynamoDB table: a `REQUESTED` poll on create, a response on a button click,
+   and `OPEN → CLOSED` on close.
+2. A DynamoDB stream consumer (`cmd/dynamostream`) sees those two poll transitions and starts a
+   Step Functions workflow.
+3. **StartPoll** resolves the channel, opens the poll, and DMs each member (one `poll-user`
+   task per user). **ClosePoll** forms the groups, saves them, and notifies each group (one
+   `notify-group` task per group). Every task runs in the single `worker` Lambda, which
+   dispatches on the payload's `task` field.
 
-The above diagram shows the flow of information throughout the system. The diagram shows two Lambda functions. The one on the left is running a flask app and responding to HTTP requests. The one on the left is an async task handler triggered by messages being added to one of the SQS queues.
+| Path | What |
+| ---- | ---- |
+| `cmd/apigateway`, `cmd/dynamostream`, `cmd/worker` | The three Lambdas: HTTP API, stream router, Step Functions tasks |
+| `cmd/migrate` | One-off cutover CLI: copies teams from the legacy table, and refuses to run while a legacy poll is in flight |
+| `internal/polls` | Pure domain logic: parsing poll options, grouping, message text |
+| `internal/repositories` | Single-table DynamoDB access (+ `memory/` for tests) |
+| `internal/server` | HTTP routes |
+| `internal/workflows` | Stream router and Step Functions task logic |
+| `cdk/` | AWS CDK (Go) app; state machine definitions in `cdk/statemachines` |
 
-1. The flask app receives a request from slack to start a poll and adds a message to the "polls_to_start" queue.
-2. The presence of a message in the "polls_to_start" queue triggers a task that finds which users to notify and adds a message per user to the "users_to_poll" queue.
-3. The presence of a message in the "users_to_poll" queue triggers a task that sends a message to the user asking about participation.
-4. Each user clicks an option on the poll, which is handled by the flask app. Responses are stored in DynamoDB.
-5. When it's time to close the poll and aggregate results, a user triggers this within Slack, which pings the flask app, which adds a message to the "polls_to_close" queue.
-6. A message in the "polls_to_close" queue triggers a task that gathers all responses and divides respondants into evenly sized groups. A message per group is added to the "groups_to_notify" queue.
-7. A message in the "groups_to_notify" queue triggers a task that notifies the group in slack
+## Data model
 
-### Why so many queues?
+One table, `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one GSI (`gsi1`):
 
-When user interactions are sent to the flask app, Slack expects a response within 3 seconds. Most of the operations that need to happen as a result of the user interaction could take longer than 3 seconds, so I figured it was safer to put as much as possible into the async handlers.
+| Entity | pk | sk |
+| ------ | -- | -- |
+| Team | `TEAM#<team_id>` | `TEAM` |
+| Active poll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` |
+| Poll | `POLL#<callback_id>` | `POLL` |
+| Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` |
+| Response | `POLL#<callback_id>` | `RESPONSE#<user_id>` |
+| Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` |
 
-### Database schema
+## Development
 
-![Database Schema](https://github.com/qsweber/lunch-buddies/blob/readme-media/media/database.png)
+Prerequisites: Go 1.25.8+. For deploys you also need Node.js 22+ and AWS credentials.
 
-### Why DynamoDB for a relational database?
+```bash
+make test        # go test -race ./...
+make vet
+make fmt-check
+make build       # builds every Lambda into dist/<name>.zip
+```
 
-When I first started building this app, I wanted to make it as cheap as possible to run. DynamoDB scales really well, and I only have to pay for usage. Using RDS would have meant paying for uptime all day every day.
+## Deploy
 
-### What's up with those Primary Keys?
+The API Lambda reads its Slack settings from SSM Parameter Store at
+`/lunch-buddies/<env>/<key>` when it cold-starts (String or SecureString both work). The keys are `slack_signing_secret`, `slack_verification_token`,
+`slack_client_id`, `slack_client_secret` and `auth_url`. All five must exist, or the API
+fails to start (the deploy's ping check catches this); SSM can't store an empty value. To set them without echoing values or saving them to shell
+history (use AWS CLI v2: v1 tries to download values that start with `https://`):
 
-DynamoDB only really supports having a primary key, and that key can either be one column or two. If two, the second column is called the "sort key".
+```bash
+# zsh (macOS default)
+ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type SecureString --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
+```
 
-In the case of the "polls" table, I had to build the keys around the usage pattern, which was that I'd be receiving a user input from a specific team to open or close a poll. I needed to be able to look up the polls for that team, which meant team_id had to be in the primary key. Since team_id does not uniquely define a poll, I picked "created_at" for the sort key.
+In bash, use `read -rsp "$key: " VALUE` instead of `read -rs "VALUE?$key: "`.
 
-## Other technologies used
+A changed value takes effect when the API Lambda next cold-starts; no redeploy is needed.
+To make it take effect immediately, recycle the running instances:
 
-- Zappa
-- Github Actions
-- Stripe
+```bash
+aws lambda update-function-configuration --region us-west-2 --function-name lunch-buddies-dev-api --description "settings reloaded $(date -u +%FT%TZ)"
+```
+
+```bash
+make build
+cd cdk && npm ci
+npx cdk diff lunch-buddies-dev
+npx cdk deploy lunch-buddies-dev
+```
+
+CI follows go-template's workflows: `pr.yml` runs tests and `cdk synth` on every pull request
+and deploys the dev stack, and `production.yml` deploys prod on every push to `master`. Both
+call the shared `ci.yml`, which refuses to update a stack this app didn't create.
+
+During the production cutover, the API can forward every Slack request to the legacy Zappa
+API: set `/lunch-buddies/<env>/legacy_forward_url` to its base URL, then recycle the Lambda
+(command above). Delete the parameter and recycle again to serve requests directly. See the
+design doc §8.3 and §8.5.
+
+`go run ./cmd/migrate -target lunch-buddies-prod-records` (a dry run by default) checks the
+legacy table for polls in flight and reports how many teams it would copy; see design doc §8.4.
+
+## Why DynamoDB?
+
+It costs nothing when idle and scales with usage. Running RDS would have meant paying for
+uptime all day, every day.
 
 ## Credits
 
-This App was inspired by https://github.com/monotkate/lunch-buddies
+This app was inspired by https://github.com/monotkate/lunch-buddies
