@@ -86,9 +86,9 @@ npx cdk diff lunch-buddies-dev
 npx cdk deploy lunch-buddies-dev
 ```
 
-CI (`.github/workflows`) runs tests and `cdk synth` on every pull request and deploys the dev
-stack; every push to `master` deploys prod. Either can also be deployed by hand from the
-**Deploy** workflow. Deploys refuse to update a stack this app didn't create.
+CI follows go-template's workflows: `pr.yml` runs tests and `cdk synth` on every pull request
+and deploys the dev stack, and `production.yml` deploys prod on every push to `master`. Both
+call the shared `ci.yml`, which refuses to update a stack this app didn't create.
 
 During the production cutover, the API can forward every Slack request to the legacy Zappa
 API: set `/lunch-buddies/<env>/legacy_forward_url` to its base URL, then recycle the Lambda

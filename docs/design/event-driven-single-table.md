@@ -235,7 +235,7 @@ internal/
   slack/ (+ slacktest/)  slackverify/  migrate/
 cdk/              main.go stack.go data.go lambdas.go apigateway.go domain.go workflows.go stream.go alarms.go iam.go
 cdk/statemachines/start_poll.asl.json close_poll.asl.json
-.github/workflows/ci.yml pr.yml deploy.yml               # Python main.yml removed
+.github/workflows/ci.yml pr.yml production.yml           # same names as go-template; Python main.yml removed
 ```
 
 **Testing:**
@@ -289,7 +289,7 @@ Mapping:
    1. Create the five prod parameters with the **prod** Slack app's values, plus `legacy_forward_url`.
    2. Confirm the deploy role trusts the `prod` environment.
    3. The first prod deploy creates `lunch-buddies-prod`. CI's "Refuse to deploy over a stack this app didn't create" step fails the deploy if a stack with that name already exists without this app's outputs. That's the guard against a repeat of the dev collision (§8.6).
-2. **Merge.** `deploy.yml` deploys prod on every push to `master`. Because of `legacy_forward_url`, prod's API is in forwarding mode, and Slack still calls Zappa directly, so nothing user-visible changes. The ping check confirms the domain, the certificate and that all parameters loaded. The API's log shows `FORWARDING MODE` on each cold start.
+2. **Merge.** `production.yml` deploys prod on every push to `master`. Because of `legacy_forward_url`, prod's API is in forwarding mode, and Slack still calls Zappa directly, so nothing user-visible changes. The ping check confirms the domain, the certificate and that all parameters loaded. The API's log shows `FORWARDING MODE` on each cold start.
 3. **Submit the prod Slack app changes:** the same `/v1` URL table as dev, on `api.lunchbuddiesapp.com`. Keep the old Redirect URL listed too, because installs still complete through Zappa's OAuth flow until cutover.
 4. **When Slack approves,** traffic flows Slack → new API → Zappa. Confirm with `forwarded to legacy API` lines in `/aws/lambda/lunch-buddies-prod-api`. The website's "Add to Slack" button can now point at `https://api.lunchbuddiesapp.com/v1/install`.
 5. **Cut over on a quiet evening** (check for open polls first; the README has a scan for `CREATED` polls):
