@@ -20,7 +20,6 @@ var BotScopes = []string{
 	"commands",          // /lunch_buddies_create, /lunch_buddies_close
 	"groups:read",       // members of private channels the app was invited to
 	"im:history",        // commands sent to the bot by DM (message.im events)
-	"mpim:write",        // private group DMs for teams with in-channel notify off
 	"users:read",        // the requester's time zone for summary dates
 }
 

@@ -307,7 +307,7 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 func TestInstallAndPingAndNotFound(t *testing.T) {
 	h := newHarness(t)
 	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall})
-	want := "https://slack.com/oauth/v2/authorize?client_id=123.456&redirect_uri=https%3A%2F%2Fapi.example.com%2Fv1%2Fauth&scope=app_mentions%3Aread%2Cchannels%3Aread%2Cchat%3Awrite%2Ccommands%2Cgroups%3Aread%2Cim%3Ahistory%2Cmpim%3Awrite%2Cusers%3Aread"
+	want := "https://slack.com/oauth/v2/authorize?client_id=123.456&redirect_uri=https%3A%2F%2Fapi.example.com%2Fv1%2Fauth&scope=app_mentions%3Aread%2Cchannels%3Aread%2Cchat%3Awrite%2Ccommands%2Cgroups%3Aread%2Cim%3Ahistory%2Cusers%3Aread"
 	if r.StatusCode != 302 || r.Headers["Location"] != want {
 		t.Errorf("install Location = %q\nwant %q", r.Headers["Location"], want)
 	}
