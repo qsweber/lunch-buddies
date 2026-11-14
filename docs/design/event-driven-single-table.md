@@ -106,7 +106,7 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 
 | Entity | pk | sk | gsi1pk | gsi1sk | Other attributes |
 |--------|----|----|--------|--------|------------------|
-| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12), `name`, `created_at`, `feature_notify_in_channel` |
+| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12), `name`, `created_at` |
 | ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | – | – | `callback_id`, `created_at` |
 | Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
 | Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
@@ -187,7 +187,7 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 3. `form-groups`:
    - If `group_count` is already set, return the existing groups.
    - Otherwise group the "yes" answers, `SaveGroups`, and DM the closer "No poll responses found" if nobody answered at all.
-4. Map: `notify-group` (in-channel or private group DM; skip if `notified_at` is set).
+4. Map: `notify-group`. It announces the group in the poll's channel with a threaded "who picks the location" reply, and skips groups whose `notified_at` is set. **[rev 4]** This is the only notification mode. The legacy app could instead DM each group privately (per-team `feature_notify_in_channel`). No team on that setting had created a poll since August 2023, so the mode, the setting and the `mpim:write` scope it needed were removed.
    - **[rev 3]** A failed group doesn't stop the others.
    - After the Map, `MarkPollComplete` runs. If any group failed, the execution then ends in `Fail`, which triggers the alarm.
 
@@ -248,7 +248,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 
 ### 8.1 Prerequisites per stack
 
-- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3). **[rev 4]** The install URL is no longer a parameter: `/v1/install` builds it from the `BotScopes` list in `internal/server/auth.go`, the client ID and `<API_BASE_URL>/v1/auth`, and `/v1/auth` sends the same `redirect_uri` to `oauth.v2.access`. Scope changes are code-reviewed alongside the Slack app change, and the redirect URI can't drift from the domain. Requested scopes: `app_mentions:read`, `channels:read`, `chat:write`, `commands`, `groups:read`, `im:history`, `users:read` (`im:write`, `team:read` and `mpim:write` were dropped). Without `mpim:write`, a team that reinstalls with in-channel notify turned off couldn't open private group DMs. New installs default to in-channel, so only legacy teams with that setting are affected, and only if they reinstall.
+- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3). **[rev 4]** The install URL is no longer a parameter: `/v1/install` builds it from the `BotScopes` list in `internal/server/auth.go`, the client ID and `<API_BASE_URL>/v1/auth`, and `/v1/auth` sends the same `redirect_uri` to `oauth.v2.access`. Scope changes are code-reviewed alongside the Slack app change, and the redirect URI can't drift from the domain. Requested scopes: `app_mentions:read`, `channels:read`, `chat:write`, `commands`, `groups:read`, `im:history`, `users:read` (`im:write`, `team:read` and `mpim:write` were dropped). `mpim:write` went with the private group-DM mode (§5.3).
   - **[rev 4]** These replace rev 3's Secrets Manager secret because they're free.
   - The API Lambda reads them at cold start (`internal/params`, `ssm:GetParametersByPath` on its own prefix only) rather than having CloudFormation copy them into env vars. The deploy-time approach only picked up a changed value on a deploy that also changed the function, and a stale `auth_url` broke the first dev install.
   - Values now take effect on the next cold start, never sit in the Lambda's configuration, and can be SecureString (AWS-managed `aws/ssm` key).
@@ -277,7 +277,7 @@ Turning it off is the cutover. Turning it back on is the rollback, with no Slack
 
 The catch is polls that are still in flight at cutover. Their buttons and `close` would reach a new system that has never heard of them. So `cmd/migrate`:
 1. **Refuses to run while a legacy poll is in flight.** It scans `lunch_buddies_Poll`; any poll still `CREATED` and created within `-in-flight-window` (default 24h, the same window the old app used for "already an active poll") is listed and the command exits non-zero before writing anything. Older `CREATED` polls are abandoned; they're listed as ignored and won't be closable after cutover.
-2. **Copies teams** from `lunch_buddies_Team` (id, name, bot token, created_at, `feature_notify_in_channel`) that aren't in the target table yet. Existing teams are left alone, so re-running is safe.
+2. **Copies teams** from `lunch_buddies_Team` (id, name, bot token, created_at; the legacy `feature_notify_in_channel` is dropped, so every team announces groups in-channel) that aren't in the target table yet. Existing teams are left alone, so re-running is safe.
 
 `go run ./cmd/migrate -target lunch-buddies-prod-records` is a dry run (`-dry-run=true` is the default): it does the in-flight check and prints how many teams it would copy. Pass `-dry-run=false` to write. The check runs either way, so a dry run tells you whether now is a good time to cut over.
 

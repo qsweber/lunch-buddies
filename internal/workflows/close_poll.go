@@ -83,8 +83,8 @@ type NotifyGroupInput struct {
 	GroupSK    string `json:"group_sk"`
 }
 
-// NotifyGroup tells one group where and when to meet, either in the poll's channel or in a
-// private group DM depending on the team's setting. Logic is ported from notify_group.py.
+// NotifyGroup announces one group in the poll's channel, with a threaded follow-up naming who
+// picks the location. Ported from notify_group.py (in-channel mode, which is now the only mode).
 func (d Deps) NotifyGroup(ctx context.Context, in NotifyGroupInput) error {
 	group, err := d.Repositories.Polls.GetGroup(ctx, in.CallbackID, in.GroupSK)
 	if err != nil {
@@ -112,28 +112,10 @@ func (d Deps) NotifyGroup(ctx context.Context, in NotifyGroupInput) error {
 		return fmt.Errorf("poll %s has no choice %q", poll.CallbackID, group.ResponseKey)
 	}
 
-	if team.FeatureNotifyInChannel {
-		err = d.notifyInChannel(ctx, team, poll, *choice, group.UserIDs)
-	} else {
-		err = d.notifyPrivateGroup(ctx, team, *choice, group.UserIDs)
-	}
-	if err != nil {
+	if err := d.notifyInChannel(ctx, team, poll, *choice, group.UserIDs); err != nil {
 		return err
 	}
 	return d.Repositories.Polls.MarkGroupNotified(ctx, in.CallbackID, in.GroupSK, d.Now())
-}
-
-func (d Deps) notifyPrivateGroup(ctx context.Context, team *repositories.Team, choice polls.Choice, userIDs []string) error {
-	channel, err := d.Slack.OpenConversation(ctx, team.BotAccessToken, userIDs)
-	if err != nil {
-		return err
-	}
-	_, err = d.Slack.PostMessage(ctx, team.BotAccessToken, slack.Message{
-		Channel: channel,
-		Text:    polls.PrivateGroupMessage(choice, randomChoice(d.Rand, userIDs)),
-		AsUser:  true,
-	})
-	return err
 }
 
 func (d Deps) notifyInChannel(ctx context.Context, team *repositories.Team, poll *repositories.Poll, choice polls.Choice, userIDs []string) error {

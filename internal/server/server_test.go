@@ -296,7 +296,7 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 		t.Fatalf("resp = %+v", r)
 	}
 	team := h.store.Teams["T2"]
-	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" || !team.FeatureNotifyInChannel {
+	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" {
 		t.Errorf("team = %+v", team)
 	}
 	if got := h.slack.PostedTo("U9"); len(got) != 1 || got[0] != welcomeMessage {

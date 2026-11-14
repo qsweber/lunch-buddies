@@ -21,10 +21,9 @@ type Team struct {
 	TeamID string `dynamodbav:"team_id"`
 	// BotAccessToken is stored in plaintext, as in the Python app. Encrypting it (e.g. with
 	// KMS) is deferred; see the design doc §12.
-	BotAccessToken         string `dynamodbav:"bot_access_token"`
-	Name                   string `dynamodbav:"name"`
-	CreatedAt              int64  `dynamodbav:"created_at"`
-	FeatureNotifyInChannel bool   `dynamodbav:"feature_notify_in_channel"`
+	BotAccessToken string `dynamodbav:"bot_access_token"`
+	Name           string `dynamodbav:"name"`
+	CreatedAt      int64  `dynamodbav:"created_at"`
 }
 
 func TeamPartitionKey(teamID string) string { return teamPartitionKeyPrefix + teamID }

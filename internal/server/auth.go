@@ -46,15 +46,13 @@ func (s *ServerImpl) Auth(ctx context.Context, req Request) Response {
 	}
 
 	team := repositories.Team{
-		TeamID:                 access.TeamID,
-		BotAccessToken:         access.AccessToken,
-		Name:                   access.TeamName,
-		CreatedAt:              s.sc.Now().UnixMilli(),
-		FeatureNotifyInChannel: true,
+		TeamID:         access.TeamID,
+		BotAccessToken: access.AccessToken,
+		Name:           access.TeamName,
+		CreatedAt:      s.sc.Now().UnixMilli(),
 	}
 	if existing != nil {
 		team.CreatedAt = existing.CreatedAt
-		team.FeatureNotifyInChannel = existing.FeatureNotifyInChannel
 	}
 	if err := s.sc.Repositories.Teams.PutTeam(ctx, team); err != nil {
 		return errorResponse(500, err)

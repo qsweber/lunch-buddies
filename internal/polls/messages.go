@@ -84,13 +84,6 @@ func PollAttachments(callbackID string, choices []Choice) []map[string]any {
 	}}
 }
 
-// PrivateGroupMessage is posted to a group DM when the team doesn't notify in channel.
-func PrivateGroupMessage(choice Choice, userInCharge string) string {
-	return "Hello! This is your group for today. " +
-		fmt.Sprintf("You all should meet somewhere at `%s`. ", choice.Time) +
-		fmt.Sprintf("I am selecting <@%s> to be in charge of picking the location.", userInCharge)
-}
-
 // InChannelGroupMessage is posted in the poll channel. userIDs must already be sorted.
 func InChannelGroupMessage(choice Choice, userIDs []string) string {
 	mentions := make([]string, len(userIDs))

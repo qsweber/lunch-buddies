@@ -4,7 +4,6 @@ package slacktest
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/qsweber/lunch-buddies/internal/slack"
@@ -26,7 +25,6 @@ type Fake struct {
 	// Recorded calls.
 	Posted []slack.Message
 	Tokens []string
-	Opened [][]string
 }
 
 func New() *Fake {
@@ -44,13 +42,6 @@ func (f *Fake) PostMessage(_ context.Context, token string, msg slack.Message) (
 	f.Posted = append(f.Posted, msg)
 	f.Tokens = append(f.Tokens, token)
 	return fmt.Sprintf("ts-%d", len(f.Posted)), nil
-}
-
-func (f *Fake) OpenConversation(_ context.Context, _ string, userIDs []string) (string, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.Opened = append(f.Opened, userIDs)
-	return "G-" + strings.Join(userIDs, "-"), nil
 }
 
 func (f *Fake) ConversationMembers(_ context.Context, _ string, channelID string) ([]string, error) {

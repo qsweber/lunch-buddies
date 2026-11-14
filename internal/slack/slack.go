@@ -68,7 +68,6 @@ type OAuthAccess struct {
 // API is the Slack surface Lunch Buddies uses.
 type API interface {
 	PostMessage(ctx context.Context, token string, msg Message) (ts string, err error)
-	OpenConversation(ctx context.Context, token string, userIDs []string) (channelID string, err error)
 	ConversationMembers(ctx context.Context, token, channelID string) ([]string, error)
 	// FindChannelByName returns nil if no channel has that name.
 	FindChannelByName(ctx context.Context, token, name string) (*Channel, error)
@@ -162,16 +161,6 @@ func (c *Client) PostMessage(ctx context.Context, token string, msg Message) (st
 		return "", err
 	}
 	return out.TS, nil
-}
-
-func (c *Client) OpenConversation(ctx context.Context, token string, userIDs []string) (string, error) {
-	var out struct {
-		Channel struct {
-			ID string `json:"id"`
-		} `json:"channel"`
-	}
-	err := c.call(ctx, "conversations.open", token, map[string]string{"users": strings.Join(userIDs, ",")}, nil, &out)
-	return out.Channel.ID, err
 }
 
 func (c *Client) ConversationMembers(ctx context.Context, token, channelID string) ([]string, error) {
