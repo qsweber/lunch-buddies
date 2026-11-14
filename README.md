@@ -35,7 +35,7 @@ In short:
 
 ## Data model
 
-One table, `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one GSI (`gsi1`):
+One table, `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and no secondary index:
 
 | Entity | pk | sk |
 | ------ | -- | -- |

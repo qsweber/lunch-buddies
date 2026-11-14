@@ -29,7 +29,7 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 			statement([]string{
 				"dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem", "dynamodb:DeleteItem",
 				"dynamodb:ConditionCheckItem", "dynamodb:Query",
-			}, data.TableArn(), data.TableIndexArn()),
+			}, data.TableArn()),
 			// Slack settings are read at cold start (internal/params). SecureString values use
 			// the AWS-managed aws/ssm key, whose key policy already allows decryption via SSM.
 			statement([]string{"ssm:GetParametersByPath"}, parameterPathArn(cfg)),

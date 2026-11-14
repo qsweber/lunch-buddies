@@ -24,7 +24,7 @@ func createWorkflowResources(scope constructs.Construct, projectStackName string
 			statement([]string{
 				"dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:UpdateItem",
 				"dynamodb:ConditionCheckItem", "dynamodb:Query",
-			}, data.TableArn(), data.TableIndexArn()),
+			}, data.TableArn()),
 		),
 	})
 

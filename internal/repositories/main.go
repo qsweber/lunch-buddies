@@ -15,9 +15,6 @@ import (
 const (
 	PartitionKeyAttribute = "pk"
 	SortKeyAttribute      = "sk"
-	GSI1Name              = "gsi1"
-	GSI1PartitionKey      = "gsi1pk"
-	GSI1SortKey           = "gsi1sk"
 )
 
 // DynamoDBAPI is the subset of the DynamoDB client the repositories use, so tests can

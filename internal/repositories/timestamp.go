@@ -9,7 +9,7 @@ import (
 
 // TimestampLayout is how every timestamp is stored: ISO 8601, always UTC, always millisecond
 // precision. The fixed width matters: these strings are compared and sorted as text (the
-// gsi1 poll sort key, the ACTIVE_POLL cutoff condition), which only matches time order when
+// ACTIVE_POLL cutoff condition), which only matches time order when
 // every value has the same shape. time.RFC3339Nano trims trailing zeros, so it can't be used.
 const TimestampLayout = "2006-01-02T15:04:05.000Z"
 

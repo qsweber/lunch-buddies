@@ -268,19 +268,6 @@ func (s *Store) MarkGroupNotified(_ context.Context, id, sk string, now time.Tim
 	return nil
 }
 
-func (s *Store) ListPollsForTeam(_ context.Context, teamID string, since time.Time) ([]repositories.Poll, error) {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	var out []repositories.Poll
-	for _, p := range s.Polls {
-		if p.TeamID == teamID && !p.CreatedAt.Before(since) {
-			out = append(out, p)
-		}
-	}
-	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt.Time) })
-	return out, nil
-}
-
 func sortedKeys[V any](m map[string]V) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {

@@ -291,39 +291,18 @@ func TestBotURLVerification(t *testing.T) {
 
 func TestParseCommand(t *testing.T) {
 	cases := []struct {
-		text, typ, first, rest string
-		ok                     bool
+		text, first, rest string
+		ok                bool
 	}{
-		{"<@UBOT> create 1145, 1230", "app_mention", "create", "1145, 1230", true},
-		{"<@UBOT> Close.", "app_mention", "close", "", true},
-		{"hello there", "app_mention", "", "", false},
-		{"summary 14", "message", "summary", "14", true},
+		{"<@UBOT> create 1145, 1230", "create", "1145, 1230", true},
+		{"<@UBOT> Close.", "close", "", true},
+		{"hello there", "", "", false},
 	}
 	for _, c := range cases {
-		first, rest, ok := parseCommand(botMention{Text: c.text, MessageType: c.typ})
+		first, rest, ok := parseCommand(botMention{Text: c.text})
 		if first != c.first || rest != c.rest || ok != c.ok {
 			t.Errorf("parseCommand(%q) = %q %q %v", c.text, first, rest, ok)
 		}
-	}
-}
-
-func TestSummary(t *testing.T) {
-	h := newHarness(t)
-	openPoll(t, h, "cbA", "C1")
-	active, _ := h.store.GetActivePoll(context.Background(), "T1", "C1")
-	_ = h.store.ClosePoll(context.Background(), *active, "U1", now)
-	_, _ = h.store.SaveGroups(context.Background(), "cbA", []polls.Group{{ResponseKey: "yes_1200", UserIDs: []string{"U2", "U3"}}})
-	h.store.Polls["cbA"] = func() repositories.Poll { p := h.store.Polls["cbA"]; p.CreatedByUserID = "U1"; return p }()
-	h.slack.Users["U1"] = slack.User{TZ: "America/Los_Angeles"}
-
-	team, _ := h.store.GetTeam(context.Background(), "T1")
-	got, err := h.srv.(*ServerImpl).summary(context.Background(), team, "U1", "7 days")
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "*November 03, 2026: started by* <@U1>\nYes (12:00): <@U2> <@U3>"
-	if got != want {
-		t.Errorf("summary = %q, want %q", got, want)
 	}
 }
 
@@ -354,7 +333,7 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 func TestInstallAndPingAndNotFound(t *testing.T) {
 	h := newHarness(t)
 	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall})
-	want := "https://slack.com/oauth/v2/authorize?client_id=123.456&redirect_uri=https%3A%2F%2Fapi.example.com%2Fv1%2Fauth&scope=app_mentions%3Aread%2Cchannels%3Aread%2Cchat%3Awrite%2Ccommands%2Cgroups%3Aread%2Cim%3Ahistory%2Cusers%3Aread"
+	want := "https://slack.com/oauth/v2/authorize?client_id=123.456&redirect_uri=https%3A%2F%2Fapi.example.com%2Fv1%2Fauth&scope=app_mentions%3Aread%2Cchannels%3Aread%2Cchat%3Awrite%2Ccommands%2Cgroups%3Aread"
 	if r.StatusCode != 302 || r.Headers["Location"] != want {
 		t.Errorf("install Location = %q\nwant %q", r.Headers["Location"], want)
 	}
@@ -363,5 +342,15 @@ func TestInstallAndPingAndNotFound(t *testing.T) {
 	}
 	if r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: "/nope"}); r.StatusCode != 404 {
 		t.Errorf("unknown = %+v", r)
+	}
+}
+
+func TestBotIgnoresEventsOtherThanMentions(t *testing.T) {
+	h := newHarness(t)
+	body, _ := json.Marshal(map[string]any{"token": token, "type": "event_callback", "team_id": "T1",
+		"event": map[string]any{"type": "message", "channel": "D1", "user": "U1", "text": "create"}})
+	r := h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: string(body)})
+	if r.StatusCode != 200 || len(h.store.Polls) != 0 || len(h.slack.Posted) != 0 {
+		t.Errorf("a plain message event must be acknowledged and ignored: %d polls=%d posted=%d", r.StatusCode, len(h.store.Polls), len(h.slack.Posted))
 	}
 }

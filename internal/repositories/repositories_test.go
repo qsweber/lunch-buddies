@@ -92,7 +92,7 @@ func TestCreateRequestedPollKeysAndCondition(t *testing.T) {
 	}
 	item := db.putInput.Item
 	checks := map[string]string{
-		"pk": "POLL#cb1", "sk": "POLL", "gsi1pk": "TEAM#T1", "gsi1sk": "POLL#2026-11-14T18:03:12.123Z", "created_at": "2026-11-14T18:03:12.123Z", "state": StateRequested,
+		"pk": "POLL#cb1", "sk": "POLL", "created_at": "2026-11-14T18:03:12.123Z", "state": StateRequested,
 	}
 	for k, want := range checks {
 		if got := str(t, item, k); got != want {
