@@ -14,13 +14,11 @@ import (
 // BotScopes are the OAuth scopes requested on install. They must match the scopes configured
 // in the Slack app (OAuth & Permissions → Bot Token Scopes); Slack reviews any change.
 var BotScopes = []string{
-	"app_mentions:read", // @Lunch Buddies create / close / summary / help
+	"app_mentions:read", // @Lunch Buddies create / close / help
 	"channels:read",     // members of public channels to poll; finding #lunch_buddies
 	"chat:write",        // poll DMs, group announcements, replies
 	"commands",          // /lunch_buddies_create, /lunch_buddies_close
 	"groups:read",       // members of private channels the app was invited to
-	"im:history",        // commands sent to the bot by DM (message.im events)
-	"users:read",        // the requester's time zone for summary dates
 }
 
 const welcomeMessage = "Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`."

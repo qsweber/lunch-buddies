@@ -15,7 +15,6 @@ type Fake struct {
 	// Configuration.
 	Members  map[string][]string      // channel id -> member ids
 	Channels map[string]slack.Channel // name -> channel
-	Users    map[string]slack.User
 	OAuth    *slack.OAuthAccess
 	// OAuthRedirectURI records the redirect_uri passed to OAuthV2Access.
 	OAuthRedirectURI string
@@ -28,7 +27,7 @@ type Fake struct {
 }
 
 func New() *Fake {
-	return &Fake{Members: map[string][]string{}, Channels: map[string]slack.Channel{}, Users: map[string]slack.User{}}
+	return &Fake{Members: map[string][]string{}, Channels: map[string]slack.Channel{}}
 }
 
 func (f *Fake) PostMessage(_ context.Context, token string, msg slack.Message) (string, error) {
@@ -62,13 +61,6 @@ func (f *Fake) FindChannelByName(_ context.Context, _ string, name string) (*sla
 		return nil, nil
 	}
 	return &c, nil
-}
-
-func (f *Fake) UserInfo(_ context.Context, _ string, userID string) (*slack.User, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	u := f.Users[userID]
-	return &u, nil
 }
 
 func (f *Fake) OAuthV2Access(_ context.Context, _, _, _ string, redirectURI string) (*slack.OAuthAccess, error) {

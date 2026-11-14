@@ -52,12 +52,6 @@ type Channel struct {
 	Name string
 }
 
-type User struct {
-	Name  string
-	Email string
-	TZ    string
-}
-
 type OAuthAccess struct {
 	AccessToken string
 	TeamID      string
@@ -78,7 +72,6 @@ type API interface {
 	ConversationMembers(ctx context.Context, token, channelID string) ([]string, error)
 	// FindChannelByName returns nil if no channel has that name.
 	FindChannelByName(ctx context.Context, token, name string) (*Channel, error)
-	UserInfo(ctx context.Context, token, userID string) (*User, error)
 	// OAuthV2Access exchanges an install code for a bot token. redirectURI must be the one
 	// used on the authorize URL.
 	OAuthV2Access(ctx context.Context, clientID, clientSecret, code, redirectURI string) (*OAuthAccess, error)
@@ -222,22 +215,6 @@ func (c *Client) FindChannelByName(ctx context.Context, token, name string) (*Ch
 			return nil, nil
 		}
 	}
-}
-
-func (c *Client) UserInfo(ctx context.Context, token, userID string) (*User, error) {
-	var out struct {
-		User struct {
-			TZ      string `json:"tz"`
-			Profile struct {
-				RealName string `json:"real_name"`
-				Email    string `json:"email"`
-			} `json:"profile"`
-		} `json:"user"`
-	}
-	if err := c.call(ctx, "users.info", token, nil, url.Values{"user": {userID}}, &out); err != nil {
-		return nil, err
-	}
-	return &User{Name: out.User.Profile.RealName, Email: out.User.Profile.Email, TZ: out.User.TZ}, nil
 }
 
 func (c *Client) OAuthV2Access(ctx context.Context, clientID, clientSecret, code, redirectURI string) (*OAuthAccess, error) {

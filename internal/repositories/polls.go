@@ -47,15 +47,10 @@ func ResponseSortKey(userID string) string      { return responseSKPrefix + user
 func GroupSortKey(responseKey string, index int) string {
 	return fmt.Sprintf("%s%s#%03d", groupSKPrefix, responseKey, index)
 }
-func pollGSI1SortKey(createdAt Timestamp) string {
-	return pollPartitionKeyPrefix + createdAt.String()
-}
 
 type Poll struct {
 	PK              string         `dynamodbav:"pk"`
 	SK              string         `dynamodbav:"sk"`
-	GSI1PK          string         `dynamodbav:"gsi1pk"`
-	GSI1SK          string         `dynamodbav:"gsi1sk"`
 	CallbackID      string         `dynamodbav:"callback_id"`
 	TeamID          string         `dynamodbav:"team_id"`
 	ChannelID       string         `dynamodbav:"channel_id,omitempty"`
@@ -75,8 +70,6 @@ type Poll struct {
 func (p Poll) WithKeys() Poll {
 	p.PK = PollPartitionKey(p.CallbackID)
 	p.SK = PollSortKey
-	p.GSI1PK = TeamPartitionKey(p.TeamID)
-	p.GSI1SK = pollGSI1SortKey(p.CreatedAt)
 	return p
 }
 
@@ -167,8 +160,6 @@ type PollsRepository interface {
 	GetGroup(ctx context.Context, callbackID, groupSK string) (*Group, error)
 	// MarkGroupNotified records that the group message was delivered.
 	MarkGroupNotified(ctx context.Context, callbackID, groupSK string, now time.Time) error
-	// ListPollsForTeam returns the team's polls created at or after since, oldest first.
-	ListPollsForTeam(ctx context.Context, teamID string, since time.Time) ([]Poll, error)
 }
 
 type PollsRepositoryImpl struct {
@@ -529,27 +520,4 @@ func (r *PollsRepositoryImpl) MarkGroupNotified(ctx context.Context, callbackID,
 		},
 	})
 	return err
-}
-
-func (r *PollsRepositoryImpl) ListPollsForTeam(ctx context.Context, teamID string, since time.Time) ([]Poll, error) {
-	var result []Poll
-	err := queryAll(ctx, r.client, &dynamodb.QueryInput{
-		TableName:              r.table(),
-		IndexName:              aws.String(GSI1Name),
-		KeyConditionExpression: aws.String("gsi1pk = :pk AND gsi1sk BETWEEN :from AND :to"),
-		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":pk":   s(TeamPartitionKey(teamID)),
-			":from": s(pollGSI1SortKey(At(since))),
-			// '~' sorts after every digit, so this bounds all POLL#<timestamp> keys.
-			":to": s(pollPartitionKeyPrefix + "~"),
-		},
-	}, func(item map[string]types.AttributeValue) error {
-		var p Poll
-		if err := attributevalue.UnmarshalMap(item, &p); err != nil {
-			return err
-		}
-		result = append(result, p)
-		return nil
-	})
-	return result, err
 }

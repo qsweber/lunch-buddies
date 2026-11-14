@@ -100,18 +100,18 @@ Infrastructure is CDK in Go under `cdk/`, written in the template's L1 `Cfn*` st
 
 ## 4. Data model (single table)
 
-The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one GSI, `gsi1` (`gsi1pk`/`gsi1sk`). Entities are distinguished by key shape. **[rev 4]** Timestamps are ISO 8601 strings, always UTC with millisecond precision, e.g. `2026-11-14T18:03:12.123Z` (`repositories.Timestamp`, layout `2006-01-02T15:04:05.000Z`). They were Unix milliseconds at first; strings make the table readable in the console. The fixed width is deliberate. Timestamps are compared and sorted as text (the `gsi1` poll sort key, the `ACTIVE_POLL` cutoff condition), which only matches time order when every value has the same shape, so Go's `RFC3339Nano`, which drops trailing zeros, can't be used. Optional timestamps (`closed_at`, `notified_at`, `updated_at`, `uninstalled_at`) are omitted when unset. `migrate` converts the legacy epoch-seconds `created_at` to this format. Stream view is `NEW_AND_OLD_IMAGES`. PITR is on, the table is retained on stack delete, and prod has deletion protection.
+The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and **[rev 4]** no secondary index (the `gsi1` that listed a team's polls for `summary` was removed with that command). Entities are distinguished by key shape. **[rev 4]** Timestamps are ISO 8601 strings, always UTC with millisecond precision, e.g. `2026-11-14T18:03:12.123Z` (`repositories.Timestamp`, layout `2006-01-02T15:04:05.000Z`). They were Unix milliseconds at first; strings make the table readable in the console. The fixed width is deliberate. Timestamps are compared and sorted as text (the `ACTIVE_POLL` cutoff condition), which only matches time order when every value has the same shape, so Go's `RFC3339Nano`, which drops trailing zeros, can't be used. Optional timestamps (`closed_at`, `notified_at`, `updated_at`, `uninstalled_at`) are omitted when unset. `migrate` converts the legacy epoch-seconds `created_at` to this format. Stream view is `NEW_AND_OLD_IMAGES`. PITR is on, the table is retained on stack delete, and prod has deletion protection.
 
 ### 4.1 Items
 
-| Entity | pk | sk | gsi1pk | gsi1sk | Other attributes |
-|--------|----|----|--------|--------|------------------|
-| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12; removed on uninstall), `name`, `created_at`, **[rev 4]** `updated_at`, `installed_by_user_id`, `bot_user_id`, `scopes`, `enterprise_id`, `is_enterprise_install`, `uninstalled_at` |
-| ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | – | – | `callback_id`, `created_at` |
-| Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
-| Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
-| PollResponse | `POLL#<callback_id>` | `RESPONSE#<user_id>` | – | – | `response`, `created_at` |
-| Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` | – | – | `user_ids`, `response_key`, `notified_at` |
+| Entity | pk | sk | Other attributes |
+|--------|----|----|------------------|
+| Team | `TEAM#<team_id>` | `TEAM` | `bot_access_token` (plaintext, see §12; removed on uninstall), `name`, `created_at`, **[rev 4]** `updated_at`, `installed_by_user_id`, `bot_user_id`, `scopes`, `enterprise_id`, `is_enterprise_install`, `uninstalled_at` |
+| ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | `callback_id`, `created_at` |
+| Poll | `POLL#<callback_id>` | `POLL` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
+| Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | `sent_at`, `message_ts` |
+| PollResponse | `POLL#<callback_id>` | `RESPONSE#<user_id>` | `response`, `created_at` |
+| Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` | `user_ids`, `response_key`, `notified_at` |
 
 **Why the ActivePoll pointer is its own row:** DynamoDB conditions only apply to the item being written. "At most one open poll per channel" is a rule across items, and the only way to enforce it atomically is a row keyed by the rule itself. The pointer also makes "the open poll in this channel" a single strongly consistent `GetItem` for close.
 
@@ -126,9 +126,8 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 | A3 | Active poll for channel | `GetItem TEAM#t / ACTIVE_POLL#ch` |
 | A4 | All active polls for team | `Query TEAM#t, begins_with(sk, "ACTIVE_POLL#")` |
 | A5 | Poll + children | `Query POLL#c` (strongly consistent) |
-| A6 | Team's polls since date (summary) | `Query gsi1 TEAM#t, gsi1sk BETWEEN …` |
 
-**[rev 4]** The "all teams" GSI partition (`gsi1pk = TEAMS`) existed only for invoicing and was removed. GSI1 now indexes polls only.
+**[rev 4]** There used to be an A6, "a team's polls since a date", served by `gsi1`, for the `summary` command. Its "all teams" partition went with invoicing, and the rest went with `summary`.
 
 ### 4.3 Poll state machine
 
@@ -197,7 +196,7 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 |----------|-------|
 | `/bot` uninstall events | **[rev 4]** `app_uninstalled`, or `tokens_revoked` that includes the bot token, sets `uninstalled_at` and deletes the stored token. Uninstalled teams get 403 on commands, and workflow tasks refuse to act for them. A reinstall replaces the whole record (keeping `created_at`), which clears the uninstall. Needs both events added under the Slack app's Event Subscriptions → bot events; no scopes. |
 | `/auth` | Exchanges the code, upserts the team, sends the welcome DM. **[rev 4]** Also records what `oauth.v2.access` returns about the install: who installed it (to contact them in Slack), the bot user ID, the granted scopes (to know which teams must reinstall when scopes change), and Enterprise Grid details. Legacy teams copied by `migrate` lack these until they reinstall. Logs only team id/name (P9). **[rev 4]** No longer looks up the installer or creates/updates a Stripe customer, and the welcome DM no longer links to pricing. |
-| `summary` | **[rev 3]** Skips polls with no groups instead of erroring (Python raised `groups not found`). |
+| `summary` | **[rev 4] Removed.** It was mainly useful by DM, and dropping DM support (`im:history`) removed that. Its time-zone lookup was the only use of `users:read`, and its poll listing the only use of `gsi1`, so both went too. |
 | Invoicing | **[rev 4] Removed** along with Stripe. The Python job always ran with `dry_run=True`, so it never billed anyone. The legacy `stripe_customer_id`, `invoicing_enabled` and `stripe_invoice_id` columns are not migrated. |
 | `/error` | Dropped. |
 | `scripts/*` | **[rev 3]** Dropped, not ported. `close_all_polls_for_team.py` was a one-off with the team name hard-coded. `generate_app_store_content.py` only printed `AppExplanation` (now `polls.AppExplanation`). `save_to_sql.py` and `analysis.py` were ad-hoc analysis of the old tables; they're in git history if needed. |
@@ -249,7 +248,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 
 ### 8.1 Prerequisites per stack
 
-- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3). **[rev 4]** The install URL is no longer a parameter: `/v1/install` builds it from the `BotScopes` list in `internal/server/auth.go`, the client ID and `<API_BASE_URL>/v1/auth`, and `/v1/auth` sends the same `redirect_uri` to `oauth.v2.access`. Scope changes are code-reviewed alongside the Slack app change, and the redirect URI can't drift from the domain. Requested scopes: `app_mentions:read`, `channels:read`, `chat:write`, `commands`, `groups:read`, `im:history`, `users:read` (`im:write`, `team:read` and `mpim:write` were dropped). `mpim:write` went with the private group-DM mode (§5.3).
+- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3). **[rev 4]** The install URL is no longer a parameter: `/v1/install` builds it from the `BotScopes` list in `internal/server/auth.go`, the client ID and `<API_BASE_URL>/v1/auth`, and `/v1/auth` sends the same `redirect_uri` to `oauth.v2.access`. Scope changes are code-reviewed alongside the Slack app change, and the redirect URI can't drift from the domain. Requested scopes: `app_mentions:read`, `channels:read`, `chat:write`, `commands`, `groups:read` (`im:write`, `team:read`, `mpim:write`, `im:history` and `users:read` were dropped). Commands arrive only as `@`-mentions; other message events are ignored. `mpim:write` went with the private group-DM mode (§5.3).
   - **[rev 4]** These replace rev 3's Secrets Manager secret because they're free.
   - The API Lambda reads them at cold start (`internal/params`, `ssm:GetParametersByPath` on its own prefix only) rather than having CloudFormation copy them into env vars. The deploy-time approach only picked up a changed value on a deploy that also changed the function, and a stale `auth_url` broke the first dev install.
   - Values now take effect on the next cold start, never sit in the Lambda's configuration, and can be SecureString (AWS-managed `aws/ssm` key).

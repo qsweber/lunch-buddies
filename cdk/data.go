@@ -11,8 +11,7 @@ type DataResources struct {
 	Table awsdynamodb.CfnTable
 }
 
-func (d *DataResources) TableArn() string      { return *d.Table.AttrArn() }
-func (d *DataResources) TableIndexArn() string { return *d.Table.AttrArn() + "/index/*" }
+func (d *DataResources) TableArn() string { return *d.Table.AttrArn() }
 
 // createDataResources creates the single records table.
 func createDataResources(scope constructs.Construct, projectStackName string, cfg EnvConfig) *DataResources {
@@ -30,14 +29,7 @@ func createDataResources(scope constructs.Construct, projectStackName string, cf
 		TableName:            jsii.String(projectStackName + "-records"),
 		BillingMode:          jsii.String("PAY_PER_REQUEST"),
 		KeySchema:            keySchema("pk", "sk"),
-		AttributeDefinitions: []interface{}{str("pk"), str("sk"), str("gsi1pk"), str("gsi1sk")},
-		GlobalSecondaryIndexes: []interface{}{
-			&awsdynamodb.CfnTable_GlobalSecondaryIndexProperty{
-				IndexName:  jsii.String("gsi1"),
-				KeySchema:  keySchema("gsi1pk", "gsi1sk"),
-				Projection: &awsdynamodb.CfnTable_ProjectionProperty{ProjectionType: jsii.String("ALL")},
-			},
-		},
+		AttributeDefinitions: []interface{}{str("pk"), str("sk")},
 		// NEW_AND_OLD_IMAGES (not the template's NEW_IMAGE): the close transition is detected
 		// from OldImage.state = OPEN.
 		StreamSpecification: &awsdynamodb.CfnTable_StreamSpecificationProperty{
