@@ -197,7 +197,7 @@ func (s *ServerImpl) summary(ctx context.Context, team *repositories.Team, userI
 		}
 		sort.Slice(collection.Groups, func(i, j int) bool { return collection.Groups[i].SK < collection.Groups[j].SK })
 		lines := []string{fmt.Sprintf("*%s: started by* <@%s>",
-			time.UnixMilli(p.CreatedAt).In(loc).Format("January 02, 2006"), p.CreatedByUserID)}
+			p.CreatedAt.In(loc).Format("January 02, 2006"), p.CreatedByUserID)}
 		for _, g := range collection.Groups {
 			label := g.ResponseKey
 			if c := polls.FindChoice(p.Choices, g.ResponseKey); c != nil {

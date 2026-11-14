@@ -109,7 +109,7 @@ func TestRejectsBadTokenAndUnknownTeam(t *testing.T) {
 func openPoll(t *testing.T, h *harness, id, channel string) {
 	t.Helper()
 	ctx := context.Background()
-	if err := h.store.CreateRequestedPoll(ctx, repositories.Poll{CallbackID: id, TeamID: "T1", CreatedAt: now.UnixMilli(), Choices: polls.DefaultChoices(), GroupSize: 6}); err != nil {
+	if err := h.store.CreateRequestedPoll(ctx, repositories.Poll{CallbackID: id, TeamID: "T1", CreatedAt: repositories.At(now), Choices: polls.DefaultChoices(), GroupSize: 6}); err != nil {
 		t.Fatal(err)
 	}
 	if err := h.store.OpenPoll(ctx, h.store.Polls[id], channel, now); err != nil {
@@ -250,7 +250,7 @@ func TestUninstallAndReinstall(t *testing.T) {
 			t.Fatalf("%v: status %d %s", event["type"], r.StatusCode, r.Body)
 		}
 		team := h.store.Teams["T1"]
-		if team.Installed() || team.BotAccessToken != "" || team.UninstalledAt != now.UnixMilli() {
+		if team.Installed() || team.BotAccessToken != "" || team.UninstalledAt == nil || !team.UninstalledAt.Equal(now) {
 			t.Errorf("%v: team = %+v", event["type"], team)
 		}
 
@@ -264,7 +264,7 @@ func TestUninstallAndReinstall(t *testing.T) {
 		h.slack.OAuth = &slack.OAuthAccess{AccessToken: "xoxb-again", TeamID: "T1", TeamName: "Acme", UserID: "U1"}
 		h.srv.Handle(ctx, Request{Method: "GET", Path: PathAuth, QueryParams: map[string]string{"code": "c"}})
 		team = h.store.Teams["T1"]
-		if !team.Installed() || team.UninstalledAt != 0 || team.CreatedAt != created {
+		if !team.Installed() || team.UninstalledAt != nil || team.CreatedAt != created {
 			t.Errorf("%v: after reinstall team = %+v", event["type"], team)
 		}
 	}
@@ -343,7 +343,7 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 	}
 	team := h.store.Teams["T2"]
 	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" || team.InstalledByUserID != "U9" || team.BotUserID != "UBOT" ||
-		len(team.Scopes) != 2 || team.EnterpriseID != "E1" || team.CreatedAt != now.UnixMilli() || team.UpdatedAt != now.UnixMilli() || !team.Installed() {
+		len(team.Scopes) != 2 || team.EnterpriseID != "E1" || !team.CreatedAt.Equal(now) || team.UpdatedAt == nil || !team.UpdatedAt.Equal(now) || !team.Installed() {
 		t.Errorf("team = %+v", team)
 	}
 	if got := h.slack.PostedTo("U9"); len(got) != 1 || got[0] != welcomeMessage {

@@ -47,8 +47,8 @@ func ResponseSortKey(userID string) string      { return responseSKPrefix + user
 func GroupSortKey(responseKey string, index int) string {
 	return fmt.Sprintf("%s%s#%03d", groupSKPrefix, responseKey, index)
 }
-func pollGSI1SortKey(createdAt int64) string {
-	return fmt.Sprintf("%s%013d", pollPartitionKeyPrefix, createdAt)
+func pollGSI1SortKey(createdAt Timestamp) string {
+	return pollPartitionKeyPrefix + createdAt.String()
 }
 
 type Poll struct {
@@ -60,14 +60,14 @@ type Poll struct {
 	TeamID          string         `dynamodbav:"team_id"`
 	ChannelID       string         `dynamodbav:"channel_id,omitempty"`
 	CreatedByUserID string         `dynamodbav:"created_by_user_id"`
-	CreatedAt       int64          `dynamodbav:"created_at"`
+	CreatedAt       Timestamp      `dynamodbav:"created_at"`
 	State           string         `dynamodbav:"state"`
 	Choices         []polls.Choice `dynamodbav:"choices"`
 	GroupSize       int            `dynamodbav:"group_size"`
 	RequestedText   string         `dynamodbav:"requested_text,omitempty"`
 	RejectionReason string         `dynamodbav:"rejection_reason,omitempty"`
 	ClosedByUserID  string         `dynamodbav:"closed_by_user_id,omitempty"`
-	ClosedAt        int64          `dynamodbav:"closed_at,omitempty"`
+	ClosedAt        *Timestamp     `dynamodbav:"closed_at,omitempty"`
 	GroupCount      *int           `dynamodbav:"group_count,omitempty"`
 }
 
@@ -82,12 +82,12 @@ func (p Poll) WithKeys() Poll {
 
 // ActivePoll is the per-channel pointer that enforces "one open poll per channel".
 type ActivePoll struct {
-	PK         string `dynamodbav:"pk"`
-	SK         string `dynamodbav:"sk"`
-	TeamID     string `dynamodbav:"team_id"`
-	ChannelID  string `dynamodbav:"channel_id"`
-	CallbackID string `dynamodbav:"callback_id"`
-	CreatedAt  int64  `dynamodbav:"created_at"`
+	PK         string    `dynamodbav:"pk"`
+	SK         string    `dynamodbav:"sk"`
+	TeamID     string    `dynamodbav:"team_id"`
+	ChannelID  string    `dynamodbav:"channel_id"`
+	CallbackID string    `dynamodbav:"callback_id"`
+	CreatedAt  Timestamp `dynamodbav:"created_at"`
 }
 
 func (a ActivePoll) WithKeys() ActivePoll {
@@ -97,20 +97,20 @@ func (a ActivePoll) WithKeys() ActivePoll {
 }
 
 type Recipient struct {
-	PK        string `dynamodbav:"pk"`
-	SK        string `dynamodbav:"sk"`
-	UserID    string `dynamodbav:"user_id"`
-	SentAt    int64  `dynamodbav:"sent_at"`
-	MessageTS string `dynamodbav:"message_ts,omitempty"`
+	PK        string    `dynamodbav:"pk"`
+	SK        string    `dynamodbav:"sk"`
+	UserID    string    `dynamodbav:"user_id"`
+	SentAt    Timestamp `dynamodbav:"sent_at"`
+	MessageTS string    `dynamodbav:"message_ts,omitempty"`
 }
 
 type PollResponse struct {
-	PK         string `dynamodbav:"pk"`
-	SK         string `dynamodbav:"sk"`
-	CallbackID string `dynamodbav:"callback_id"`
-	UserID     string `dynamodbav:"user_id"`
-	Response   string `dynamodbav:"response"`
-	CreatedAt  int64  `dynamodbav:"created_at"`
+	PK         string    `dynamodbav:"pk"`
+	SK         string    `dynamodbav:"sk"`
+	CallbackID string    `dynamodbav:"callback_id"`
+	UserID     string    `dynamodbav:"user_id"`
+	Response   string    `dynamodbav:"response"`
+	CreatedAt  Timestamp `dynamodbav:"created_at"`
 }
 
 func (r PollResponse) WithKeys() PollResponse {
@@ -120,12 +120,12 @@ func (r PollResponse) WithKeys() PollResponse {
 }
 
 type Group struct {
-	PK          string   `dynamodbav:"pk"`
-	SK          string   `dynamodbav:"sk"`
-	CallbackID  string   `dynamodbav:"callback_id"`
-	ResponseKey string   `dynamodbav:"response_key"`
-	UserIDs     []string `dynamodbav:"user_ids"`
-	NotifiedAt  int64    `dynamodbav:"notified_at,omitempty"`
+	PK          string     `dynamodbav:"pk"`
+	SK          string     `dynamodbav:"sk"`
+	CallbackID  string     `dynamodbav:"callback_id"`
+	ResponseKey string     `dynamodbav:"response_key"`
+	UserIDs     []string   `dynamodbav:"user_ids"`
+	NotifiedAt  *Timestamp `dynamodbav:"notified_at,omitempty"`
 }
 
 // PollCollection is everything stored under one poll's partition.
@@ -242,7 +242,7 @@ func (r *PollsRepositoryImpl) OpenPoll(ctx context.Context, poll Poll, channelID
 				Item:                pointer,
 				ConditionExpression: aws.String("attribute_not_exists(pk) OR created_at < :cutoff"),
 				ExpressionAttributeValues: map[string]types.AttributeValue{
-					":cutoff": n(now.Add(-ActivePollTTL).UnixMilli()),
+					":cutoff": ts(now.Add(-ActivePollTTL)),
 				},
 			}},
 		},
@@ -327,7 +327,7 @@ func (r *PollsRepositoryImpl) ClosePoll(ctx context.Context, active ActivePoll, 
 					":closed": s(StateClosed),
 					":open":   s(StateOpen),
 					":user":   s(closedByUserID),
-					":now":    n(now.UnixMilli()),
+					":now":    ts(now),
 				},
 			}},
 			{Delete: &types.Delete{
@@ -440,7 +440,7 @@ func (r *PollsRepositoryImpl) MarkRecipientSent(ctx context.Context, callbackID,
 		PK:        PollPartitionKey(callbackID),
 		SK:        RecipientSortKey(userID),
 		UserID:    userID,
-		SentAt:    now.UnixMilli(),
+		SentAt:    At(now),
 		MessageTS: messageTS,
 	})
 	if err != nil {
@@ -525,7 +525,7 @@ func (r *PollsRepositoryImpl) MarkGroupNotified(ctx context.Context, callbackID,
 		UpdateExpression:    aws.String("SET notified_at = :now"),
 		ConditionExpression: aws.String("attribute_exists(pk)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":now": n(now.UnixMilli()),
+			":now": ts(now),
 		},
 	})
 	return err
@@ -539,8 +539,9 @@ func (r *PollsRepositoryImpl) ListPollsForTeam(ctx context.Context, teamID strin
 		KeyConditionExpression: aws.String("gsi1pk = :pk AND gsi1sk BETWEEN :from AND :to"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
 			":pk":   s(TeamPartitionKey(teamID)),
-			":from": s(pollGSI1SortKey(max(0, since.UnixMilli()))),
-			":to":   s(pollGSI1SortKey(9999999999999)),
+			":from": s(pollGSI1SortKey(At(since))),
+			// '~' sorts after every digit, so this bounds all POLL#<timestamp> keys.
+			":to": s(pollPartitionKeyPrefix + "~"),
 		},
 	}, func(item map[string]types.AttributeValue) error {
 		var p Poll

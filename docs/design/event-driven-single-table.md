@@ -100,7 +100,7 @@ Infrastructure is CDK in Go under `cdk/`, written in the template's L1 `Cfn*` st
 
 ## 4. Data model (single table)
 
-The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one GSI, `gsi1` (`gsi1pk`/`gsi1sk`). Entities are distinguished by key shape. Timestamps are Unix milliseconds. Stream view is `NEW_AND_OLD_IMAGES`. PITR is on, the table is retained on stack delete, and prod has deletion protection.
+The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one GSI, `gsi1` (`gsi1pk`/`gsi1sk`). Entities are distinguished by key shape. **[rev 4]** Timestamps are ISO 8601 strings, always UTC with millisecond precision, e.g. `2026-11-14T18:03:12.123Z` (`repositories.Timestamp`, layout `2006-01-02T15:04:05.000Z`). They were Unix milliseconds at first; strings make the table readable in the console. The fixed width is deliberate. Timestamps are compared and sorted as text (the `gsi1` poll sort key, the `ACTIVE_POLL` cutoff condition), which only matches time order when every value has the same shape, so Go's `RFC3339Nano`, which drops trailing zeros, can't be used. Optional timestamps (`closed_at`, `notified_at`, `updated_at`, `uninstalled_at`) are omitted when unset. `migrate` converts the legacy epoch-seconds `created_at` to this format. Stream view is `NEW_AND_OLD_IMAGES`. PITR is on, the table is retained on stack delete, and prod has deletion protection.
 
 ### 4.1 Items
 
@@ -108,7 +108,7 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 |--------|----|----|--------|--------|------------------|
 | Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12; removed on uninstall), `name`, `created_at`, **[rev 4]** `updated_at`, `installed_by_user_id`, `bot_user_id`, `scopes`, `enterprise_id`, `is_enterprise_install`, `uninstalled_at` |
 | ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | – | – | `callback_id`, `created_at` |
-| Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
+| Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
 | Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
 | PollResponse | `POLL#<callback_id>` | `RESPONSE#<user_id>` | – | – | `response`, `created_at` |
 | Group | `POLL#<callback_id>` | `GROUP#<response_key>#<nnn>` | – | – | `user_ids`, `response_key`, `notified_at` |

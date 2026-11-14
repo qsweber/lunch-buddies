@@ -44,7 +44,7 @@ func (h *harness) request(t *testing.T, id, channel string) {
 	t.Helper()
 	err := h.store.CreateRequestedPoll(context.Background(), repositories.Poll{
 		CallbackID: id, TeamID: "T1", ChannelID: channel, CreatedByUserID: "U1",
-		CreatedAt: now.UnixMilli(), Choices: polls.DefaultChoices(), GroupSize: 2,
+		CreatedAt: repositories.At(now), Choices: polls.DefaultChoices(), GroupSize: 2,
 	})
 	if err != nil {
 		t.Fatal(err)

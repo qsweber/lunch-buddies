@@ -46,7 +46,7 @@ func Team(r Row) (repositories.Team, error) {
 		TeamID:         r["team_id"],
 		BotAccessToken: r["bot_access_token"],
 		Name:           r["name"],
-		CreatedAt:      created,
+		CreatedAt:      repositories.At(time.UnixMilli(created)),
 	}, nil
 }
 

@@ -66,8 +66,8 @@ func (s *Store) MarkTeamUninstalled(_ context.Context, teamID string, now time.T
 	if !ok {
 		return nil
 	}
-	t.UninstalledAt = now.UnixMilli()
-	t.UpdatedAt = now.UnixMilli()
+	t.UninstalledAt = repositories.AtPtr(now)
+	t.UpdatedAt = repositories.AtPtr(now)
 	t.BotAccessToken = ""
 	s.Teams[teamID] = t
 	return nil
@@ -101,7 +101,7 @@ func (s *Store) OpenPoll(_ context.Context, poll repositories.Poll, channelID st
 	if !ok || p.State != repositories.StateRequested {
 		return repositories.ErrInvalidTransition
 	}
-	if a, ok := s.Active[activeKey(p.TeamID, channelID)]; ok && a.CreatedAt >= now.Add(-repositories.ActivePollTTL).UnixMilli() {
+	if a, ok := s.Active[activeKey(p.TeamID, channelID)]; ok && !a.CreatedAt.Before(now.Add(-repositories.ActivePollTTL)) {
 		return repositories.ErrActivePollExists
 	}
 	p.State = repositories.StateOpen
@@ -159,7 +159,7 @@ func (s *Store) ClosePoll(_ context.Context, active repositories.ActivePoll, use
 	}
 	p.State = repositories.StateClosed
 	p.ClosedByUserID = userID
-	p.ClosedAt = now.UnixMilli()
+	p.ClosedAt = repositories.AtPtr(now)
 	s.Polls[p.CallbackID] = p
 	delete(s.Active, activeKey(active.TeamID, active.ChannelID))
 	return nil
@@ -216,7 +216,7 @@ func (s *Store) MarkRecipientSent(_ context.Context, id, userID, ts string, now 
 	}
 	s.Recipients[id][userID] = repositories.Recipient{
 		PK: repositories.PollPartitionKey(id), SK: repositories.RecipientSortKey(userID),
-		UserID: userID, SentAt: now.UnixMilli(), MessageTS: ts,
+		UserID: userID, SentAt: repositories.At(now), MessageTS: ts,
 	}
 	return nil
 }
@@ -263,7 +263,7 @@ func (s *Store) MarkGroupNotified(_ context.Context, id, sk string, now time.Tim
 	if !ok {
 		return repositories.ErrInvalidTransition
 	}
-	g.NotifiedAt = now.UnixMilli()
+	g.NotifiedAt = repositories.AtPtr(now)
 	s.Groups[id][sk] = g
 	return nil
 }
@@ -273,11 +273,11 @@ func (s *Store) ListPollsForTeam(_ context.Context, teamID string, since time.Ti
 	defer s.mu.Unlock()
 	var out []repositories.Poll
 	for _, p := range s.Polls {
-		if p.TeamID == teamID && p.CreatedAt >= since.UnixMilli() {
+		if p.TeamID == teamID && !p.CreatedAt.Before(since) {
 			out = append(out, p)
 		}
 	}
-	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt < out[j].CreatedAt })
+	sort.Slice(out, func(i, j int) bool { return out[i].CreatedAt.Before(out[j].CreatedAt.Time) })
 	return out, nil
 }
 
