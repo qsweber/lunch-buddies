@@ -55,7 +55,10 @@ const (
 )
 
 func (s *ServerImpl) Handle(ctx context.Context, req Request) Response {
-	if s.sc.Forwarder != nil {
+	// Slack's URL-verification challenge is answered here even in forwarding mode: the legacy
+	// app can't answer it (its /bot handler fails on the missing team_id), and it involves no
+	// app data, so there's nothing to keep consistent with Zappa.
+	if s.sc.Forwarder != nil && !isURLVerification(req) {
 		if resp, ok := s.sc.Forwarder.forward(ctx, req); ok {
 			return resp
 		}

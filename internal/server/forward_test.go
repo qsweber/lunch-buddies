@@ -65,3 +65,33 @@ func TestForwardingModeReportsLegacyOutageAs502(t *testing.T) {
 		t.Errorf("resp = %+v", resp)
 	}
 }
+
+func TestForwardingModeAnswersURLVerificationLocally(t *testing.T) {
+	calls := 0
+	legacy := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		w.WriteHeader(500)
+	}))
+	defer legacy.Close()
+
+	h := newHarness(t)
+	h.srv.(*ServerImpl).sc.Forwarder = NewForwarder(legacy.URL)
+
+	body := `{"token":"` + token + `","type":"url_verification","challenge":"abc123"}`
+	resp := h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: body})
+	if resp.StatusCode != 200 || resp.Body != `{"challenge":"abc123"}` || calls != 0 {
+		t.Errorf("resp = %+v, legacy calls = %d", resp, calls)
+	}
+
+	// The challenge still has to pass request verification.
+	bad := `{"token":"wrong","type":"url_verification","challenge":"abc123"}`
+	if resp := h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: bad}); resp.StatusCode != 401 {
+		t.Errorf("unverified challenge = %+v", resp)
+	}
+
+	// Every other bot event is still forwarded.
+	h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: botEvent("<@UBOT> create", "C1")})
+	if calls != 1 {
+		t.Errorf("event_callback should be forwarded; legacy calls = %d", calls)
+	}
+}

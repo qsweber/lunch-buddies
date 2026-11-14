@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net/http"
@@ -101,4 +102,16 @@ func (f *Forwarder) forward(ctx context.Context, req Request) (Response, bool) {
 	}
 	slog.Info("forwarded to legacy API", "path", req.Path, "legacy_path", legacyPath, "status", resp.StatusCode)
 	return Response{StatusCode: resp.StatusCode, Body: string(body), Headers: headers}, true
+}
+
+// isURLVerification reports whether req is Slack's Events API URL-verification challenge,
+// which Bot answers itself after verifying the request.
+func isURLVerification(req Request) bool {
+	if req.Method != "POST" || req.Path != PathBot {
+		return false
+	}
+	var body struct {
+		Type string `json:"type"`
+	}
+	return json.Unmarshal([]byte(req.Body), &body) == nil && body.Type == "url_verification"
 }
