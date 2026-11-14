@@ -22,8 +22,9 @@ import (
 
 // Config holds deployment settings (from SSM Parameter Store, or env vars when running locally).
 type Config struct {
-	// AuthURL is the Slack "Add to Slack" authorize URL that /install redirects to.
-	AuthURL string
+	// APIBaseURL is this API's public base URL (e.g. https://api.lunchbuddiesapp.com). The
+	// OAuth redirect URI is APIBaseURL + /v1/auth.
+	APIBaseURL string
 	// RegistrationURL is where /auth redirects after a successful install.
 	RegistrationURL string
 	ClientID        string
@@ -76,7 +77,7 @@ func NewServiceContext(ctx context.Context) (ServiceContext, error) {
 			LegacyTokens:  []string{setting(params.SlackVerificationToken)},
 		},
 		Config: Config{
-			AuthURL:         setting(params.AuthURL),
+			APIBaseURL:      strings.TrimRight(os.Getenv("API_BASE_URL"), "/"),
 			RegistrationURL: envOr("REGISTRATION_URL", "https://www.lunchbuddiesapp.com/registration/"),
 			ClientID:        setting(params.SlackClientID),
 			ClientSecret:    setting(params.SlackClientSecret),

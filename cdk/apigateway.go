@@ -44,6 +44,8 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 		Env: map[string]*string{
 			"RECORDS_TABLE":    data.Table.Ref(),
 			"PARAMETER_PREFIX": jsii.String(cfg.ParameterPrefix),
+			// Public base URL; the OAuth install URL and redirect URI are built from it.
+			"API_BASE_URL": jsii.String("https://" + cfg.ApiDomainName),
 		},
 		TimeoutSecs:         15,
 		ReservedConcurrency: apiReservedConcurrency,

@@ -28,11 +28,11 @@ type harness struct {
 	slack *slacktest.Fake
 }
 
-func newHarness(t *testing.T, notifyInChannel bool) *harness {
+func newHarness(t *testing.T) *harness {
 	t.Helper()
 	store := memory.New()
 	fake := slacktest.New()
-	_ = store.PutTeam(context.Background(), repositories.Team{TeamID: "T1", BotAccessToken: "xoxb", FeatureNotifyInChannel: notifyInChannel})
+	_ = store.PutTeam(context.Background(), repositories.Team{TeamID: "T1", BotAccessToken: "xoxb"})
 	return &harness{
 		Deps:  Deps{Repositories: store.Repositories(), Slack: fake, Now: func() time.Time { return now }, Rand: seededForTest(1)},
 		store: store,
@@ -53,7 +53,7 @@ func (h *harness) request(t *testing.T, id, channel string) {
 
 func TestEndToEndPollLifecycle(t *testing.T) {
 	ctx := context.Background()
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.slack.Members["C1"] = []string{"U1", "U2", "U3", "U4"}
 	h.request(t, "cb", "C1")
 
@@ -121,7 +121,7 @@ func TestEndToEndPollLifecycle(t *testing.T) {
 
 func TestPreparePollRejectsSecondPollInChannel(t *testing.T) {
 	ctx := context.Background()
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.slack.Members["C1"] = []string{"U1"}
 	h.request(t, "first", "C1")
 	h.request(t, "second", "C1")
@@ -148,14 +148,14 @@ func TestPreparePollRejectsSecondPollInChannel(t *testing.T) {
 func TestPreparePollSlashCommandChannelResolution(t *testing.T) {
 	ctx := context.Background()
 
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.request(t, "cb", "")
 	_, _ = h.PreparePoll(ctx, PollInput{CallbackID: "cb"})
 	if h.store.Polls["cb"].RejectionReason != "default_channel_not_found" || h.slack.PostedTo("U1")[0] != polls.DefaultChannelNotFound {
 		t.Errorf("poll = %+v", h.store.Polls["cb"])
 	}
 
-	h = newHarness(t, true)
+	h = newHarness(t)
 	h.slack.Channels[polls.DefaultChannelName] = slack.Channel{ID: "CLB", Name: polls.DefaultChannelName}
 	h.slack.Members["CLB"] = []string{"U7"}
 	h.request(t, "cb", "")
@@ -164,7 +164,7 @@ func TestPreparePollSlashCommandChannelResolution(t *testing.T) {
 		t.Errorf("poll = %+v", h.store.Polls["cb"])
 	}
 
-	h = newHarness(t, true)
+	h = newHarness(t)
 	h.slack.Channels[polls.DefaultChannelName] = slack.Channel{ID: "CLB", Name: polls.DefaultChannelName}
 	h.slack.Members["CLB"] = []string{"U1", "U7"}
 	h.request(t, "cb", "")
@@ -176,7 +176,7 @@ func TestPreparePollSlashCommandChannelResolution(t *testing.T) {
 
 func TestFormGroupsWithNoResponsesDMsCloser(t *testing.T) {
 	ctx := context.Background()
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.slack.Members["C1"] = []string{"U1"}
 	h.request(t, "cb", "C1")
 	_, _ = h.PreparePoll(ctx, PollInput{CallbackID: "cb"})
@@ -193,26 +193,9 @@ func TestFormGroupsWithNoResponsesDMsCloser(t *testing.T) {
 	}
 }
 
-func TestNotifyPrivateGroup(t *testing.T) {
-	ctx := context.Background()
-	h := newHarness(t, false)
-	h.request(t, "cb", "C1")
-	_ = h.store.OpenPoll(ctx, h.store.Polls["cb"], "C1", now)
-	active, _ := h.store.GetActivePoll(ctx, "T1", "C1")
-	_ = h.store.ClosePoll(ctx, *active, "U1", now)
-	stored, _ := h.store.SaveGroups(ctx, "cb", []polls.Group{{ResponseKey: "yes_1200", UserIDs: []string{"U2", "U3"}}})
-
-	if err := h.NotifyGroup(ctx, NotifyGroupInput{CallbackID: "cb", GroupSK: stored[0].SK}); err != nil {
-		t.Fatal(err)
-	}
-	if len(h.slack.Opened) != 1 || !strings.HasPrefix(h.slack.PostedTo("G-U2-U3")[0], "Hello! This is your group for today.") {
-		t.Errorf("opened = %v posted = %+v", h.slack.Opened, h.slack.Posted)
-	}
-}
-
 func TestPollUserPropagatesRateLimit(t *testing.T) {
 	ctx := context.Background()
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.slack.Members["C1"] = []string{"U1"}
 	h.request(t, "cb", "C1")
 	_, _ = h.PreparePoll(ctx, PollInput{CallbackID: "cb"})
@@ -315,7 +298,7 @@ func TestRouterStartsNamedExecutionsAndReportsFailures(t *testing.T) {
 
 func TestWorkerDispatchesByTask(t *testing.T) {
 	ctx := context.Background()
-	h := newHarness(t, true)
+	h := newHarness(t)
 	h.slack.Members["C1"] = []string{"U1", "U2"}
 	h.request(t, "cb", "C1")
 

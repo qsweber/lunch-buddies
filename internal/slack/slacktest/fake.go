@@ -4,7 +4,6 @@ package slacktest
 import (
 	"context"
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/qsweber/lunch-buddies/internal/slack"
@@ -18,13 +17,14 @@ type Fake struct {
 	Channels map[string]slack.Channel // name -> channel
 	Users    map[string]slack.User
 	OAuth    *slack.OAuthAccess
+	// OAuthRedirectURI records the redirect_uri passed to OAuthV2Access.
+	OAuthRedirectURI string
 	// PostErrors are returned (in order) by PostMessage before it starts succeeding.
 	PostErrors []error
 
 	// Recorded calls.
 	Posted []slack.Message
 	Tokens []string
-	Opened [][]string
 }
 
 func New() *Fake {
@@ -42,13 +42,6 @@ func (f *Fake) PostMessage(_ context.Context, token string, msg slack.Message) (
 	f.Posted = append(f.Posted, msg)
 	f.Tokens = append(f.Tokens, token)
 	return fmt.Sprintf("ts-%d", len(f.Posted)), nil
-}
-
-func (f *Fake) OpenConversation(_ context.Context, _ string, userIDs []string) (string, error) {
-	f.mu.Lock()
-	defer f.mu.Unlock()
-	f.Opened = append(f.Opened, userIDs)
-	return "G-" + strings.Join(userIDs, "-"), nil
 }
 
 func (f *Fake) ConversationMembers(_ context.Context, _ string, channelID string) ([]string, error) {
@@ -78,7 +71,10 @@ func (f *Fake) UserInfo(_ context.Context, _ string, userID string) (*slack.User
 	return &u, nil
 }
 
-func (f *Fake) OAuthV2Access(context.Context, string, string, string) (*slack.OAuthAccess, error) {
+func (f *Fake) OAuthV2Access(_ context.Context, _, _, _ string, redirectURI string) (*slack.OAuthAccess, error) {
+	f.mu.Lock()
+	f.OAuthRedirectURI = redirectURI
+	f.mu.Unlock()
 	if f.OAuth == nil {
 		return nil, &slack.APIError{Method: "oauth.v2.access", Code: "invalid_code"}
 	}

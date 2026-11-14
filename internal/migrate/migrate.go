@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"math/big"
 	"sort"
-	"strings"
 	"time"
 
 	"github.com/qsweber/lunch-buddies/internal/repositories"
@@ -43,13 +42,11 @@ func Team(r Row) (repositories.Team, error) {
 	if err != nil {
 		return repositories.Team{}, fmt.Errorf("team %s: %w", r["team_id"], err)
 	}
-	notify := strings.ToLower(r["feature_notify_in_channel"])
 	return repositories.Team{
-		TeamID:                 r["team_id"],
-		BotAccessToken:         r["bot_access_token"],
-		Name:                   r["name"],
-		CreatedAt:              created,
-		FeatureNotifyInChannel: notify == "1" || notify == "true",
+		TeamID:         r["team_id"],
+		BotAccessToken: r["bot_access_token"],
+		Name:           r["name"],
+		CreatedAt:      created,
 	}, nil
 }
 

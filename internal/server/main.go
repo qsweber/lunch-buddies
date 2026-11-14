@@ -75,7 +75,7 @@ func (s *ServerImpl) Handle(ctx context.Context, req Request) Response {
 	case "POST " + PathHelp:
 		resp = s.Help(ctx, req)
 	case "GET " + PathInstall:
-		resp = redirect(s.sc.Config.AuthURL)
+		resp = s.Install()
 	case "GET " + PathAuth:
 		resp = s.Auth(ctx, req)
 	case "POST " + PathBot:

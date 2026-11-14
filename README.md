@@ -57,17 +57,25 @@ make fmt-check
 make build       # builds every Lambda into dist/<name>.zip
 ```
 
+## Install URL and OAuth scopes
+
+`/v1/install` redirects to Slack's authorize page, built in code from the `BotScopes` list in
+`internal/server/auth.go`, the `slack_client_id` parameter and the redirect URI
+`<API_BASE_URL>/v1/auth`. `API_BASE_URL` is set by CDK from the stack's domain. When you change
+scopes, change them in the Slack app (OAuth & Permissions → Bot Token Scopes) and in `BotScopes`
+together. The redirect URI must be listed under the app's Redirect URLs.
+
 ## Deploy
 
 The API Lambda reads its Slack settings from SSM Parameter Store at
-`/lunch-buddies/<env>/<key>` when it cold-starts (String or SecureString both work). The keys are `slack_signing_secret`, `slack_verification_token`,
-`slack_client_id`, `slack_client_secret` and `auth_url`. All five must exist, or the API
-fails to start (the deploy's ping check catches this); SSM can't store an empty value. To set them without echoing values or saving them to shell
-history (use AWS CLI v2: v1 tries to download values that start with `https://`):
+`/lunch-buddies/<env>/<key>` when it cold-starts (String or SecureString both work). The keys are
+`slack_signing_secret`, `slack_verification_token`, `slack_client_id` and `slack_client_secret`.
+All four must exist, or the API fails to start (the deploy's ping check catches this); SSM can't
+store an empty value. To set them without echoing values or saving them to shell history:
 
 ```bash
 # zsh (macOS default)
-ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret auth_url; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type SecureString --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
+ENV=dev; for key in slack_signing_secret slack_verification_token slack_client_id slack_client_secret; do read -rs "VALUE?$key: "; echo; aws ssm put-parameter --region us-west-2 --type SecureString --overwrite --name "/lunch-buddies/$ENV/$key" --value "$VALUE"; done; unset VALUE
 ```
 
 In bash, use `read -rsp "$key: " VALUE` instead of `read -rs "VALUE?$key: "`.

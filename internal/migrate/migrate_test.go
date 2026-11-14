@@ -7,13 +7,9 @@ import (
 )
 
 func TestTeam(t *testing.T) {
-	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "name": "Acme", "created_at": "1600000000.5", "feature_notify_in_channel": "1"})
-	if err != nil || team.TeamID != "T" || team.BotAccessToken != "xoxb" || team.Name != "Acme" || !team.FeatureNotifyInChannel || team.CreatedAt != 1600000000500 {
+	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "name": "Acme", "created_at": "1600000000.5"})
+	if err != nil || team.TeamID != "T" || team.BotAccessToken != "xoxb" || team.Name != "Acme" || team.CreatedAt != 1600000000500 {
 		t.Errorf("team = %+v, %v", team, err)
-	}
-	team, _ = Team(Row{"team_id": "T", "bot_access_token": "xoxb", "created_at": "1600000000"})
-	if team.FeatureNotifyInChannel {
-		t.Error("absent feature_notify_in_channel should be false, as in the Python DAO")
 	}
 	if _, err := Team(Row{"team_id": "T", "created_at": "1600000000"}); err == nil {
 		t.Error("a team without a bot token should be an error, not a silent copy")

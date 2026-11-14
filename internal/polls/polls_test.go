@@ -188,9 +188,6 @@ func TestMessages(t *testing.T) {
 	if got := InChannelGroupMessage(choice, []string{"U1", "U2"}); got != "Hey <@U1>, <@U2>! This is your group for today. You all should meet somewhere at `12:00`." {
 		t.Errorf("InChannelGroupMessage = %q", got)
 	}
-	if got := PrivateGroupMessage(choice, "U1"); got != "Hello! This is your group for today. You all should meet somewhere at `12:00`. I am selecting <@U1> to be in charge of picking the location." {
-		t.Errorf("PrivateGroupMessage = %q", got)
-	}
 	if got := Intersect([]string{"c", "a", "b"}, []string{"b", "x", "a", "a"}); !reflect.DeepEqual(got, []string{"a", "b"}) {
 		t.Errorf("Intersect = %v", got)
 	}

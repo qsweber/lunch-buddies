@@ -35,7 +35,7 @@ func newHarness(t *testing.T) *harness {
 		Repositories: h.store.Repositories(),
 		Slack:        h.slack,
 		Verifier:     slackverify.Verifier{LegacyTokens: []string{token}},
-		Config:       Config{AuthURL: "https://slack.com/oauth", RegistrationURL: "https://example.com/registered"},
+		Config:       Config{APIBaseURL: "https://api.example.com", ClientID: "123.456", RegistrationURL: "https://example.com/registered"},
 		Now:          func() time.Time { return now },
 		NewID: func() string {
 			h.ids++
@@ -289,11 +289,14 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 	h.slack.OAuth = &slack.OAuthAccess{AccessToken: "xoxb-new", TeamID: "T2", TeamName: "Globex", UserID: "U9"}
 
 	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathAuth, QueryParams: map[string]string{"code": "c"}})
+	if h.slack.OAuthRedirectURI != "https://api.example.com/v1/auth" {
+		t.Errorf("redirect_uri sent to oauth.v2.access = %q", h.slack.OAuthRedirectURI)
+	}
 	if r.StatusCode != 302 || r.Headers["Location"] != "https://example.com/registered" {
 		t.Fatalf("resp = %+v", r)
 	}
 	team := h.store.Teams["T2"]
-	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" || !team.FeatureNotifyInChannel {
+	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" {
 		t.Errorf("team = %+v", team)
 	}
 	if got := h.slack.PostedTo("U9"); len(got) != 1 || got[0] != welcomeMessage {
@@ -303,8 +306,10 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 
 func TestInstallAndPingAndNotFound(t *testing.T) {
 	h := newHarness(t)
-	if r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall}); r.StatusCode != 302 || r.Headers["Location"] != "https://slack.com/oauth" {
-		t.Errorf("install = %+v", r)
+	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall})
+	want := "https://slack.com/oauth/v2/authorize?client_id=123.456&redirect_uri=https%3A%2F%2Fapi.example.com%2Fv1%2Fauth&scope=app_mentions%3Aread%2Cchannels%3Aread%2Cchat%3Awrite%2Ccommands%2Cgroups%3Aread%2Cim%3Ahistory%2Cusers%3Aread"
+	if r.StatusCode != 302 || r.Headers["Location"] != want {
+		t.Errorf("install Location = %q\nwant %q", r.Headers["Location"], want)
 	}
 	if r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathPing}); r.StatusCode != 200 {
 		t.Errorf("ping = %+v", r)
