@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -194,5 +195,19 @@ func TestMessages(t *testing.T) {
 	att := PollAttachments("cb", DefaultChoices())
 	if att[0]["callback_id"] != "cb" || len(att[0]["actions"].([]map[string]any)) != 2 {
 		t.Errorf("PollAttachments = %+v", att)
+	}
+}
+
+func TestHelpTextDescribesCurrentBehaviour(t *testing.T) {
+	for _, want := range []string{"@Lunch Buddies create", "@Lunch Buddies close", "size=4", "announces each group in the channel", "support@lunchbuddiesapp.com"} {
+		if !strings.Contains(AppExplanation, want) {
+			t.Errorf("help text should mention %q", want)
+		}
+	}
+	// Removed features must not be advertised.
+	for _, gone := range []string{"private group", "summary", "customize by saying"} {
+		if strings.Contains(strings.ToLower(AppExplanation), gone) {
+			t.Errorf("help text still mentions %q", gone)
+		}
 	}
 }
