@@ -59,6 +59,20 @@ func (s *Store) PutTeam(_ context.Context, team repositories.Team) error {
 	return nil
 }
 
+func (s *Store) MarkTeamUninstalled(_ context.Context, teamID string, now time.Time) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	t, ok := s.Teams[teamID]
+	if !ok {
+		return nil
+	}
+	t.UninstalledAt = now.UnixMilli()
+	t.UpdatedAt = now.UnixMilli()
+	t.BotAccessToken = ""
+	s.Teams[teamID] = t
+	return nil
+}
+
 func (s *Store) CreateRequestedPoll(_ context.Context, poll repositories.Poll) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()

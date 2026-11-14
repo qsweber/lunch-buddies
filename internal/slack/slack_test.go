@@ -95,3 +95,23 @@ func TestFindChannelByName(t *testing.T) {
 		t.Errorf("FindChannelByName(missing) = %+v, %v", ch, err)
 	}
 }
+
+func TestOAuthV2AccessParsesInstallDetails(t *testing.T) {
+	c := newTestClient(t, func(w http.ResponseWriter, r *http.Request) {
+		_ = r.ParseForm()
+		if r.URL.Path != "/oauth.v2.access" || r.Form.Get("redirect_uri") != "https://x/v1/auth" || r.Form.Get("code") != "c" {
+			t.Errorf("path=%s form=%v", r.URL.Path, r.Form)
+		}
+		_, _ = w.Write([]byte(`{"ok":true,"access_token":"xoxb","scope":"chat:write,commands","bot_user_id":"UBOT",
+			"team":{"id":"T1","name":"Acme"},"enterprise":{"id":"E1","name":"Org"},"is_enterprise_install":false,
+			"authed_user":{"id":"U9"}}`))
+	})
+	got, err := c.OAuthV2Access(context.Background(), "id", "secret", "c", "https://x/v1/auth")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.AccessToken != "xoxb" || got.TeamID != "T1" || got.UserID != "U9" || got.BotUserID != "UBOT" ||
+		len(got.Scopes) != 2 || got.Scopes[1] != "commands" || got.EnterpriseID != "E1" || got.IsEnterpriseInstall {
+		t.Errorf("access = %+v", got)
+	}
+}

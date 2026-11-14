@@ -237,6 +237,49 @@ func TestBotCreateAndCloseInChannel(t *testing.T) {
 	}
 }
 
+func TestUninstallAndReinstall(t *testing.T) {
+	ctx := context.Background()
+	for _, event := range []map[string]any{
+		{"type": "app_uninstalled"},
+		{"type": "tokens_revoked", "tokens": map[string]any{"bot": []string{"UBOT"}}},
+	} {
+		h := newHarness(t)
+		body, _ := json.Marshal(map[string]any{"token": token, "type": "event_callback", "team_id": "T1", "event": event})
+		r := h.srv.Handle(ctx, Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: string(body)})
+		if r.StatusCode != 200 {
+			t.Fatalf("%v: status %d %s", event["type"], r.StatusCode, r.Body)
+		}
+		team := h.store.Teams["T1"]
+		if team.Installed() || team.BotAccessToken != "" || team.UninstalledAt != now.UnixMilli() {
+			t.Errorf("%v: team = %+v", event["type"], team)
+		}
+
+		// Commands from an uninstalled team are refused.
+		if r := h.post(PathCreatePoll, slash("")); r.StatusCode != 403 {
+			t.Errorf("%v: create after uninstall = %d", event["type"], r.StatusCode)
+		}
+
+		// Reinstalling restores the team and clears the uninstall, keeping the original created_at.
+		created := team.CreatedAt
+		h.slack.OAuth = &slack.OAuthAccess{AccessToken: "xoxb-again", TeamID: "T1", TeamName: "Acme", UserID: "U1"}
+		h.srv.Handle(ctx, Request{Method: "GET", Path: PathAuth, QueryParams: map[string]string{"code": "c"}})
+		team = h.store.Teams["T1"]
+		if !team.Installed() || team.UninstalledAt != 0 || team.CreatedAt != created {
+			t.Errorf("%v: after reinstall team = %+v", event["type"], team)
+		}
+	}
+}
+
+func TestUserTokenRevocationIsIgnored(t *testing.T) {
+	h := newHarness(t)
+	body, _ := json.Marshal(map[string]any{"token": token, "type": "event_callback", "team_id": "T1",
+		"event": map[string]any{"type": "tokens_revoked", "tokens": map[string]any{"oauth": []string{"U5"}}}})
+	h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: string(body)})
+	if !h.store.Teams["T1"].Installed() {
+		t.Error("revoking only user tokens must not uninstall the team")
+	}
+}
+
 func TestBotURLVerification(t *testing.T) {
 	h := newHarness(t)
 	body := `{"token":"` + token + `","type":"url_verification","challenge":"abc"}`
@@ -286,7 +329,10 @@ func TestSummary(t *testing.T) {
 
 func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 	h := newHarness(t)
-	h.slack.OAuth = &slack.OAuthAccess{AccessToken: "xoxb-new", TeamID: "T2", TeamName: "Globex", UserID: "U9"}
+	h.slack.OAuth = &slack.OAuthAccess{
+		AccessToken: "xoxb-new", TeamID: "T2", TeamName: "Globex", UserID: "U9",
+		BotUserID: "UBOT", Scopes: []string{"chat:write", "commands"}, EnterpriseID: "E1", IsEnterpriseInstall: false,
+	}
 
 	r := h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathAuth, QueryParams: map[string]string{"code": "c"}})
 	if h.slack.OAuthRedirectURI != "https://api.example.com/v1/auth" {
@@ -296,7 +342,8 @@ func TestAuthInstallsTeamAndRedirects(t *testing.T) {
 		t.Fatalf("resp = %+v", r)
 	}
 	team := h.store.Teams["T2"]
-	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" {
+	if team.BotAccessToken != "xoxb-new" || team.Name != "Globex" || team.InstalledByUserID != "U9" || team.BotUserID != "UBOT" ||
+		len(team.Scopes) != 2 || team.EnterpriseID != "E1" || team.CreatedAt != now.UnixMilli() || team.UpdatedAt != now.UnixMilli() || !team.Installed() {
 		t.Errorf("team = %+v", team)
 	}
 	if got := h.slack.PostedTo("U9"); len(got) != 1 || got[0] != welcomeMessage {

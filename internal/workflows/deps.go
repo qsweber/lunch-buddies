@@ -76,6 +76,9 @@ func (d Deps) loadTeam(ctx context.Context, teamID string) (*repositories.Team, 
 	if team == nil {
 		return nil, fmt.Errorf("team %s not found", teamID)
 	}
+	if !team.Installed() {
+		return nil, fmt.Errorf("team %s has uninstalled the app", teamID)
+	}
 	return team, nil
 }
 

@@ -119,7 +119,7 @@ func (s *ServerImpl) authorize(ctx context.Context, req Request, token, teamID s
 		r := errorResponse(500, err)
 		return nil, &r
 	}
-	if team == nil {
+	if team == nil || !team.Installed() {
 		r := errorResponse(403, errors.New("your team is not authorized for this app"))
 		return nil, &r
 	}

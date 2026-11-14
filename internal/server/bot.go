@@ -35,6 +35,10 @@ type eventCallback struct {
 			User string `json:"user"`
 			Text string `json:"text"`
 		} `json:"message"`
+		// Tokens is set on tokens_revoked events.
+		Tokens struct {
+			Bot []string `json:"bot"`
+		} `json:"tokens"`
 	} `json:"event"`
 }
 
@@ -73,11 +77,21 @@ func (s *ServerImpl) Bot(ctx context.Context, req Request) Response {
 		return Response{StatusCode: 200, Body: "ok"}
 	}
 
+	// Uninstalls: app_uninstalled, or tokens_revoked including the bot token. Either way the
+	// stored token is dead, so record the uninstall and drop it.
+	if cb.Event.Type == "app_uninstalled" || (cb.Event.Type == "tokens_revoked" && len(cb.Event.Tokens.Bot) > 0) {
+		if err := s.sc.Repositories.Teams.MarkTeamUninstalled(ctx, cb.TeamID, s.sc.Now()); err != nil {
+			return errorResponse(500, err)
+		}
+		slog.Info("team uninstalled", "team_id", cb.TeamID, "event", cb.Event.Type)
+		return Response{StatusCode: 200, Body: "ok"}
+	}
+
 	team, err := s.sc.Repositories.Teams.GetTeam(ctx, cb.TeamID)
 	if err != nil {
 		return errorResponse(500, err)
 	}
-	if team == nil {
+	if team == nil || !team.Installed() {
 		return errorResponse(403, fmt.Errorf("your team is not authorized for this app"))
 	}
 

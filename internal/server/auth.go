@@ -45,11 +45,18 @@ func (s *ServerImpl) Auth(ctx context.Context, req Request) Response {
 		return errorResponse(500, err)
 	}
 
+	now := s.sc.Now().UnixMilli()
 	team := repositories.Team{
-		TeamID:         access.TeamID,
-		BotAccessToken: access.AccessToken,
-		Name:           access.TeamName,
-		CreatedAt:      s.sc.Now().UnixMilli(),
+		TeamID:              access.TeamID,
+		BotAccessToken:      access.AccessToken,
+		Name:                access.TeamName,
+		CreatedAt:           now,
+		UpdatedAt:           now,
+		InstalledByUserID:   access.UserID,
+		BotUserID:           access.BotUserID,
+		Scopes:              access.Scopes,
+		EnterpriseID:        access.EnterpriseID,
+		IsEnterpriseInstall: access.IsEnterpriseInstall,
 	}
 	if existing != nil {
 		team.CreatedAt = existing.CreatedAt
