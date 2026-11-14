@@ -73,7 +73,9 @@ type API interface {
 	// FindChannelByName returns nil if no channel has that name.
 	FindChannelByName(ctx context.Context, token, name string) (*Channel, error)
 	UserInfo(ctx context.Context, token, userID string) (*User, error)
-	OAuthV2Access(ctx context.Context, clientID, clientSecret, code string) (*OAuthAccess, error)
+	// OAuthV2Access exchanges an install code for a bot token. redirectURI must be the one
+	// used on the authorize URL.
+	OAuthV2Access(ctx context.Context, clientID, clientSecret, code, redirectURI string) (*OAuthAccess, error)
 }
 
 type Client struct {
@@ -242,7 +244,7 @@ func (c *Client) UserInfo(ctx context.Context, token, userID string) (*User, err
 	return &User{Name: out.User.Profile.RealName, Email: out.User.Profile.Email, TZ: out.User.TZ}, nil
 }
 
-func (c *Client) OAuthV2Access(ctx context.Context, clientID, clientSecret, code string) (*OAuthAccess, error) {
+func (c *Client) OAuthV2Access(ctx context.Context, clientID, clientSecret, code, redirectURI string) (*OAuthAccess, error) {
 	var out struct {
 		AccessToken string `json:"access_token"`
 		Team        struct {
@@ -253,7 +255,7 @@ func (c *Client) OAuthV2Access(ctx context.Context, clientID, clientSecret, code
 			ID string `json:"id"`
 		} `json:"authed_user"`
 	}
-	form := url.Values{"client_id": {clientID}, "client_secret": {clientSecret}, "code": {code}}
+	form := url.Values{"client_id": {clientID}, "client_secret": {clientSecret}, "code": {code}, "redirect_uri": {redirectURI}}
 	if err := c.call(ctx, "oauth.v2.access", "", nil, form, &out); err != nil {
 		return nil, err
 	}

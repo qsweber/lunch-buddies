@@ -18,6 +18,8 @@ type Fake struct {
 	Channels map[string]slack.Channel // name -> channel
 	Users    map[string]slack.User
 	OAuth    *slack.OAuthAccess
+	// OAuthRedirectURI records the redirect_uri passed to OAuthV2Access.
+	OAuthRedirectURI string
 	// PostErrors are returned (in order) by PostMessage before it starts succeeding.
 	PostErrors []error
 
@@ -78,7 +80,10 @@ func (f *Fake) UserInfo(_ context.Context, _ string, userID string) (*slack.User
 	return &u, nil
 }
 
-func (f *Fake) OAuthV2Access(context.Context, string, string, string) (*slack.OAuthAccess, error) {
+func (f *Fake) OAuthV2Access(_ context.Context, _, _, _ string, redirectURI string) (*slack.OAuthAccess, error) {
+	f.mu.Lock()
+	f.OAuthRedirectURI = redirectURI
+	f.mu.Unlock()
 	if f.OAuth == nil {
 		return nil, &slack.APIError{Method: "oauth.v2.access", Code: "invalid_code"}
 	}

@@ -248,7 +248,7 @@ cdk/statemachines/start_poll.asl.json close_poll.asl.json
 
 ### 8.1 Prerequisites per stack
 
-- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret`, `auth_url` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3).
+- **SSM Parameter Store parameters** at `/lunch-buddies/<env>/<key>`: `slack_signing_secret`, `slack_verification_token`, `slack_client_id`, `slack_client_secret` (the README has a command to set them), plus the optional `legacy_forward_url` (§8.3). **[rev 4]** The install URL is no longer a parameter: `/v1/install` builds it from the `BotScopes` list in `internal/server/auth.go`, the client ID and `<API_BASE_URL>/v1/auth`, and `/v1/auth` sends the same `redirect_uri` to `oauth.v2.access`. Scope changes are code-reviewed alongside the Slack app change, and the redirect URI can't drift from the domain.
   - **[rev 4]** These replace rev 3's Secrets Manager secret because they're free.
   - The API Lambda reads them at cold start (`internal/params`, `ssm:GetParametersByPath` on its own prefix only) rather than having CloudFormation copy them into env vars. The deploy-time approach only picked up a changed value on a deploy that also changed the function, and a stale `auth_url` broke the first dev install.
   - Values now take effect on the next cold start, never sit in the Lambda's configuration, and can be SecureString (AWS-managed `aws/ssm` key).

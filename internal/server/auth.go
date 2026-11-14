@@ -4,10 +4,25 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"net/url"
+	"strings"
 
 	"github.com/qsweber/lunch-buddies/internal/repositories"
 	"github.com/qsweber/lunch-buddies/internal/slack"
 )
+
+// BotScopes are the OAuth scopes requested on install. They must match the scopes configured
+// in the Slack app (OAuth & Permissions → Bot Token Scopes); Slack reviews any change.
+var BotScopes = []string{
+	"app_mentions:read", // @Lunch Buddies create / close / summary / help
+	"channels:read",     // members of public channels to poll; finding #lunch_buddies
+	"chat:write",        // poll DMs, group announcements, replies
+	"commands",          // /lunch_buddies_create, /lunch_buddies_close
+	"groups:read",       // members of private channels the app was invited to
+	"im:history",        // commands sent to the bot by DM (message.im events)
+	"mpim:write",        // private group DMs for teams with in-channel notify off
+	"users:read",        // the requester's time zone for summary dates
+}
 
 const welcomeMessage = "Thanks for installing Lunch Buddies! To get started, invite me to any channel and say `@Lunch Buddies create`."
 
@@ -21,7 +36,7 @@ func (s *ServerImpl) Auth(ctx context.Context, req Request) Response {
 		return errorResponse(400, errors.New("missing code"))
 	}
 
-	access, err := s.sc.Slack.OAuthV2Access(ctx, s.sc.Config.ClientID, s.sc.Config.ClientSecret, code)
+	access, err := s.sc.Slack.OAuthV2Access(ctx, s.sc.Config.ClientID, s.sc.Config.ClientSecret, code, s.redirectURI())
 	if err != nil {
 		return errorResponse(500, err)
 	}
@@ -52,4 +67,23 @@ func (s *ServerImpl) Auth(ctx context.Context, req Request) Response {
 	}
 
 	return redirect(s.sc.Config.RegistrationURL)
+}
+
+// redirectURI is where Slack sends the browser back after install. It must be listed under
+// the Slack app's OAuth & Permissions → Redirect URLs.
+func (s *ServerImpl) redirectURI() string {
+	return s.sc.Config.APIBaseURL + PathAuth
+}
+
+// Install redirects to Slack's "Add to Slack" authorize page for this app.
+func (s *ServerImpl) Install() Response {
+	if s.sc.Config.APIBaseURL == "" || s.sc.Config.ClientID == "" {
+		return errorResponse(500, errors.New("install is not configured (API_BASE_URL and slack_client_id are required)"))
+	}
+	query := url.Values{
+		"client_id":    {s.sc.Config.ClientID},
+		"scope":        {strings.Join(BotScopes, ",")},
+		"redirect_uri": {s.redirectURI()},
+	}
+	return redirect("https://slack.com/oauth/v2/authorize?" + query.Encode())
 }

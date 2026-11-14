@@ -22,14 +22,13 @@ const (
 	SlackVerificationToken = "slack_verification_token"
 	SlackClientID          = "slack_client_id"
 	SlackClientSecret      = "slack_client_secret"
-	AuthURL                = "auth_url"
 	// LegacyForwardURL is optional. While set, the API forwards every Slack request to the
 	// legacy Zappa API at this base URL (production cutover; design doc §8).
 	LegacyForwardURL = "legacy_forward_url"
 )
 
 // Required lists every key the API needs.
-var Required = []string{SlackSigningSecret, SlackVerificationToken, SlackClientID, SlackClientSecret, AuthURL}
+var Required = []string{SlackSigningSecret, SlackVerificationToken, SlackClientID, SlackClientSecret}
 
 // SSMAPI is the subset of the SSM client used here.
 type SSMAPI interface {
