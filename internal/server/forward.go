@@ -104,6 +104,18 @@ func (f *Forwarder) forward(ctx context.Context, req Request) (Response, bool) {
 	return Response{StatusCode: resp.StatusCode, Body: string(body), Headers: headers}, true
 }
 
+// servedLocally reports whether req is answered by this API even in forwarding mode. Both
+// involve no app data, so there's nothing to keep consistent with Zappa:
+//   - Slack's URL-verification challenge: the legacy /bot handler can't answer it (it fails
+//     on the missing team_id).
+//   - GET /v1/install: the legacy app redirects to a hard-coded authorize URL with the old
+//     scope list, which Slack rejects once those scopes are removed from the app. The local
+//     handler builds the URL from BotScopes. The install still completes through /v1/auth,
+//     which is forwarded, so the team is saved by the legacy app until cutover.
+func servedLocally(req Request) bool {
+	return isURLVerification(req) || (req.Method == "GET" && req.Path == PathInstall)
+}
+
 // isURLVerification reports whether req is Slack's Events API URL-verification challenge,
 // which Bot answers itself after verifying the request.
 func isURLVerification(req Request) bool {
