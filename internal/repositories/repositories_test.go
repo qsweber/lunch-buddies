@@ -85,14 +85,14 @@ func TestCreateRequestedPollKeysAndCondition(t *testing.T) {
 	db := &fakeDynamoDB{}
 	repo := NewPollsRepository(testTable, db)
 	err := repo.CreateRequestedPoll(context.Background(), Poll{
-		CallbackID: "cb1", TeamID: "T1", CreatedAt: 1700000000000, Choices: polls.DefaultChoices(), GroupSize: 6,
+		CallbackID: "cb1", TeamID: "T1", CreatedAt: At(time.Date(2026, 11, 14, 18, 3, 12, 123e6, time.UTC)), Choices: polls.DefaultChoices(), GroupSize: 6,
 	})
 	if err != nil {
 		t.Fatal(err)
 	}
 	item := db.putInput.Item
 	checks := map[string]string{
-		"pk": "POLL#cb1", "sk": "POLL", "gsi1pk": "TEAM#T1", "gsi1sk": "POLL#1700000000000", "state": StateRequested,
+		"pk": "POLL#cb1", "sk": "POLL", "gsi1pk": "TEAM#T1", "gsi1sk": "POLL#2026-11-14T18:03:12.123Z", "created_at": "2026-11-14T18:03:12.123Z", "state": StateRequested,
 	}
 	for k, want := range checks {
 		if got := str(t, item, k); got != want {
@@ -108,8 +108,8 @@ func TestCreateRequestedPollKeysAndCondition(t *testing.T) {
 }
 
 func TestOpenPollMapsCancellationReasons(t *testing.T) {
-	poll := Poll{CallbackID: "cb1", TeamID: "T1", CreatedAt: 1}
-	now := time.UnixMilli(ActivePollTTL.Milliseconds() + 5000)
+	poll := Poll{CallbackID: "cb1", TeamID: "T1", CreatedAt: At(time.Date(2026, 11, 14, 8, 0, 0, 0, time.UTC))}
+	now := time.Date(2026, 11, 14, 9, 30, 0, 0, time.UTC)
 
 	cases := []struct {
 		err  error
@@ -129,9 +129,9 @@ func TestOpenPollMapsCancellationReasons(t *testing.T) {
 		if got := str(t, put.Item, "sk"); got != "ACTIVE_POLL#C1" {
 			t.Errorf("pointer sk = %q", got)
 		}
-		cutoff := put.ExpressionAttributeValues[":cutoff"].(*types.AttributeValueMemberN).Value
-		if cutoff != "5000" {
-			t.Errorf("cutoff = %s, want 5000", cutoff)
+		cutoff := put.ExpressionAttributeValues[":cutoff"].(*types.AttributeValueMemberS).Value
+		if cutoff != "2026-11-13T09:30:00.000Z" {
+			t.Errorf("cutoff = %s, want 24h before now", cutoff)
 		}
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/qsweber/lunch-buddies/internal/polls"
 	"github.com/qsweber/lunch-buddies/internal/repositories"
@@ -59,10 +60,10 @@ func (s *ServerImpl) RespondToPoll(ctx context.Context, req Request) Response {
 		return errorResponse(400, errors.New("unknown choice"))
 	}
 
-	actionTS, _ := strconv.ParseFloat(payload.ActionTS, 64)
-	createdAt := int64(actionTS * 1000)
-	if createdAt == 0 {
-		createdAt = s.sc.Now().UnixMilli()
+	// When the user clicked, per Slack (epoch seconds with a fraction); now if absent.
+	createdAt := s.sc.Now()
+	if actionTS, err := strconv.ParseFloat(payload.ActionTS, 64); err == nil && actionTS > 0 {
+		createdAt = time.UnixMilli(int64(actionTS * 1000))
 	}
 
 	confirmation := polls.ResponseReceived(*choice)
@@ -70,7 +71,7 @@ func (s *ServerImpl) RespondToPoll(ctx context.Context, req Request) Response {
 		CallbackID: poll.CallbackID,
 		UserID:     payload.User.ID,
 		Response:   choice.Key,
-		CreatedAt:  createdAt,
+		CreatedAt:  repositories.At(createdAt),
 	})
 	if errors.Is(err, repositories.ErrPollNotOpen) {
 		confirmation = polls.MsgPollClosedForResponse

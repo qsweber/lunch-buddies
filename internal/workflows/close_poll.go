@@ -93,7 +93,7 @@ func (d Deps) NotifyGroup(ctx context.Context, in NotifyGroupInput) error {
 	if group == nil {
 		return fmt.Errorf("group %s/%s not found", in.CallbackID, in.GroupSK)
 	}
-	if group.NotifiedAt != 0 {
+	if group.NotifiedAt != nil {
 		return nil
 	}
 	poll, err := d.Repositories.Polls.GetPoll(ctx, in.CallbackID)

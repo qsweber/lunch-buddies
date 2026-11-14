@@ -8,7 +8,7 @@ import (
 
 func TestTeam(t *testing.T) {
 	team, err := Team(Row{"team_id": "T", "bot_access_token": "xoxb", "name": "Acme", "created_at": "1600000000.5"})
-	if err != nil || team.TeamID != "T" || team.BotAccessToken != "xoxb" || team.Name != "Acme" || team.CreatedAt != 1600000000500 {
+	if err != nil || team.TeamID != "T" || team.BotAccessToken != "xoxb" || team.Name != "Acme" || team.CreatedAt.String() != "2020-09-13T12:26:40.500Z" {
 		t.Errorf("team = %+v, %v", team, err)
 	}
 	if _, err := Team(Row{"team_id": "T", "created_at": "1600000000"}); err == nil {

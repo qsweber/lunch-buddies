@@ -25,8 +25,8 @@ type Team struct {
 	BotAccessToken string `dynamodbav:"bot_access_token,omitempty"`
 	Name           string `dynamodbav:"name"`
 	// CreatedAt is the first install; UpdatedAt the latest install or reinstall.
-	CreatedAt int64 `dynamodbav:"created_at"`
-	UpdatedAt int64 `dynamodbav:"updated_at,omitempty"`
+	CreatedAt Timestamp  `dynamodbav:"created_at"`
+	UpdatedAt *Timestamp `dynamodbav:"updated_at,omitempty"`
 	// InstalledByUserID is who last installed the app, the person to contact in Slack.
 	InstalledByUserID string `dynamodbav:"installed_by_user_id,omitempty"`
 	// BotUserID is the app's bot user in this workspace.
@@ -37,11 +37,11 @@ type Team struct {
 	IsEnterpriseInstall bool     `dynamodbav:"is_enterprise_install,omitempty"`
 	// UninstalledAt is set when Slack reports the app was uninstalled or its token revoked.
 	// The token is deleted then; a reinstall replaces the whole record.
-	UninstalledAt int64 `dynamodbav:"uninstalled_at,omitempty"`
+	UninstalledAt *Timestamp `dynamodbav:"uninstalled_at,omitempty"`
 }
 
 // Installed reports whether the team currently has the app installed.
-func (t Team) Installed() bool { return t.UninstalledAt == 0 && t.BotAccessToken != "" }
+func (t Team) Installed() bool { return t.UninstalledAt == nil && t.BotAccessToken != "" }
 
 func TeamPartitionKey(teamID string) string { return teamPartitionKeyPrefix + teamID }
 
@@ -108,7 +108,7 @@ func (r *TeamsRepositoryImpl) MarkTeamUninstalled(ctx context.Context, teamID st
 		UpdateExpression:    aws.String("SET uninstalled_at = :now, updated_at = :now REMOVE bot_access_token"),
 		ConditionExpression: aws.String("attribute_exists(pk)"),
 		ExpressionAttributeValues: map[string]types.AttributeValue{
-			":now": n(now.UnixMilli()),
+			":now": ts(now),
 		},
 	})
 	if isConditionFailed(err) {

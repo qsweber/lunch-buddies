@@ -45,13 +45,13 @@ func (s *ServerImpl) Auth(ctx context.Context, req Request) Response {
 		return errorResponse(500, err)
 	}
 
-	now := s.sc.Now().UnixMilli()
+	now := s.sc.Now()
 	team := repositories.Team{
 		TeamID:              access.TeamID,
 		BotAccessToken:      access.AccessToken,
 		Name:                access.TeamName,
-		CreatedAt:           now,
-		UpdatedAt:           now,
+		CreatedAt:           repositories.At(now),
+		UpdatedAt:           repositories.AtPtr(now),
 		InstalledByUserID:   access.UserID,
 		BotUserID:           access.BotUserID,
 		Scopes:              access.Scopes,
