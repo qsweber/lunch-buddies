@@ -235,4 +235,17 @@ func TestTeamsRepository(t *testing.T) {
 	if err != nil || team != nil {
 		t.Errorf("GetTeam(missing) = %v, %v", team, err)
 	}
+
+	if err := repo.MarkTeamUninstalled(context.Background(), "T1", time.UnixMilli(42)); err != nil {
+		t.Fatal(err)
+	}
+	u := db.updateInput
+	if aws.ToString(u.UpdateExpression) != "SET uninstalled_at = :now, updated_at = :now REMOVE bot_access_token" ||
+		aws.ToString(u.ConditionExpression) != "attribute_exists(pk)" || str(t, u.Key, "pk") != "TEAM#T1" {
+		t.Errorf("uninstall update = %+v", u)
+	}
+	db.updateErr = &types.ConditionalCheckFailedException{}
+	if err := repo.MarkTeamUninstalled(context.Background(), "unknown", time.Now()); err != nil {
+		t.Errorf("uninstalling an unknown team should be a no-op, got %v", err)
+	}
 }

@@ -62,7 +62,14 @@ type OAuthAccess struct {
 	AccessToken string
 	TeamID      string
 	TeamName    string
-	UserID      string
+	// UserID is the user who installed the app.
+	UserID string
+	// BotUserID is the app's bot user in this workspace.
+	BotUserID string
+	// Scopes are the bot scopes the token was granted.
+	Scopes              []string
+	EnterpriseID        string
+	IsEnterpriseInstall bool
 }
 
 // API is the Slack surface Lunch Buddies uses.
@@ -243,12 +250,32 @@ func (c *Client) OAuthV2Access(ctx context.Context, clientID, clientSecret, code
 		AuthedUser struct {
 			ID string `json:"id"`
 		} `json:"authed_user"`
+		BotUserID  string `json:"bot_user_id"`
+		Scope      string `json:"scope"`
+		Enterprise *struct {
+			ID string `json:"id"`
+		} `json:"enterprise"`
+		IsEnterpriseInstall bool `json:"is_enterprise_install"`
 	}
 	form := url.Values{"client_id": {clientID}, "client_secret": {clientSecret}, "code": {code}, "redirect_uri": {redirectURI}}
 	if err := c.call(ctx, "oauth.v2.access", "", nil, form, &out); err != nil {
 		return nil, err
 	}
-	return &OAuthAccess{AccessToken: out.AccessToken, TeamID: out.Team.ID, TeamName: out.Team.Name, UserID: out.AuthedUser.ID}, nil
+	access := &OAuthAccess{
+		AccessToken:         out.AccessToken,
+		TeamID:              out.Team.ID,
+		TeamName:            out.Team.Name,
+		UserID:              out.AuthedUser.ID,
+		BotUserID:           out.BotUserID,
+		IsEnterpriseInstall: out.IsEnterpriseInstall,
+	}
+	if out.Scope != "" {
+		access.Scopes = strings.Split(out.Scope, ",")
+	}
+	if out.Enterprise != nil {
+		access.EnterpriseID = out.Enterprise.ID
+	}
+	return access, nil
 }
 
 var _ API = (*Client)(nil)

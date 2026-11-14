@@ -65,6 +65,12 @@ make build       # builds every Lambda into dist/<name>.zip
 scopes, change them in the Slack app (OAuth & Permissions → Bot Token Scopes) and in `BotScopes`
 together. The redirect URI must be listed under the app's Redirect URLs.
 
+## Slack app event subscriptions
+
+Under **Event Subscriptions → Subscribe to bot events**, the app needs `app_mention` (commands),
+plus `app_uninstalled` and `tokens_revoked`, so uninstalls are recorded and dead tokens deleted.
+None of these needs an extra scope.
+
 ## Deploy
 
 The API Lambda reads its Slack settings from SSM Parameter Store at

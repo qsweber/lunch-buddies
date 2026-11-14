@@ -106,7 +106,7 @@ The table is `lunch-buddies-<env>-records`, with string keys `pk`/`sk` and one G
 
 | Entity | pk | sk | gsi1pk | gsi1sk | Other attributes |
 |--------|----|----|--------|--------|------------------|
-| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12), `name`, `created_at` |
+| Team | `TEAM#<team_id>` | `TEAM` | – | – | `bot_access_token` (plaintext, see §12; removed on uninstall), `name`, `created_at`, **[rev 4]** `updated_at`, `installed_by_user_id`, `bot_user_id`, `scopes`, `enterprise_id`, `is_enterprise_install`, `uninstalled_at` |
 | ActivePoll pointer | `TEAM#<team_id>` | `ACTIVE_POLL#<channel_id>` | – | – | `callback_id`, `created_at` |
 | Poll | `POLL#<callback_id>` | `POLL` | `TEAM#<team_id>` | `POLL#<created_at, 13-digit>` | `state`, `channel_id`, `created_by_user_id`, `choices`, `group_size`, `requested_text`, `rejection_reason`, `closed_by_user_id`, `closed_at`, **`group_count` [rev 3]** |
 | Recipient | `POLL#<callback_id>` | `RECIPIENT#<user_id>` | – | – | `sent_at`, `message_ts` |
@@ -195,7 +195,8 @@ Stream filter criteria (in `cdk/stream.go`) pass only these two transitions; the
 
 | Endpoint | Notes |
 |----------|-------|
-| `/auth` | Exchanges the code, upserts the team, sends the welcome DM. Logs only team id/name (P9). **[rev 4]** No longer looks up the installer or creates/updates a Stripe customer, and the welcome DM no longer links to pricing. |
+| `/bot` uninstall events | **[rev 4]** `app_uninstalled`, or `tokens_revoked` that includes the bot token, sets `uninstalled_at` and deletes the stored token. Uninstalled teams get 403 on commands, and workflow tasks refuse to act for them. A reinstall replaces the whole record (keeping `created_at`), which clears the uninstall. Needs both events added under the Slack app's Event Subscriptions → bot events; no scopes. |
+| `/auth` | Exchanges the code, upserts the team, sends the welcome DM. **[rev 4]** Also records what `oauth.v2.access` returns about the install: who installed it (to contact them in Slack), the bot user ID, the granted scopes (to know which teams must reinstall when scopes change), and Enterprise Grid details. Legacy teams copied by `migrate` lack these until they reinstall. Logs only team id/name (P9). **[rev 4]** No longer looks up the installer or creates/updates a Stripe customer, and the welcome DM no longer links to pricing. |
 | `summary` | **[rev 3]** Skips polls with no groups instead of erroring (Python raised `groups not found`). |
 | Invoicing | **[rev 4] Removed** along with Stripe. The Python job always ran with `dry_run=True`, so it never billed anyone. The legacy `stripe_customer_id`, `invoicing_enabled` and `stripe_invoice_id` columns are not migrated. |
 | `/error` | Dropped. |

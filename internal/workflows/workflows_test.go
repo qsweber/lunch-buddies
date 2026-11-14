@@ -326,3 +326,17 @@ func TestWorkerDispatchesByTask(t *testing.T) {
 		t.Errorf("err = %T, want an unwrapped *slack.RateLimitedError so Step Functions Retry matches it", err)
 	}
 }
+
+func TestTasksStopForUninstalledTeams(t *testing.T) {
+	ctx := context.Background()
+	h := newHarness(t)
+	h.slack.Members["C1"] = []string{"U1"}
+	h.request(t, "cb", "C1")
+	_ = h.store.MarkTeamUninstalled(ctx, "T1", now)
+	if _, err := h.PreparePoll(ctx, PollInput{CallbackID: "cb"}); err == nil || !strings.Contains(err.Error(), "uninstalled") {
+		t.Errorf("err = %v", err)
+	}
+	if len(h.slack.Posted) != 0 {
+		t.Error("nothing should be sent for an uninstalled team")
+	}
+}
