@@ -10,6 +10,7 @@ import (
 )
 
 type WorkflowResources struct {
+	Worker    *lambdaFunction
 	StartPoll awsstepfunctions.CfnStateMachine
 	ClosePoll awsstepfunctions.CfnStateMachine
 }
@@ -39,14 +40,14 @@ func createWorkflowResources(scope constructs.Construct, projectStackName string
 
 	sfnRole := newRole(scope, "StateMachineRole", projectStackName+"-sfn-role", "states.amazonaws.com", map[string]map[string]interface{}{
 		projectStackName + "-sfn-policy": policyDocument(
-			statement([]string{"lambda:InvokeFunction"}, *worker.AttrArn()),
+			statement([]string{"lambda:InvokeFunction"}, *worker.Function.AttrArn()),
 			// MarkPollComplete is a native DynamoDB task.
 			statement([]string{"dynamodb:UpdateItem"}, data.TableArn()),
 		),
 	})
 
 	substitutions := map[string]*string{
-		"WorkerFunctionArn": worker.AttrArn(),
+		"WorkerFunctionArn": worker.Function.AttrArn(),
 		"TableName":         data.Table.Ref(),
 	}
 	stateMachine := func(id, name, file string) awsstepfunctions.CfnStateMachine {
@@ -66,6 +67,7 @@ func createWorkflowResources(scope constructs.Construct, projectStackName string
 	}
 
 	return &WorkflowResources{
+		Worker:    worker,
 		StartPoll: stateMachine("StartPollStateMachine", "start-poll", "statemachines/start_poll.asl.json"),
 		ClosePoll: stateMachine("ClosePollStateMachine", "close-poll", "statemachines/close_poll.asl.json"),
 	}

@@ -39,6 +39,7 @@ func main() {
 		ZoneID:          zoneID,
 		ApiDomainName:   "dev-api.lunchbuddiesapp.com",
 		ParameterPrefix: "/lunch-buddies/dev",
+		AlertEmail:      "alerts@lunchbuddiesapp.com",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
 	})
@@ -50,6 +51,7 @@ func main() {
 		ZoneID:          zoneID,
 		ApiDomainName:   "api.lunchbuddiesapp.com",
 		ParameterPrefix: "/lunch-buddies/prod",
+		AlertEmail:      "alerts@lunchbuddiesapp.com",
 	}, &awscdk.StackProps{
 		Env: &awscdk.Environment{Account: jsii.String(account), Region: jsii.String(region)},
 	})
