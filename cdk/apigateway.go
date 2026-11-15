@@ -17,7 +17,7 @@ const (
 )
 
 type APIGatewayResources struct {
-	Function awslambda.CfnFunction
+	Function *lambdaFunction
 	Api      awsapigatewayv2.CfnApi
 	Stage    awsapigatewayv2.CfnStage
 }
@@ -59,7 +59,7 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 	integration := awsapigatewayv2.NewCfnIntegration(scope, jsii.String("HttpApiIntegration"), &awsapigatewayv2.CfnIntegrationProps{
 		ApiId:                api.Ref(),
 		IntegrationType:      jsii.String("AWS_PROXY"),
-		IntegrationUri:       function.AttrArn(),
+		IntegrationUri:       function.Function.AttrArn(),
 		PayloadFormatVersion: jsii.String("2.0"),
 	})
 	route := awsapigatewayv2.NewCfnRoute(scope, jsii.String("HttpApiDefaultRoute"), &awsapigatewayv2.CfnRouteProps{
@@ -80,7 +80,7 @@ func createAPIGatewayResources(scope constructs.Construct, projectStackName stri
 
 	awslambda.NewCfnPermission(scope, jsii.String("APIPermission"), &awslambda.CfnPermissionProps{
 		Action:       jsii.String("lambda:InvokeFunction"),
-		FunctionName: function.Ref(),
+		FunctionName: function.Function.Ref(),
 		Principal:    jsii.String("apigateway.amazonaws.com"),
 		SourceArn:    jsii.String(fmt.Sprintf("arn:aws:execute-api:%s:%s:%s/*", cfg.Region, cfg.Account, *api.Ref())),
 	})

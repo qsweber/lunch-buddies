@@ -15,8 +15,8 @@ func NewLunchBuddiesStack(scope constructs.Construct, id string, cfg EnvConfig, 
 	data := createDataResources(stack, projectStackName, cfg)
 	workflows := createWorkflowResources(stack, projectStackName, data)
 	stream := createStreamResources(stack, projectStackName, data, workflows)
-	createAlarms(stack, projectStackName, cfg, workflows, stream)
 	api := createAPIGatewayResources(stack, projectStackName, cfg, data)
+	createAlarms(stack, projectStackName, cfg, workflows, stream, api)
 	createCustomDomainResources(stack, cfg, api.Api, api.Stage)
 
 	output := func(name string, value *string) {

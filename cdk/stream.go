@@ -16,6 +16,7 @@ const (
 )
 
 type StreamResources struct {
+	Router          *lambdaFunction
 	DeadLetterQueue awssqs.CfnQueue
 }
 
@@ -49,7 +50,7 @@ func createStreamResources(scope constructs.Construct, projectStackName string, 
 
 	mapping := awslambda.NewCfnEventSourceMapping(scope, jsii.String("StreamMapping"), &awslambda.CfnEventSourceMappingProps{
 		EventSourceArn:             data.Table.AttrStreamArn(),
-		FunctionName:               router.Ref(),
+		FunctionName:               router.Function.Ref(),
 		StartingPosition:           jsii.String("LATEST"),
 		BatchSize:                  jsii.Number(10),
 		MaximumRetryAttempts:       jsii.Number(5),
@@ -65,7 +66,7 @@ func createStreamResources(scope constructs.Construct, projectStackName string, 
 			},
 		},
 	})
-	mapping.AddDependency(router)
+	mapping.AddDependency(router.Function)
 
-	return &StreamResources{DeadLetterQueue: dlq}
+	return &StreamResources{Router: router, DeadLetterQueue: dlq}
 }
