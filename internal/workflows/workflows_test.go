@@ -193,6 +193,40 @@ func TestFormGroupsWithNoResponsesDMsCloser(t *testing.T) {
 	}
 }
 
+// rejectingSaveGroups makes SaveGroups report ErrInvalidTransition without storing anything.
+type rejectingSaveGroups struct{ repositories.PollsRepository }
+
+func (rejectingSaveGroups) SaveGroups(context.Context, string, []polls.Group) ([]repositories.Group, error) {
+	return nil, repositories.ErrInvalidTransition
+}
+
+func TestFormGroupsFailsWhenRejectedSaveLeftNoGroups(t *testing.T) {
+	ctx := context.Background()
+	h := newHarness(t)
+	h.slack.Members["C1"] = []string{"U1", "U2"}
+	h.request(t, "cb", "C1")
+	_, _ = h.PreparePoll(ctx, PollInput{CallbackID: "cb"})
+	for _, u := range []string{"U1", "U2"} {
+		if err := h.store.RecordResponse(ctx, repositories.PollResponse{CallbackID: "cb", UserID: u, Response: "yes_1200"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	active, _ := h.store.GetActivePoll(ctx, "T1", "C1")
+	_ = h.store.ClosePoll(ctx, *active, "U9", now)
+
+	h.Repositories.Polls = rejectingSaveGroups{h.Repositories.Polls}
+	if out, err := h.FormGroups(ctx, PollInput{CallbackID: "cb"}); err == nil {
+		t.Fatalf("FormGroups = %+v, nil; want an error so the task is retried", out)
+	}
+
+	// The retry, with a working repository, forms the group.
+	h.Repositories.Polls = h.store.Repositories().Polls
+	out, err := h.FormGroups(ctx, PollInput{CallbackID: "cb"})
+	if err != nil || len(out.GroupSKs) != 1 {
+		t.Fatalf("retry: out = %+v, err = %v", out, err)
+	}
+}
+
 func TestPollUserPropagatesRateLimit(t *testing.T) {
 	ctx := context.Background()
 	h := newHarness(t)

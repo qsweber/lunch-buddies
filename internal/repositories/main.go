@@ -82,3 +82,16 @@ func cancellationCodes(err error) []string {
 }
 
 const conditionalCheckFailed = "ConditionalCheckFailed"
+
+// anyConditionFailed reports whether a canceled transaction failed because one of its
+// conditions didn't hold. Other cancellation reasons (TransactionConflict, ThrottlingError,
+// ...) are transient and must reach the caller as errors so it retries, not be mistaken for
+// a business outcome.
+func anyConditionFailed(err error) bool {
+	for _, code := range cancellationCodes(err) {
+		if code == conditionalCheckFailed {
+			return true
+		}
+	}
+	return false
+}

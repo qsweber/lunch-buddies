@@ -49,6 +49,13 @@ func (e *InvalidSizeError) Error() string {
 	return fmt.Sprintf("Size must be between 2 and 6. Received: %q", e.Size)
 }
 
+// DuplicateOptionError is returned when the same time is listed more than once.
+type DuplicateOptionError struct{ Option string }
+
+func (e *DuplicateOptionError) Error() string {
+	return fmt.Sprintf("Option %q is listed more than once", e.Option)
+}
+
 var sizePattern = regexp.MustCompile(`(.*)size=(.+)`)
 
 // ParseText turns the text after "create" (e.g. "1145, 1230 size=4") into the poll's
@@ -68,6 +75,11 @@ func ParseText(text string) ([]Choice, int, error) {
 		choice, err := choiceFromRawOption(strings.TrimSpace(option))
 		if err != nil {
 			return nil, 0, err
+		}
+		// A repeated time ("1200, 1200" or "1200, 01200") is most likely a typo for a
+		// different time, so ask the user to fix it rather than guess.
+		if FindChoice(choices, choice.Key) != nil {
+			return nil, 0, &DuplicateOptionError{Option: strings.TrimSpace(option)}
 		}
 		choices = append(choices, choice)
 	}
@@ -106,7 +118,8 @@ func choiceFromRawOption(option string) (Choice, error) {
 	}
 	t := fmt.Sprintf("%d:%02d", hour, minute)
 	return Choice{
-		Key:         "yes_" + option,
+		// Built from the parsed time, not the raw text, so "930", "0930" and "+0930" share a key.
+		Key:         fmt.Sprintf("yes_%02d%02d", hour, minute),
 		IsYes:       true,
 		Time:        t,
 		DisplayText: fmt.Sprintf("Yes (%s)", t),

@@ -37,6 +37,8 @@ func FormGroups(choices []Choice, responses []Response, groupSize int, rng *rand
 		if !ok {
 			continue
 		}
+		// Delete as we go so a choice listed twice can't group the same people twice.
+		delete(byKey, choice.Key)
 		for _, members := range GetGroups(userIDs, groupSize, minGroupSize, MaxGroupSize, rng) {
 			groups = append(groups, Group{ResponseKey: choice.Key, UserIDs: members})
 		}

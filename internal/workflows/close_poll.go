@@ -47,10 +47,15 @@ func (d Deps) FormGroups(ctx context.Context, in PollInput) (FormGroupsOutput, e
 
 	stored, err := d.Repositories.Polls.SaveGroups(ctx, poll.CallbackID, groups)
 	if errors.Is(err, repositories.ErrInvalidTransition) {
-		// Another attempt saved groups first; use those.
+		// Another attempt saved groups first; use those. If group_count still isn't set, no
+		// groups were saved, so fail and let Step Functions retry rather than finishing the
+		// poll with nobody notified.
 		again, err := d.Repositories.Polls.GetPollCollection(ctx, in.CallbackID)
 		if err != nil {
 			return out, err
+		}
+		if again.Poll == nil || again.Poll.GroupCount == nil {
+			return out, fmt.Errorf("poll %s: saving groups was rejected but no groups are stored", in.CallbackID)
 		}
 		return withGroups(out, again.Groups), nil
 	}

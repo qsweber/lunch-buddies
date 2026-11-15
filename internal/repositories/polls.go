@@ -331,7 +331,8 @@ func (r *PollsRepositoryImpl) ClosePoll(ctx context.Context, active ActivePoll, 
 			}},
 		},
 	})
-	if cancellationCodes(err) != nil {
+	// Either the poll isn't OPEN or the pointer belongs to another poll.
+	if anyConditionFailed(err) {
 		return ErrPollNotOpen
 	}
 	return err
@@ -484,7 +485,7 @@ func (r *PollsRepositoryImpl) SaveGroups(ctx context.Context, callbackID string,
 	}})
 
 	_, err := r.client.TransactWriteItems(ctx, &dynamodb.TransactWriteItemsInput{TransactItems: items})
-	if cancellationCodes(err) != nil {
+	if anyConditionFailed(err) {
 		return nil, ErrInvalidTransition
 	}
 	if err != nil {
