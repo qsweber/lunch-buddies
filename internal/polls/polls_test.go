@@ -59,15 +59,13 @@ func TestParseTextGroupSize(t *testing.T) {
 	}
 }
 
-func TestParseTextDropsRepeatedTimes(t *testing.T) {
-	for _, text := range []string{"1200, 1200", "1200, 01200", "1200,1200,1200 size=3"} {
-		choices, _, err := ParseText(text)
-		if err != nil {
-			t.Fatalf("ParseText(%q) error: %v", text, err)
-		}
-		want := []Choice{{Key: "yes_1200", IsYes: true, Time: "12:00", DisplayText: "Yes (12:00)"}, NoChoice}
-		if !reflect.DeepEqual(choices, want) {
-			t.Errorf("ParseText(%q) = %+v, want %+v", text, choices, want)
+func TestParseTextRejectsRepeatedTimes(t *testing.T) {
+	cases := map[string]string{"1200, 1200": "1200", "1200, 01200": "01200", "1145, 1200,1200 size=3": "1200"}
+	for text, option := range cases {
+		_, _, err := ParseText(text)
+		var dupErr *DuplicateOptionError
+		if !errors.As(err, &dupErr) || dupErr.Option != option {
+			t.Errorf("ParseText(%q) error = %v, want DuplicateOptionError for %q", text, err, option)
 		}
 	}
 }

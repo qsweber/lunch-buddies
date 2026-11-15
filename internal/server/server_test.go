@@ -84,6 +84,9 @@ func TestCreatePollValidationAndHelpAreInline(t *testing.T) {
 	if got := replyText(t, h.post(PathCreatePoll, slash("noon"))); !strings.HasPrefix(got, "Failed: Option could not be parsed") {
 		t.Errorf("reply = %q", got)
 	}
+	if got := replyText(t, h.post(PathCreatePoll, slash("1200, 1200"))); got != `Failed: Option "1200" is listed more than once` {
+		t.Errorf("duplicate reply = %q", got)
+	}
 	if got := replyText(t, h.post(PathCreatePoll, slash(" HELP "))); got != polls.CreatePollHelp {
 		t.Errorf("help reply = %q", got)
 	}
