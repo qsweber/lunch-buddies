@@ -69,6 +69,11 @@ func ParseText(text string) ([]Choice, int, error) {
 		if err != nil {
 			return nil, 0, err
 		}
+		// A repeated time ("1200, 1200" or "1200, 01200") would be a duplicate button, and
+		// grouping per choice would put its respondents in two sets of groups.
+		if FindChoice(choices, choice.Key) != nil {
+			continue
+		}
 		choices = append(choices, choice)
 	}
 	choices = append(choices, NoChoice)
@@ -106,7 +111,8 @@ func choiceFromRawOption(option string) (Choice, error) {
 	}
 	t := fmt.Sprintf("%d:%02d", hour, minute)
 	return Choice{
-		Key:         "yes_" + option,
+		// Built from the parsed time, not the raw text, so "930", "0930" and "+0930" share a key.
+		Key:         fmt.Sprintf("yes_%02d%02d", hour, minute),
 		IsYes:       true,
 		Time:        t,
 		DisplayText: fmt.Sprintf("Yes (%s)", t),
