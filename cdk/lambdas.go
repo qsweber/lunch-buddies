@@ -29,9 +29,18 @@ type functionProps struct {
 	ReservedConcurrency float64
 }
 
+// lambdaFunction is a function plus the log group newFunction made for it, so alarms can
+// attach metric filters to the logs.
+type lambdaFunction struct {
+	ID       string
+	Name     string // full function name, "<stack>-<name>"
+	Function awslambda.CfnFunction
+	LogGroup awslogs.CfnLogGroup
+}
+
 // newFunction creates a Go Lambda from dist/<zip> plus an explicit log group, so logs have a
 // retention period instead of the default "never expire".
-func newFunction(scope constructs.Construct, projectStackName string, p functionProps) awslambda.CfnFunction {
+func newFunction(scope constructs.Construct, projectStackName string, p functionProps) *lambdaFunction {
 	name := projectStackName + "-" + p.Name
 
 	logGroup := awslogs.NewCfnLogGroup(scope, jsii.String(p.ID+"LogGroup"), &awslogs.CfnLogGroupProps{
@@ -64,7 +73,7 @@ func newFunction(scope constructs.Construct, projectStackName string, p function
 	fn := awslambda.NewCfnFunction(scope, jsii.String(p.ID+"Function"), props)
 	fn.AddDependency(p.Role)
 	fn.AddDependency(logGroup)
-	return fn
+	return &lambdaFunction{ID: p.ID, Name: name, Function: fn, LogGroup: logGroup}
 }
 
 // parameterPathArn is the IAM resource for GetParametersByPath on the stack's prefix.

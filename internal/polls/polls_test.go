@@ -5,6 +5,7 @@ import (
 	"math/rand/v2"
 	"reflect"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -55,6 +56,44 @@ func TestParseTextGroupSize(t *testing.T) {
 		if !reflect.DeepEqual(keys, c.want) || size != c.size {
 			t.Errorf("ParseText(%q) = %v size %d, want %v size %d", c.text, keys, size, c.want, c.size)
 		}
+	}
+}
+
+func TestParseTextRejectsRepeatedTimes(t *testing.T) {
+	cases := map[string]string{"1200, 1200": "1200", "1200, 01200": "01200", "1145, 1200,1200 size=3": "1200"}
+	for text, option := range cases {
+		_, _, err := ParseText(text)
+		var dupErr *DuplicateOptionError
+		if !errors.As(err, &dupErr) || dupErr.Option != option {
+			t.Errorf("ParseText(%q) error = %v, want DuplicateOptionError for %q", text, err, option)
+		}
+	}
+}
+
+func TestParseTextKeysFollowTheParsedTime(t *testing.T) {
+	cases := map[string]string{"930": "yes_0930", "0930": "yes_0930", "+0930": "yes_0930", "1145": "yes_1145"}
+	for text, want := range cases {
+		choices, _, err := ParseText(text)
+		if err != nil {
+			t.Fatalf("ParseText(%q) error: %v", text, err)
+		}
+		if choices[0].Key != want {
+			t.Errorf("ParseText(%q) key = %q, want %q", text, choices[0].Key, want)
+		}
+	}
+	// The defaults keep their key.
+	if choices, _, _ := ParseText("1200"); choices[0].Key != DefaultChoices()[0].Key {
+		t.Errorf("key for 1200 = %q, want %q", choices[0].Key, DefaultChoices()[0].Key)
+	}
+}
+
+func TestFormGroupsGroupsEachChoiceOnce(t *testing.T) {
+	// A poll stored with a repeated choice must still put each respondent in one group.
+	yes := Choice{Key: "yes_1200", IsYes: true, Time: "12:00"}
+	responses := []Response{{UserID: "a", ResponseKey: "yes_1200"}, {UserID: "b", ResponseKey: "yes_1200"}}
+	groups := FormGroups([]Choice{yes, yes, NoChoice}, responses, 6, rand.New(rand.NewPCG(0, 0)))
+	if len(groups) != 1 {
+		t.Fatalf("groups = %+v, want one group", groups)
 	}
 }
 
@@ -194,5 +233,19 @@ func TestMessages(t *testing.T) {
 	att := PollAttachments("cb", DefaultChoices())
 	if att[0]["callback_id"] != "cb" || len(att[0]["actions"].([]map[string]any)) != 2 {
 		t.Errorf("PollAttachments = %+v", att)
+	}
+}
+
+func TestHelpTextDescribesCurrentBehaviour(t *testing.T) {
+	for _, want := range []string{"@Lunch Buddies create", "@Lunch Buddies close", "size=4", "announces each group in the channel", "support@lunchbuddiesapp.com"} {
+		if !strings.Contains(AppExplanation, want) {
+			t.Errorf("help text should mention %q", want)
+		}
+	}
+	// Removed features must not be advertised.
+	for _, gone := range []string{"private group", "summary", "customize by saying"} {
+		if strings.Contains(strings.ToLower(AppExplanation), gone) {
+			t.Errorf("help text still mentions %q", gone)
+		}
 	}
 }

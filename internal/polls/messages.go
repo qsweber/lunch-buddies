@@ -12,24 +12,22 @@ const DefaultChannelName = "lunch_buddies"
 const (
 	TagLine = "Builds relationships between teammates by coordinating random lunch groups."
 
-	CreatePollHelp = "To initiate the process, invite the Lunch Buddies bot to any channel and " +
-		"say `@Lunch Buddies create`. This will send a message to each member of the current channel " +
-		"asking if they want to participate." +
+	CreatePollHelp = "*Start a poll:* invite `@Lunch Buddies` to a channel and say `@Lunch Buddies create`. " +
+		"Everyone in the channel gets a direct message asking if they can make it to lunch today." +
 		"\n\n" +
-		"The default options are: `Yes (12:00)`, and `No`, but you can customize by saying `@Lunch Buddies create 1145, 1230`." +
+		"The default options are `Yes (12:00)` and `No`. Choose your own times with `@Lunch Buddies create 1145, 1230`." +
 		"\n\n" +
-		"The default group size is 6, but this can be customize by saying `@Lunch Buddies create 1145, 1230 size=4`" +
+		"Groups have 6 people by default. Choose a size from 2 to 6 with `@Lunch Buddies create 1145, 1230 size=4`." +
 		"\n\n" +
-		"You can also create polls using the legacy `/lunch_buddies_create` slash command. " +
-		"Regardless of where this command is invoked, it will poll the members of the `#lunch_buddies` channel. " +
+		"You can also use the `/lunch_buddies_create` slash command, which always polls the `#lunch_buddies` channel (you need to be a member of it)." +
 		"\n\n" +
-		"It is possible to have multiple polls going at the same time; they are uniquely defined by the channel from which they were created. "
+		"Each channel can have its own poll, so several teams can run polls at the same time."
 
-	ClosePollHelp = "Once everyone has answered, go back to the same channel from which the poll was created " +
-		"and write `@Lunch Buddies close`. This will randomly group the responders by their answer " +
-		"and start a private group message for each group. " +
+	ClosePollHelp = "*Close the poll:* once everyone has answered, say `@Lunch Buddies close` in the channel where the poll was created. " +
+		"Lunch Buddies randomly groups everyone who said yes, by the time they chose, announces each group in the channel, " +
+		"and picks one person in each group to choose where to eat." +
 		"\n\n" +
-		"If you created the poll with the slash command `/lunch_buddies_create`, you should close it with the slash command `/lunch_buddies_close`."
+		"If you started the poll with `/lunch_buddies_create`, close it with `/lunch_buddies_close`."
 
 	SupportLine = "If you have any questions, comments or concerns, please send an email to support@lunchbuddiesapp.com"
 

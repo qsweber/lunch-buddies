@@ -150,6 +150,52 @@ func TestClosePollAndRecordResponseMapToErrPollNotOpen(t *testing.T) {
 	}
 }
 
+// A transaction canceled for a transient reason (a conflict with a concurrent transaction on
+// the same item, or throttling) must not be reported as "already closed" or "already
+// grouped": the caller has to see an error so it retries.
+func TestTransientCancellationsAreNotBusinessErrors(t *testing.T) {
+	ctx := context.Background()
+	active := ActivePoll{TeamID: "T", ChannelID: "C", CallbackID: "cb"}
+	groups := []polls.Group{{ResponseKey: "yes_1200", UserIDs: []string{"a"}}}
+
+	for _, transient := range []error{
+		canceled("TransactionConflict", "None"),
+		canceled("None", "TransactionConflict"),
+		canceled("ThrottlingError", "None"),
+	} {
+		db := &fakeDynamoDB{transactErr: transient}
+		repo := NewPollsRepository(testTable, db)
+
+		if err := repo.ClosePoll(ctx, active, "U", time.Now()); err == nil || errors.Is(err, ErrPollNotOpen) {
+			t.Errorf("ClosePoll with %v = %v, want the raw error", transient, err)
+		}
+		if _, err := repo.SaveGroups(ctx, "cb", groups); err == nil || errors.Is(err, ErrInvalidTransition) {
+			t.Errorf("SaveGroups with %v = %v, want the raw error", transient, err)
+		}
+		if err := repo.RecordResponse(ctx, PollResponse{CallbackID: "cb", UserID: "U", Response: "no"}); err == nil || errors.Is(err, ErrPollNotOpen) {
+			t.Errorf("RecordResponse with %v = %v, want the raw error", transient, err)
+		}
+	}
+}
+
+func TestConditionFailuresAreBusinessErrors(t *testing.T) {
+	ctx := context.Background()
+	active := ActivePoll{TeamID: "T", ChannelID: "C", CallbackID: "cb"}
+
+	// The pointer now belongs to another poll.
+	db := &fakeDynamoDB{transactErr: canceled("None", conditionalCheckFailed)}
+	if err := NewPollsRepository(testTable, db).ClosePoll(ctx, active, "U", time.Now()); err != ErrPollNotOpen {
+		t.Errorf("ClosePoll = %v, want ErrPollNotOpen", err)
+	}
+
+	// The poll update (last item) failed: groups were already saved.
+	db = &fakeDynamoDB{transactErr: canceled("None", conditionalCheckFailed)}
+	_, err := NewPollsRepository(testTable, db).SaveGroups(ctx, "cb", []polls.Group{{ResponseKey: "yes_1200", UserIDs: []string{"a"}}})
+	if err != ErrInvalidTransition {
+		t.Errorf("SaveGroups = %v, want ErrInvalidTransition", err)
+	}
+}
+
 func TestSaveGroupsAssignsPerChoiceIndexes(t *testing.T) {
 	db := &fakeDynamoDB{}
 	stored, err := NewPollsRepository(testTable, db).SaveGroups(context.Background(), "cb", []polls.Group{
