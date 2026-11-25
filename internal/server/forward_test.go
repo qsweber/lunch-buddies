@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -16,7 +17,7 @@ func TestForwardingModePassesRequestsThroughToLegacyAPI(t *testing.T) {
 		b, _ := io.ReadAll(r.Body)
 		got.method, got.path, got.query, got.body = r.Method, r.URL.Path, r.URL.RawQuery, string(b)
 		got.contentType, got.signature = r.Header.Get("Content-Type"), r.Header.Get("X-Slack-Signature")
-		if r.URL.Path == "/production/api/v0/install" {
+		if r.URL.Path == "/production/api/v0/auth" {
 			w.Header().Set("Location", "https://slack.com/oauth")
 			w.WriteHeader(302)
 			return
@@ -47,9 +48,16 @@ func TestForwardingModePassesRequestsThroughToLegacyAPI(t *testing.T) {
 	}
 
 	// Redirects reach the browser unfollowed, and query strings pass through.
-	resp = h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall, RawQuery: "x=1"})
-	if resp.StatusCode != 302 || resp.Headers["Location"] != "https://slack.com/oauth" || got.query != "x=1" {
-		t.Errorf("install resp = %+v, query %q", resp, got.query)
+	resp = h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathAuth, RawQuery: "code=c&state="})
+	if resp.StatusCode != 302 || resp.Headers["Location"] != "https://slack.com/oauth" || got.query != "code=c&state=" {
+		t.Errorf("auth resp = %+v, query %q", resp, got.query)
+	}
+
+	// /v1/install is built locally from BotScopes, not forwarded.
+	got.path = ""
+	resp = h.srv.Handle(context.Background(), Request{Method: "GET", Path: PathInstall})
+	if resp.StatusCode != 302 || !strings.HasPrefix(resp.Headers["Location"], "https://slack.com/oauth/v2/authorize?") || got.path != "" {
+		t.Errorf("install in forwarding mode = %+v (legacy path %q)", resp, got.path)
 	}
 
 	// Ping is always served locally so deploy health checks work.
