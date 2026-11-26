@@ -195,7 +195,7 @@ func botEvent(text, channel string) string {
 		"token":   token,
 		"type":    "event_callback",
 		"team_id": "T1",
-		"event":   map[string]any{"type": "app_mention", "channel": channel, "user": "U1", "text": text},
+		"event":   map[string]any{"type": "app_mention", "channel": channel, "user": "U1", "text": text, "ts": "111.222"},
 	})
 	return string(b)
 }
@@ -219,6 +219,9 @@ func TestBotCreateAndCloseInChannel(t *testing.T) {
 	}
 	if got := h.slack.PostedTo("C9"); len(got) != 1 || got[0] != polls.MsgOK {
 		t.Errorf("posted = %v", got)
+	}
+	if ts := h.slack.Posted[0].ThreadTS; ts != "111.222" {
+		t.Errorf("reply thread_ts = %q, want a thread off the mention", ts)
 	}
 
 	// A Slack retry of the same event must not create a second poll.
@@ -355,5 +358,17 @@ func TestBotIgnoresEventsOtherThanMentions(t *testing.T) {
 	r := h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot, Headers: map[string]string{}, Body: string(body)})
 	if r.StatusCode != 200 || len(h.store.Polls) != 0 || len(h.slack.Posted) != 0 {
 		t.Errorf("a plain message event must be acknowledged and ignored: %d polls=%d posted=%d", r.StatusCode, len(h.store.Polls), len(h.slack.Posted))
+	}
+}
+
+func TestBotReplyStaysInExistingThread(t *testing.T) {
+	h := newHarness(t)
+	body, _ := json.Marshal(map[string]any{"token": token, "type": "event_callback", "team_id": "T1",
+		"event": map[string]any{"type": "app_mention", "channel": "C9", "user": "U1", "text": "<@UBOT> create 1200",
+			"ts": "333.444", "thread_ts": "111.222"}})
+	h.srv.Handle(context.Background(), Request{Method: "POST", Path: PathBot,
+		Headers: map[string]string{"content-type": "application/json"}, Body: string(body)})
+	if len(h.slack.Posted) != 1 || h.slack.Posted[0].ThreadTS != "111.222" {
+		t.Errorf("posted = %+v, want a reply in thread 111.222", h.slack.Posted)
 	}
 }
