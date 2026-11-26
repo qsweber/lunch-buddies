@@ -25,6 +25,9 @@ type eventCallback struct {
 		Channel string `json:"channel"`
 		User    string `json:"user"`
 		Text    string `json:"text"`
+		// TS is the mention's timestamp; ThreadTS is set when the mention is itself in a thread.
+		TS       string `json:"ts"`
+		ThreadTS string `json:"thread_ts"`
 		// Tokens is set on tokens_revoked events.
 		Tokens struct {
 			Bot []string `json:"bot"`
@@ -37,6 +40,8 @@ type botMention struct {
 	ChannelID string
 	UserID    string
 	Text      string
+	// ThreadTS is the thread to reply in: the mention's own thread, or one started off it.
+	ThreadTS string
 }
 
 var mentionPattern = regexp.MustCompile(`.*<@.+> (.*)`)
@@ -97,7 +102,11 @@ func (s *ServerImpl) Bot(ctx context.Context, req Request) Response {
 }
 
 func parseEvent(cb eventCallback) botMention {
-	return botMention{TeamID: cb.TeamID, ChannelID: cb.Event.Channel, UserID: cb.Event.User, Text: cb.Event.Text}
+	threadTS := cb.Event.ThreadTS
+	if threadTS == "" {
+		threadTS = cb.Event.TS
+	}
+	return botMention{TeamID: cb.TeamID, ChannelID: cb.Event.Channel, UserID: cb.Event.User, Text: cb.Event.Text, ThreadTS: threadTS}
 }
 
 // parseCommand returns the first word after the mention and the rest, or ok=false if the
@@ -140,6 +149,7 @@ func (s *ServerImpl) handleMention(ctx context.Context, team *repositories.Team,
 	if reply == "" {
 		return nil
 	}
-	_, err = s.sc.Slack.PostMessage(ctx, team.BotAccessToken, slack.Message{Channel: m.ChannelID, Text: reply, AsUser: true})
+	// Reply in a thread off the user's message rather than in the channel.
+	_, err = s.sc.Slack.PostMessage(ctx, team.BotAccessToken, slack.Message{Channel: m.ChannelID, Text: reply, ThreadTS: m.ThreadTS, AsUser: true})
 	return err
 }
